@@ -1,8 +1,9 @@
 import { useAuth, roleHome } from "@/contexts/AuthContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { LogOut, Heart } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
+import Logo from "./Logo";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,12 +27,10 @@ export default function TopBar() {
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-        <Link to={roleHome(user.role)} className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-primary shadow-elevated">
-            <Heart className="h-5 w-5 text-primary-foreground" fill="currentColor" />
-          </div>
-          <div className="leading-tight">
-            <p className="text-sm font-bold text-foreground">ONG Educar+</p>
+        <Link to={roleHome(user.role)} className="flex items-center gap-3 min-w-0">
+          <Logo size="md" />
+          <div className="leading-tight border-l border-border pl-3 hidden sm:block">
+            <p className="text-[11px] font-semibold text-primary uppercase tracking-wide">Portal</p>
             <p className="text-[11px] text-muted-foreground">{roleLabel[user.role]}</p>
           </div>
         </Link>
