@@ -17,42 +17,50 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 200 25% 18%;
 
-    --primary: 178 55% 38%;
+    /* Associação Camila — paleta institucional */
+    --primary: 158 75% 30%;          /* verde institucional */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 178 60% 55%;
+    --primary-glow: 152 60% 45%;
 
-    --secondary: 28 90% 60%;
+    --secondary: 28 90% 55%;         /* laranja da flor */
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 200 20% 95%;
-    --muted-foreground: 200 12% 45%;
+    --tertiary: 210 75% 45%;         /* azul */
+    --tertiary-foreground: 0 0% 100%;
 
-    --accent: 45 95% 65%;
-    --accent-foreground: 200 25% 18%;
+    --coral: 5 75% 52%;              /* vermelho-coral */
+    --coral-foreground: 0 0% 100%;
 
-    --destructive: 0 75% 55%;
+    --muted: 150 15% 95%;
+    --muted-foreground: 200 12% 42%;
+
+    --accent: 38 95% 62%;
+    --accent-foreground: 158 60% 18%;
+
+    --destructive: 5 75% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 145 55% 45%;
+    --success: 158 75% 35%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 55%;
-    --warning-foreground: 200 25% 18%;
+    --warning: 28 90% 55%;
+    --warning-foreground: 0 0% 100%;
 
-    --border: 200 20% 88%;
-    --input: 200 20% 90%;
-    --ring: 178 55% 38%;
+    --border: 150 15% 88%;
+    --input: 150 15% 90%;
+    --ring: 158 75% 30%;
 
     --radius: 0.85rem;
 
-    --gradient-primary: linear-gradient(135deg, hsl(178 55% 38%), hsl(178 60% 55%));
-    --gradient-warm: linear-gradient(135deg, hsl(28 90% 60%), hsl(45 95% 65%));
-    --gradient-hero: linear-gradient(135deg, hsl(178 55% 38%) 0%, hsl(200 60% 45%) 50%, hsl(28 90% 60%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(200 25% 97%));
+    --gradient-primary: linear-gradient(135deg, hsl(158 75% 28%), hsl(152 60% 42%));
+    --gradient-warm: linear-gradient(135deg, hsl(28 90% 55%), hsl(38 95% 62%));
+    --gradient-hero: linear-gradient(135deg, hsl(158 75% 28%) 0%, hsl(210 75% 45%) 55%, hsl(28 90% 55%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(150 25% 97%));
+    --gradient-brand: linear-gradient(120deg, hsl(158 75% 30%) 0%, hsl(210 75% 45%) 35%, hsl(28 90% 55%) 70%, hsl(5 75% 52%) 100%);
 
-    --shadow-sm: 0 2px 8px -2px hsl(200 25% 18% / 0.06);
-    --shadow-md: 0 8px 20px -6px hsl(178 55% 38% / 0.18);
-    --shadow-lg: 0 20px 40px -12px hsl(178 55% 38% / 0.25);
-    --shadow-warm: 0 10px 30px -8px hsl(28 90% 60% / 0.35);
+    --shadow-sm: 0 2px 8px -2px hsl(158 50% 15% / 0.08);
+    --shadow-md: 0 8px 20px -6px hsl(158 75% 28% / 0.20);
+    --shadow-lg: 0 20px 40px -12px hsl(158 75% 28% / 0.28);
+    --shadow-warm: 0 10px 30px -8px hsl(28 90% 55% / 0.35);
 
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -67,30 +75,34 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 200 30% 8%;
+    --background: 158 35% 8%;
     --foreground: 40 30% 96%;
-    --card: 200 28% 12%;
+    --card: 158 30% 12%;
     --card-foreground: 40 30% 96%;
-    --popover: 200 28% 12%;
+    --popover: 158 30% 12%;
     --popover-foreground: 40 30% 96%;
-    --primary: 178 60% 55%;
-    --primary-foreground: 200 30% 8%;
-    --primary-glow: 178 65% 65%;
-    --secondary: 28 85% 60%;
-    --secondary-foreground: 200 30% 8%;
-    --muted: 200 25% 18%;
-    --muted-foreground: 200 15% 65%;
-    --accent: 45 90% 60%;
-    --accent-foreground: 200 30% 8%;
-    --destructive: 0 70% 50%;
+    --primary: 152 60% 50%;
+    --primary-foreground: 158 35% 8%;
+    --primary-glow: 152 65% 60%;
+    --secondary: 28 90% 60%;
+    --secondary-foreground: 158 35% 8%;
+    --tertiary: 210 75% 55%;
+    --tertiary-foreground: 0 0% 100%;
+    --coral: 5 75% 58%;
+    --coral-foreground: 0 0% 100%;
+    --muted: 158 25% 18%;
+    --muted-foreground: 150 15% 65%;
+    --accent: 38 90% 60%;
+    --accent-foreground: 158 35% 8%;
+    --destructive: 5 70% 50%;
     --destructive-foreground: 0 0% 100%;
-    --success: 145 55% 50%;
+    --success: 152 55% 50%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 55%;
-    --warning-foreground: 200 30% 8%;
-    --border: 200 25% 22%;
-    --input: 200 25% 22%;
-    --ring: 178 60% 55%;
+    --warning: 28 90% 55%;
+    --warning-foreground: 158 35% 8%;
+    --border: 158 25% 22%;
+    --input: 158 25% 22%;
+    --ring: 152 60% 50%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -118,6 +130,11 @@ All colors MUST be HSL.
   .gradient-warm { background: var(--gradient-warm); }
   .gradient-hero { background: var(--gradient-hero); }
   .gradient-card { background: var(--gradient-card); }
+  .gradient-brand { background: var(--gradient-brand); }
+  .bg-tertiary { background-color: hsl(var(--tertiary)); }
+  .text-tertiary { color: hsl(var(--tertiary)); }
+  .bg-coral { background-color: hsl(var(--coral)); }
+  .text-coral { color: hsl(var(--coral)); }
   .shadow-soft { box-shadow: var(--shadow-sm); }
   .shadow-elevated { box-shadow: var(--shadow-md); }
   .shadow-floating { box-shadow: var(--shadow-lg); }

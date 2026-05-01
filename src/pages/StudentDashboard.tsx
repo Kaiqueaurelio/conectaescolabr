@@ -41,7 +41,7 @@ export default function StudentDashboard() {
 
   return (
     <AppLayout>
-      <section className="mb-6 rounded-3xl gradient-warm p-6 text-secondary-foreground shadow-warm relative overflow-hidden">
+      <section className="mb-6 rounded-3xl gradient-brand p-6 text-primary-foreground shadow-warm relative overflow-hidden">
         <Sparkle className="absolute top-3 right-4 h-5 w-5 opacity-60" />
         <Star className="absolute bottom-4 right-12 h-4 w-4 opacity-50" />
         <p className="text-sm opacity-90">Olá,</p>

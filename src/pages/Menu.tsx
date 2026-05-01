@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import { Newspaper, ClipboardCheck, LogOut, ChevronRight, Settings, HelpCircle, Heart } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import Logo from "@/components/Logo";
 
 export default function Menu() {
   const { user, logout } = useAuth();
@@ -57,9 +58,12 @@ export default function Menu() {
         </Card>
       </button>
 
-      <p className="mt-8 text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1">
-        Feito com <Heart className="h-3 w-3 fill-secondary text-secondary" /> pela ONG Educar+
-      </p>
+      <div className="mt-10 flex flex-col items-center gap-2">
+        <Logo size="md" className="opacity-80" />
+        <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+          Feito com <Heart className="h-3 w-3 fill-coral text-coral" /> para a Associação Camila
+        </p>
+      </div>
     </AppLayout>
   );
 }

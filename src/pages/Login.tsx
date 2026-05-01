@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Heart, Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import heroImg from "@/assets/hero-education.jpg";
+import Logo from "@/components/Logo";
 
 const demoAccounts = [
   { label: "Professor(a)", email: "professor@ong.org" },
@@ -43,38 +44,33 @@ export default function Login() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
-      <div className="hidden lg:flex relative gradient-hero items-center justify-center p-12">
-        <div className="absolute inset-0 bg-foreground/10" />
+      <div className="hidden lg:flex relative gradient-brand items-center justify-center p-12 overflow-hidden">
+        <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute -bottom-20 -right-20 w-96 h-96 rounded-full bg-secondary/30 blur-3xl" />
         <div className="relative z-10 max-w-md text-primary-foreground">
-          <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur">
-              <Heart className="h-6 w-6" fill="currentColor" />
-            </div>
-            <h2 className="text-2xl font-bold">ONG Educar+</h2>
+          <div className="inline-flex bg-white rounded-2xl p-4 shadow-floating mb-8">
+            <Logo size="lg" />
           </div>
           <h1 className="text-4xl font-bold leading-tight text-balance">
-            Educação que transforma vidas todos os dias.
+            Em defesa e valorização da vida.
           </h1>
-          <p className="mt-4 text-lg text-primary-foreground/90">
-            Conectando educadores, alunos e famílias em uma jornada de aprendizado e cuidado.
+          <p className="mt-4 text-lg text-primary-foreground/95">
+            Conectando educadores, crianças e famílias em uma jornada de aprendizado, acolhimento e cuidado.
           </p>
           <img
             src={heroImg}
             alt="Crianças aprendendo juntas"
             width={1280}
             height={896}
-            className="mt-8 rounded-2xl shadow-floating"
+            className="mt-8 rounded-2xl shadow-floating bg-white/95 p-2"
           />
         </div>
       </div>
 
       <div className="flex items-center justify-center p-6 lg:p-12">
         <div className="w-full max-w-md">
-          <div className="mb-8 lg:hidden flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl gradient-primary shadow-elevated">
-              <Heart className="h-6 w-6 text-primary-foreground" fill="currentColor" />
-            </div>
-            <h2 className="text-xl font-bold">ONG Educar+</h2>
+          <div className="mb-8 lg:hidden flex justify-center">
+            <Logo size="xl" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Acesse sua conta</h1>
           <p className="mt-2 text-muted-foreground">
