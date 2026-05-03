@@ -4,10 +4,12 @@ import {
   events as seedEvents,
   blogPosts as seedBlogPosts,
   turmas as seedTurmas,
+  users as seedUsers,
   Announcement,
   EventItem,
   BlogPost,
   Turma,
+  User,
 } from "@/lib/mockData";
 
 export interface Reminder {
@@ -60,6 +62,7 @@ interface DataContextValue {
   reminders: Reminder[];
   blogPosts: BlogPost[];
   turmas: Turma[];
+  students: User[];
 
   addAnnouncement: (a: Omit<Announcement, "id" | "created_at" | "unread">) => void;
   updateAnnouncement: (id: string, patch: Partial<Announcement>) => void;
@@ -78,12 +81,25 @@ interface DataContextValue {
   updateBlogPost: (id: string, patch: Partial<BlogPost>) => void;
   deleteBlogPost: (id: string) => void;
 
+  addTurma: (t: Omit<Turma, "id" | "studentIds">) => void;
+  updateTurma: (id: string, patch: Partial<Turma>) => void;
+  deleteTurma: (id: string) => void;
+
+  addStudent: (s: Omit<User, "id" | "role">) => void;
+  updateStudent: (id: string, patch: Partial<User>) => void;
+  deleteStudent: (id: string) => void;
+  assignStudentToTurma: (studentId: string, turmaId: string) => void;
+  removeStudentFromTurma: (studentId: string, turmaId: string) => void;
+
+  isOverdue: (r: Reminder) => boolean;
+  daysOverdue: (r: Reminder) => number;
+
   resetAll: () => void;
 }
 
 const DataContext = createContext<DataContextValue | undefined>(undefined);
 
-const KEY = "camila_data_v1";
+const KEY = "camila_data_v2";
 
 interface Persisted {
   announcements: Announcement[];
@@ -91,6 +107,7 @@ interface Persisted {
   reminders: Reminder[];
   blogPosts: BlogPost[];
   turmas: Turma[];
+  students: User[];
 }
 
 const initial = (): Persisted => ({
@@ -99,6 +116,7 @@ const initial = (): Persisted => ({
   reminders: seedReminders,
   blogPosts: seedBlogPosts,
   turmas: seedTurmas,
+  students: seedUsers.filter((u) => u.role === "STUDENT"),
 });
 
 const uid = (p: string) => `${p}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
@@ -180,6 +198,56 @@ export function DataProvider({ children }: { children: ReactNode }) {
       })),
     deleteBlogPost: (id) =>
       setState((s) => ({ ...s, blogPosts: s.blogPosts.filter((x) => x.id !== id) })),
+
+    addTurma: (t) =>
+      setState((s) => ({ ...s, turmas: [...s.turmas, { ...t, id: uid("c"), studentIds: [] }] })),
+    updateTurma: (id, patch) =>
+      setState((s) => ({
+        ...s,
+        turmas: s.turmas.map((x) => (x.id === id ? { ...x, ...patch } : x)),
+      })),
+    deleteTurma: (id) =>
+      setState((s) => ({ ...s, turmas: s.turmas.filter((x) => x.id !== id) })),
+
+    addStudent: (st) =>
+      setState((s) => ({
+        ...s,
+        students: [...s.students, { ...st, id: uid("s"), role: "STUDENT" } as User],
+      })),
+    updateStudent: (id, patch) =>
+      setState((s) => ({
+        ...s,
+        students: s.students.map((x) => (x.id === id ? { ...x, ...patch } : x)),
+      })),
+    deleteStudent: (id) =>
+      setState((s) => ({
+        ...s,
+        students: s.students.filter((x) => x.id !== id),
+        turmas: s.turmas.map((t) => ({ ...t, studentIds: t.studentIds.filter((sid) => sid !== id) })),
+      })),
+    assignStudentToTurma: (studentId, turmaId) =>
+      setState((s) => ({
+        ...s,
+        turmas: s.turmas.map((t) =>
+          t.id === turmaId
+            ? { ...t, studentIds: t.studentIds.includes(studentId) ? t.studentIds : [...t.studentIds, studentId] }
+            : t
+        ),
+      })),
+    removeStudentFromTurma: (studentId, turmaId) =>
+      setState((s) => ({
+        ...s,
+        turmas: s.turmas.map((t) =>
+          t.id === turmaId ? { ...t, studentIds: t.studentIds.filter((sid) => sid !== studentId) } : t
+        ),
+      })),
+
+    isOverdue: (r) => !r.done && r.due_date < new Date().toISOString().slice(0, 10),
+    daysOverdue: (r) => {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const due = new Date(r.due_date + "T00:00:00");
+      return Math.max(0, Math.floor((today.getTime() - due.getTime()) / 86400000));
+    },
 
     resetAll: () => {
       localStorage.removeItem(KEY);

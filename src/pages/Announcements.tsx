@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import AppLayout from "@/components/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -11,20 +11,25 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
+import SearchBar from "@/components/admin/SearchBar";
 
 export default function Announcements() {
   const { user } = useAuth();
   const { announcements } = useData();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [q, setQ] = useState("");
 
-  const visible = announcements.filter((a) => {
+  const audience = announcements.filter((a) => {
     if (a.target === "ALL") return true;
     if (user?.role === "TEACHER" || user?.role === "ADMIN") return a.target === "TEACHERS";
     if (user?.role === "PARENT") return a.target === "PARENTS";
     if (user?.role === "STUDENT") return a.target === "STUDENTS";
     return true;
   });
+  const visible = useMemo(() => audience.filter((a) =>
+    !q || `${a.title} ${a.content}`.toLowerCase().includes(q.toLowerCase())
+  ), [audience, q]);
 
   const refresh = async () => {
     setRefreshing(true);
@@ -53,6 +58,10 @@ export default function Announcements() {
           </div>
         }
       />
+
+      <div className="mb-4">
+        <SearchBar value={q} onChange={setQ} placeholder="Buscar comunicados..." total={audience.length} filtered={visible.length} onClear={() => setQ("")} />
+      </div>
 
       {loading ? (
         <div className="space-y-3">
