@@ -19,6 +19,7 @@ export const users: User[] = [
   { id: "s5", role: "STUDENT", name: "Gabriel Costa", email: "gabriel@ong.org", avatar_url: "", classIds: ["c1"] },
   { id: "p1", role: "PARENT", name: "Carla Oliveira", email: "responsavel@ong.org", avatar_url: "", childrenIds: ["s1", "s3"] },
   { id: "a1", role: "ADMIN", name: "Coordenação ONG", email: "admin@ong.org", avatar_url: "" },
+  { id: "a2", role: "ADMIN", name: "Administração Camila", email: "admin@associacaocamila.br", avatar_url: "" },
 ];
 
 export interface Turma {
