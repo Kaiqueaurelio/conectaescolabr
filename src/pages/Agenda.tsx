@@ -3,12 +3,13 @@ import AppLayout from "@/components/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import { Calendar } from "@/components/ui/calendar";
 import { Card } from "@/components/ui/card";
-import { events } from "@/lib/mockData";
+import { useData } from "@/contexts/DataContext";
 import { CalendarX, MapPin } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import { ptBR } from "date-fns/locale";
 
 export default function Agenda() {
+  const { events } = useData();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const selectedISO = date?.toISOString().slice(0, 10);
   const dayEvents = events.filter((e) => e.date === selectedISO);

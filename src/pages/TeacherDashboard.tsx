@@ -4,10 +4,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ClipboardCheck, Megaphone, Users, Calendar, ChevronRight, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
-import { turmas, events } from "@/lib/mockData";
+import { turmas } from "@/lib/mockData";
+import { useData } from "@/contexts/DataContext";
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
+  const { events } = useData();
   const myClasses = turmas.filter((t) => t.teacher_id === user?.id);
   const today = new Date().toISOString().slice(0, 10);
   const todayEvents = events.filter((e) => e.date >= today).slice(0, 4);

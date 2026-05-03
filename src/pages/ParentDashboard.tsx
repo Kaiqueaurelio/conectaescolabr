@@ -2,7 +2,8 @@ import AppLayout from "@/components/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { announcements, events, users } from "@/lib/mockData";
+import { users } from "@/lib/mockData";
+import { useData } from "@/contexts/DataContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Megaphone, Calendar as CalIcon, TrendingUp, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -10,6 +11,7 @@ import EmptyState from "@/components/EmptyState";
 
 export default function ParentDashboard() {
   const { user, selectedChildId, switchChild } = useAuth();
+  const { announcements, events } = useData();
   const children = users.filter((u) => user?.childrenIds?.includes(u.id));
   const child = children.find((c) => c.id === selectedChildId) || children[0];
   const today = new Date().toISOString().slice(0, 10);
