@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import AppLayout from "@/components/AppLayout";
-import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
+} from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -16,84 +19,111 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useData, Reminder } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { Announcement, EventItem, BlogPost, Turma, User, users as seedUsers } from "@/lib/mockData";
 import { toast } from "sonner";
+import StatCard from "@/components/dashboard/StatCard";
+import SearchBar from "@/components/admin/SearchBar";
+import EmptyState from "@/components/EmptyState";
 import {
-  Megaphone, CalendarDays, Bell, Newspaper, Users,
-  Plus, Trash2, RotateCcw, ShieldCheck, Send, Save,
+  Megaphone, CalendarDays, Bell, Newspaper, Users as UsersIcon,
+  Plus, Trash2, RotateCcw, ShieldCheck, Send, Save, Pencil, AlertTriangle,
+  Activity, GraduationCap, UserPlus, ChevronRight, FileText, Sparkles,
 } from "lucide-react";
 
 type Target = "ALL" | "TEACHERS" | "PARENTS" | "STUDENTS";
 const targetLabel: Record<Target, string> = {
   ALL: "Todos", TEACHERS: "Professores", PARENTS: "Responsáveis", STUDENTS: "Alunos",
 };
-const priorityLabel: Record<Reminder["priority"], string> = {
-  HIGH: "Alta", MEDIUM: "Média", LOW: "Baixa",
-};
+const priorityLabel: Record<Reminder["priority"], string> = { HIGH: "Alta", MEDIUM: "Média", LOW: "Baixa" };
 const priorityClass: Record<Reminder["priority"], string> = {
   HIGH: "bg-coral text-coral-foreground",
   MEDIUM: "bg-secondary text-secondary-foreground",
   LOW: "bg-tertiary text-tertiary-foreground",
 };
 
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Bom dia";
+  if (h < 18) return "Boa tarde";
+  return "Boa noite";
+}
+function fmtDate(d: string) {
+  return new Date(d + (d.length === 10 ? "T00:00:00" : "")).toLocaleDateString("pt-BR", {
+    weekday: "short", day: "2-digit", month: "short",
+  }).replace(".", "");
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const data = useData();
+  const today = new Date().toISOString().slice(0, 10);
+  const in14 = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
+
+  const overdueCount = data.reminders.filter((r) => data.isOverdue(r)).length;
+  const upcomingEvents = data.events.filter((e) => e.date >= today && e.date <= in14);
+  const totalStudents = data.students.length;
+  const dateLong = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
 
   return (
     <AppLayout>
+      {/* Hero */}
       <section className="mb-6 rounded-3xl gradient-brand p-6 text-primary-foreground shadow-elevated relative overflow-hidden">
-        <ShieldCheck className="absolute -right-4 -bottom-4 h-32 w-32 opacity-10" />
-        <p className="text-sm opacity-90">Painel administrativo</p>
-        <h1 className="text-2xl font-bold mt-1">Olá, {user?.name?.split(" ")[0]}</h1>
-        <p className="mt-2 text-sm opacity-95 max-w-md">
-          Gerencie comunicados, eventos, lembretes, blog e turmas da Associação Camila.
-        </p>
-        <div className="mt-4 grid grid-cols-4 gap-2">
-          <Stat label="Comunicados" value={data.announcements.length} />
-          <Stat label="Eventos" value={data.events.length} />
-          <Stat label="Lembretes" value={data.reminders.filter((r) => !r.done).length} />
-          <Stat label="Posts" value={data.blogPosts.length} />
+        <ShieldCheck className="absolute -right-6 -bottom-6 h-40 w-40 opacity-10" />
+        <div className="flex items-center gap-2 text-[11px] opacity-90 uppercase tracking-wider font-semibold">
+          <ShieldCheck className="h-3.5 w-3.5" /> Painel administrativo
         </div>
+        <h1 className="text-2xl font-bold mt-2">{greeting()}, {user?.name?.split(" ")[0]}</h1>
+        <p className="mt-1 text-sm opacity-95 capitalize">{dateLong}</p>
+        <p className="mt-3 text-sm opacity-90 max-w-md">
+          Visão geral da Associação Camila — gerencie comunicações, agenda, lembretes, blog e turmas em um só lugar.
+        </p>
       </section>
 
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <StatCard icon={Megaphone} label="Comunicados ativos" value={data.announcements.length} tone="primary" />
+        <StatCard icon={CalendarDays} label="Eventos próximos (14d)" value={upcomingEvents.length} tone="tertiary" hint={`${data.events.length} no total`} />
+        <StatCard
+          icon={AlertTriangle}
+          label="Lembretes atrasados"
+          value={overdueCount}
+          tone="coral"
+          alert={overdueCount > 0}
+          hint={overdueCount > 0 ? "Requer atenção" : "Tudo em dia"}
+        />
+        <StatCard icon={GraduationCap} label="Alunas cadastradas" value={totalStudents} tone="secondary" hint={`${data.turmas.length} turmas`} />
+      </div>
+
+      {/* Insights row */}
+      <div className="grid lg:grid-cols-2 gap-4 mb-8">
+        <UpcomingEventsCard />
+        <UrgentRemindersCard />
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-4 mb-8">
+        <ActivityCard />
+        <ClassDistributionCard />
+      </div>
+
+      {/* Tabs gestão */}
+      <div className="mb-3 flex items-center gap-2">
+        <Sparkles className="h-4 w-4 text-primary" />
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Gestão</h2>
+      </div>
       <Tabs defaultValue="comunicados" className="w-full">
         <TabsList className="grid grid-cols-5 w-full h-auto">
-          <TabsTrigger value="comunicados" className="flex-col gap-1 py-2 text-[11px]">
-            <Megaphone className="h-4 w-4" /> Comunicados
-          </TabsTrigger>
-          <TabsTrigger value="eventos" className="flex-col gap-1 py-2 text-[11px]">
-            <CalendarDays className="h-4 w-4" /> Eventos
-          </TabsTrigger>
-          <TabsTrigger value="lembretes" className="flex-col gap-1 py-2 text-[11px]">
-            <Bell className="h-4 w-4" /> Lembretes
-          </TabsTrigger>
-          <TabsTrigger value="blog" className="flex-col gap-1 py-2 text-[11px]">
-            <Newspaper className="h-4 w-4" /> Blog
-          </TabsTrigger>
-          <TabsTrigger value="turmas" className="flex-col gap-1 py-2 text-[11px]">
-            <Users className="h-4 w-4" /> Turmas
-          </TabsTrigger>
+          <TabsTrigger value="comunicados" className="flex-col gap-1 py-2 text-[11px]"><Megaphone className="h-4 w-4" /> Comunicados</TabsTrigger>
+          <TabsTrigger value="eventos" className="flex-col gap-1 py-2 text-[11px]"><CalendarDays className="h-4 w-4" /> Eventos</TabsTrigger>
+          <TabsTrigger value="lembretes" className="flex-col gap-1 py-2 text-[11px]"><Bell className="h-4 w-4" /> Lembretes</TabsTrigger>
+          <TabsTrigger value="blog" className="flex-col gap-1 py-2 text-[11px]"><Newspaper className="h-4 w-4" /> Blog</TabsTrigger>
+          <TabsTrigger value="turmas" className="flex-col gap-1 py-2 text-[11px]"><UsersIcon className="h-4 w-4" /> Turmas</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="comunicados" className="mt-4 space-y-4">
-          <AnnouncementForm />
-          <AnnouncementList />
-        </TabsContent>
-        <TabsContent value="eventos" className="mt-4 space-y-4">
-          <EventForm />
-          <EventList />
-        </TabsContent>
-        <TabsContent value="lembretes" className="mt-4 space-y-4">
-          <ReminderForm />
-          <ReminderList />
-        </TabsContent>
-        <TabsContent value="blog" className="mt-4 space-y-4">
-          <BlogForm />
-          <BlogList />
-        </TabsContent>
-        <TabsContent value="turmas" className="mt-4 space-y-4">
-          <TurmasView />
-        </TabsContent>
+        <TabsContent value="comunicados" className="mt-4 space-y-4"><AnnouncementsTab /></TabsContent>
+        <TabsContent value="eventos" className="mt-4 space-y-4"><EventsTab /></TabsContent>
+        <TabsContent value="lembretes" className="mt-4 space-y-4"><RemindersTab /></TabsContent>
+        <TabsContent value="blog" className="mt-4 space-y-4"><BlogTab /></TabsContent>
+        <TabsContent value="turmas" className="mt-4 space-y-4"><TurmasTab /></TabsContent>
       </Tabs>
 
       <div className="mt-8 flex justify-center">
@@ -107,7 +137,7 @@ export default function AdminDashboard() {
             <AlertDialogHeader>
               <AlertDialogTitle>Restaurar dados?</AlertDialogTitle>
               <AlertDialogDescription>
-                Isso apaga tudo que você criou e devolve o app ao estado inicial de demonstração.
+                Isso apaga tudo que você criou e devolve o app ao estado inicial.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -123,194 +153,522 @@ export default function AdminDashboard() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+/* ============== INSIGHT CARDS ============== */
+
+function UpcomingEventsCard() {
+  const { events, turmas } = useData();
+  const today = new Date().toISOString().slice(0, 10);
+  const list = [...events].filter((e) => e.date >= today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4);
   return (
-    <div className="rounded-2xl bg-white/15 backdrop-blur p-2.5 text-center">
-      <p className="text-xl font-bold leading-none">{value}</p>
-      <p className="text-[10px] opacity-90 mt-1">{label}</p>
-    </div>
-  );
-}
-
-/* ---------------- Comunicados ---------------- */
-function AnnouncementForm() {
-  const { addAnnouncement } = useData();
-  const { user } = useAuth();
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [target, setTarget] = useState<Target>("ALL");
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (title.trim().length < 3) return toast.error("Título muito curto.");
-    if (content.trim().length < 10) return toast.error("Conteúdo muito curto.");
-    addAnnouncement({ title: title.trim(), content: content.trim(), target, author: user?.name || "Coordenação" });
-    setTitle(""); setContent(""); setTarget("ALL");
-    toast.success("Comunicado publicado!");
-  };
-
-  return (
-    <Card className="p-4">
-      <p className="text-sm font-semibold mb-3 flex items-center gap-2"><Plus className="h-4 w-4 text-primary" /> Novo comunicado</p>
-      <form onSubmit={submit} className="space-y-3">
-        <div>
-          <Label htmlFor="ac-title">Título</Label>
-          <Input id="ac-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Reunião extraordinária" />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label>Destinatários</Label>
-            <Select value={target} onValueChange={(v) => setTarget(v as Target)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.entries(targetLabel).map(([k, v]) => (<SelectItem key={k} value={k}>{v}</SelectItem>))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <div>
-          <Label htmlFor="ac-content">Mensagem</Label>
-          <Textarea id="ac-content" rows={3} value={content} onChange={(e) => setContent(e.target.value)} placeholder="Escreva o conteúdo..." />
-        </div>
-        <Button type="submit" className="w-full gradient-primary text-primary-foreground"><Send className="h-4 w-4 mr-2" /> Publicar</Button>
-      </form>
+    <Card className="p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold flex items-center gap-2"><CalendarDays className="h-4 w-4 text-tertiary" /> Próximos eventos</h3>
+      </div>
+      {list.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-4 text-center">Sem eventos agendados.</p>
+      ) : (
+        <ul className="space-y-2.5">
+          {list.map((e) => {
+            const t = turmas.find((x) => x.id === e.class_id);
+            return (
+              <li key={e.id} className="flex items-center gap-3">
+                <div className="flex h-10 w-10 flex-col items-center justify-center rounded-xl bg-tertiary/15 text-tertiary flex-shrink-0">
+                  <span className="text-[9px] font-bold uppercase">{new Date(e.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span>
+                  <span className="text-sm font-bold leading-none">{new Date(e.date).getDate()}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{e.title}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{t?.name || "Aberto a todos"}</p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </Card>
   );
 }
 
-function AnnouncementList() {
-  const { announcements, deleteAnnouncement } = useData();
+function UrgentRemindersCard() {
+  const { reminders, isOverdue, daysOverdue } = useData();
+  const list = reminders
+    .filter((r) => !r.done && (isOverdue(r) || r.priority === "HIGH"))
+    .sort((a, b) => a.due_date.localeCompare(b.due_date))
+    .slice(0, 4);
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Publicados ({announcements.length})</p>
-      {announcements.map((a) => (
-        <Card key={a.id} className="p-3 flex items-start gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-semibold text-sm">{a.title}</p>
-              <Badge variant="outline" className="text-[10px]">{targetLabel[a.target]}</Badge>
-            </div>
-            <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{a.content}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">{a.author} • {new Date(a.created_at).toLocaleDateString("pt-BR")}</p>
-          </div>
-          <Button variant="ghost" size="icon" onClick={() => { deleteAnnouncement(a.id); toast.success("Removido."); }} className="text-destructive hover:bg-destructive/10">
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </Card>
-      ))}
-    </div>
+    <Card className={`p-5 ${list.some(isOverdue) ? "border-coral/40" : ""}`}>
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-coral" /> Lembretes urgentes</h3>
+      </div>
+      {list.length === 0 ? (
+        <p className="text-xs text-muted-foreground py-4 text-center">Nada urgente. 🎉</p>
+      ) : (
+        <ul className="space-y-2.5">
+          {list.map((r) => {
+            const od = isOverdue(r);
+            const days = daysOverdue(r);
+            return (
+              <li key={r.id} className="flex items-start gap-3">
+                <div className={`mt-0.5 h-2 w-2 flex-shrink-0 rounded-full ${od ? "bg-coral" : "bg-secondary"}`} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{r.title}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <Badge variant="outline" className="text-[10px] h-4 px-1.5">{targetLabel[r.target]}</Badge>
+                    {od ? (
+                      <span className="text-[10px] text-coral font-semibold">Atrasado há {days}d</span>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground">Vence {fmtDate(r.due_date)}</span>
+                    )}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </Card>
   );
 }
 
-/* ---------------- Eventos ---------------- */
-function EventForm() {
-  const { addEvent, turmas } = useData();
-  const [title, setTitle] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [description, setDescription] = useState("");
-  const [classId, setClassId] = useState<string>("none");
+function ActivityCard() {
+  const { announcements, events, reminders, blogPosts } = useData();
+  const items = useMemo(() => {
+    const all: { id: string; title: string; when: string; type: string; icon: any; tone: string }[] = [
+      ...announcements.map((a) => ({ id: a.id, title: a.title, when: a.created_at, type: "Comunicado", icon: Megaphone, tone: "text-primary bg-primary/12" })),
+      ...events.map((e) => ({ id: e.id, title: e.title, when: e.date + "T00:00:00", type: "Evento", icon: CalendarDays, tone: "text-tertiary bg-tertiary/15" })),
+      ...reminders.map((r) => ({ id: r.id, title: r.title, when: r.created_at, type: "Lembrete", icon: Bell, tone: "text-secondary bg-secondary/15" })),
+      ...blogPosts.map((p) => ({ id: p.id, title: p.title, when: p.published_at + "T00:00:00", type: "Post", icon: Newspaper, tone: "text-accent-foreground bg-accent/30" })),
+    ];
+    return all.sort((a, b) => b.when.localeCompare(a.when)).slice(0, 5);
+  }, [announcements, events, reminders, blogPosts]);
+  return (
+    <Card className="p-5">
+      <h3 className="text-sm font-semibold flex items-center gap-2 mb-3"><Activity className="h-4 w-4 text-primary" /> Atividade recente</h3>
+      <ul className="space-y-3">
+        {items.map((it) => {
+          const Icon = it.icon;
+          return (
+            <li key={it.type + it.id} className="flex items-start gap-3">
+              <div className={`flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 ${it.tone}`}>
+                <Icon className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{it.title}</p>
+                <p className="text-[11px] text-muted-foreground">{it.type} • {new Date(it.when).toLocaleDateString("pt-BR")}</p>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </Card>
+  );
+}
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (title.trim().length < 3) return toast.error("Título muito curto.");
-    addEvent({ title: title.trim(), date, description: description.trim(), class_id: classId === "none" ? undefined : classId });
-    setTitle(""); setDescription(""); setClassId("none");
-    toast.success("Evento criado!");
-  };
+function ClassDistributionCard() {
+  const { turmas } = useData();
+  const max = Math.max(1, ...turmas.map((t) => t.studentIds.length));
+  return (
+    <Card className="p-5">
+      <h3 className="text-sm font-semibold flex items-center gap-2 mb-4"><UsersIcon className="h-4 w-4 text-secondary" /> Distribuição por turma</h3>
+      <div className="space-y-3">
+        {turmas.map((t) => (
+          <div key={t.id}>
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="font-medium truncate">{t.name}</span>
+              <span className="text-muted-foreground">{t.studentIds.length} aluna{t.studentIds.length !== 1 ? "s" : ""}</span>
+            </div>
+            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+              <div className="h-full gradient-primary rounded-full transition-all" style={{ width: `${(t.studentIds.length / max) * 100}%` }} />
+            </div>
+          </div>
+        ))}
+        {turmas.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Sem turmas cadastradas.</p>}
+      </div>
+    </Card>
+  );
+}
+
+/* ============== ANNOUNCEMENTS ============== */
+
+function AnnouncementsTab() {
+  const { announcements, addAnnouncement, updateAnnouncement, deleteAnnouncement } = useData();
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Announcement | null>(null);
+  const [q, setQ] = useState("");
+  const [target, setTarget] = useState<"ALL_F" | Target>("ALL_F");
+
+  const filtered = useMemo(() => {
+    return announcements.filter((a) => {
+      if (target !== "ALL_F" && a.target !== target) return false;
+      if (q && !`${a.title} ${a.content}`.toLowerCase().includes(q.toLowerCase())) return false;
+      return true;
+    });
+  }, [announcements, q, target]);
 
   return (
-    <Card className="p-4">
-      <p className="text-sm font-semibold mb-3 flex items-center gap-2"><Plus className="h-4 w-4 text-primary" /> Novo evento</p>
-      <form onSubmit={submit} className="space-y-3">
-        <div>
-          <Label htmlFor="ev-title">Título</Label>
-          <Input id="ev-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Oficina de teatro" />
+    <>
+      <SearchBar
+        value={q} onChange={setQ}
+        placeholder="Buscar comunicados..."
+        total={announcements.length} filtered={filtered.length}
+        onClear={() => { setQ(""); setTarget("ALL_F"); }}
+        filters={
+          <Select value={target} onValueChange={(v) => setTarget(v as any)}>
+            <SelectTrigger className="w-[170px] h-10"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL_F">Todos destinatários</SelectItem>
+              {Object.entries(targetLabel).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        }
+      />
+
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+        <DialogTrigger asChild>
+          <Button className="w-full gradient-primary text-primary-foreground"><Plus className="h-4 w-4 mr-2" /> Novo comunicado</Button>
+        </DialogTrigger>
+        <AnnouncementDialog
+          editing={editing}
+          onSave={(payload) => {
+            if (editing) {
+              updateAnnouncement(editing.id, payload);
+              toast.success("Comunicado atualizado!");
+            } else {
+              addAnnouncement({ ...payload, author: user?.name || "Coordenação" });
+              toast.success("Comunicado publicado!");
+            }
+            setOpen(false); setEditing(null);
+          }}
+        />
+      </Dialog>
+
+      {filtered.length === 0 ? (
+        <EmptyState icon={Megaphone} title="Nenhum comunicado encontrado." description="Ajuste os filtros ou crie um novo." />
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((a) => (
+            <Card key={a.id} className="p-3 flex items-start gap-3 hover:shadow-soft transition-smooth">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/12 text-primary flex-shrink-0">
+                <Megaphone className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-semibold text-sm">{a.title}</p>
+                  <Badge variant="outline" className="text-[10px]">{targetLabel[a.target]}</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{a.content}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{a.author} • {new Date(a.created_at).toLocaleDateString("pt-BR")}</p>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(a); setOpen(true); }}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <ConfirmDelete onConfirm={() => { deleteAnnouncement(a.id); toast.success("Removido."); }} />
+              </div>
+            </Card>
+          ))}
         </div>
+      )}
+    </>
+  );
+}
+
+function AnnouncementDialog({ editing, onSave }: { editing: Announcement | null; onSave: (p: { title: string; content: string; target: Target }) => void }) {
+  const [title, setTitle] = useState(editing?.title || "");
+  const [content, setContent] = useState(editing?.content || "");
+  const [target, setTarget] = useState<Target>(editing?.target || "ALL");
+  return (
+    <DialogContent>
+      <DialogHeader><DialogTitle>{editing ? "Editar comunicado" : "Novo comunicado"}</DialogTitle></DialogHeader>
+      <div className="space-y-3">
+        <div><Label>Título</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Reunião extraordinária" /></div>
+        <div>
+          <Label>Destinatários</Label>
+          <Select value={target} onValueChange={(v) => setTarget(v as Target)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{Object.entries(targetLabel).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div><Label>Mensagem</Label><Textarea rows={4} value={content} onChange={(e) => setContent(e.target.value)} /></div>
+      </div>
+      <DialogFooter>
+        <Button
+          className="gradient-primary text-primary-foreground"
+          onClick={() => {
+            if (title.trim().length < 3) return toast.error("Título muito curto.");
+            if (content.trim().length < 10) return toast.error("Conteúdo muito curto.");
+            onSave({ title: title.trim(), content: content.trim(), target });
+          }}
+        >
+          <Send className="h-4 w-4 mr-2" /> {editing ? "Salvar" : "Publicar"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+/* ============== EVENTS ============== */
+
+function EventsTab() {
+  const { events, turmas, addEvent, updateEvent, deleteEvent } = useData();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<EventItem | null>(null);
+  const [q, setQ] = useState("");
+  const [classFilter, setClassFilter] = useState<string>("ALL");
+  const [when, setWhen] = useState<"ALL" | "UPCOMING" | "PAST">("UPCOMING");
+
+  const today = new Date().toISOString().slice(0, 10);
+  const filtered = useMemo(() => {
+    return [...events]
+      .filter((e) => {
+        if (when === "UPCOMING" && e.date < today) return false;
+        if (when === "PAST" && e.date >= today) return false;
+        if (classFilter !== "ALL" && e.class_id !== classFilter) return false;
+        if (q && !`${e.title} ${e.description}`.toLowerCase().includes(q.toLowerCase())) return false;
+        return true;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [events, q, classFilter, when, today]);
+
+  return (
+    <>
+      <SearchBar
+        value={q} onChange={setQ} placeholder="Buscar eventos..."
+        total={events.length} filtered={filtered.length}
+        onClear={() => { setQ(""); setClassFilter("ALL"); setWhen("UPCOMING"); }}
+        filters={
+          <>
+            <Select value={when} onValueChange={(v) => setWhen(v as any)}>
+              <SelectTrigger className="w-[130px] h-10"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="UPCOMING">Próximos</SelectItem>
+                <SelectItem value="PAST">Passados</SelectItem>
+                <SelectItem value="ALL">Todos</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={classFilter} onValueChange={setClassFilter}>
+              <SelectTrigger className="w-[150px] h-10"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todas turmas</SelectItem>
+                {turmas.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </>
+        }
+      />
+
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+        <DialogTrigger asChild>
+          <Button className="w-full gradient-primary text-primary-foreground"><Plus className="h-4 w-4 mr-2" /> Novo evento</Button>
+        </DialogTrigger>
+        <EventDialog
+          editing={editing}
+          turmas={turmas}
+          onSave={(p) => {
+            if (editing) { updateEvent(editing.id, p); toast.success("Evento atualizado!"); }
+            else { addEvent(p); toast.success("Evento criado!"); }
+            setOpen(false); setEditing(null);
+          }}
+        />
+      </Dialog>
+
+      {filtered.length === 0 ? (
+        <EmptyState icon={CalendarDays} title="Nenhum evento encontrado." />
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((e) => {
+            const t = turmas.find((x) => x.id === e.class_id);
+            return (
+              <Card key={e.id} className="p-3 flex items-center gap-3 hover:shadow-soft transition-smooth">
+                <div className="flex h-12 w-12 flex-col items-center justify-center rounded-xl bg-tertiary/15 text-tertiary flex-shrink-0">
+                  <span className="text-[10px] font-semibold uppercase">{new Date(e.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span>
+                  <span className="text-base font-bold leading-none">{new Date(e.date).getDate()}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">{e.title}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-1">{e.description}</p>
+                  {t && <Badge variant="outline" className="mt-1 text-[10px]">{t.name}</Badge>}
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(e); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                  <ConfirmDelete onConfirm={() => { deleteEvent(e.id); toast.success("Removido."); }} />
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
+function EventDialog({ editing, turmas, onSave }: { editing: EventItem | null; turmas: Turma[]; onSave: (p: Omit<EventItem, "id">) => void }) {
+  const [title, setTitle] = useState(editing?.title || "");
+  const [date, setDate] = useState(editing?.date || new Date().toISOString().slice(0, 10));
+  const [description, setDescription] = useState(editing?.description || "");
+  const [classId, setClassId] = useState<string>(editing?.class_id || "none");
+  return (
+    <DialogContent>
+      <DialogHeader><DialogTitle>{editing ? "Editar evento" : "Novo evento"}</DialogTitle></DialogHeader>
+      <div className="space-y-3">
+        <div><Label>Título</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
         <div className="grid grid-cols-2 gap-3">
+          <div><Label>Data</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
           <div>
-            <Label htmlFor="ev-date">Data</Label>
-            <Input id="ev-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </div>
-          <div>
-            <Label>Turma (opcional)</Label>
+            <Label>Turma</Label>
             <Select value={classId} onValueChange={setClassId}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Aberto a todos</SelectItem>
-                {turmas.map((t) => (<SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>))}
+                {turmas.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
         </div>
-        <div>
-          <Label htmlFor="ev-desc">Descrição</Label>
-          <Textarea id="ev-desc" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Detalhes do evento..." />
-        </div>
-        <Button type="submit" className="w-full gradient-primary text-primary-foreground"><Save className="h-4 w-4 mr-2" /> Salvar evento</Button>
-      </form>
-    </Card>
+        <div><Label>Descrição</Label><Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+      </div>
+      <DialogFooter>
+        <Button
+          className="gradient-primary text-primary-foreground"
+          onClick={() => {
+            if (title.trim().length < 3) return toast.error("Título muito curto.");
+            onSave({ title: title.trim(), date, description: description.trim(), class_id: classId === "none" ? undefined : classId });
+          }}
+        ><Save className="h-4 w-4 mr-2" /> Salvar</Button>
+      </DialogFooter>
+    </DialogContent>
   );
 }
 
-function EventList() {
-  const { events, deleteEvent, turmas } = useData();
-  const sorted = useMemo(() => [...events].sort((a, b) => a.date.localeCompare(b.date)), [events]);
-  return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Agenda ({events.length})</p>
-      {sorted.map((e) => {
-        const turma = turmas.find((t) => t.id === e.class_id);
-        return (
-          <Card key={e.id} className="p-3 flex items-center gap-3">
-            <div className="flex h-12 w-12 flex-col items-center justify-center rounded-xl bg-primary/12 text-primary flex-shrink-0">
-              <span className="text-[10px] font-semibold uppercase">{new Date(e.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span>
-              <span className="text-base font-bold leading-none">{new Date(e.date).getDate()}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm truncate">{e.title}</p>
-              <p className="text-xs text-muted-foreground line-clamp-1">{e.description}</p>
-              {turma && <Badge variant="outline" className="mt-1 text-[10px]">{turma.name}</Badge>}
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => { deleteEvent(e.id); toast.success("Removido."); }} className="text-destructive hover:bg-destructive/10">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </Card>
-        );
-      })}
-    </div>
-  );
-}
+/* ============== REMINDERS ============== */
 
-/* ---------------- Lembretes ---------------- */
-function ReminderForm() {
-  const { addReminder } = useData();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [due, setDue] = useState(new Date().toISOString().slice(0, 10));
-  const [priority, setPriority] = useState<Reminder["priority"]>("MEDIUM");
-  const [target, setTarget] = useState<Target>("ALL");
+function RemindersTab() {
+  const { reminders, addReminder, updateReminder, deleteReminder, toggleReminder, isOverdue, daysOverdue } = useData();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Reminder | null>(null);
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<"ALL" | "PENDING" | "DONE" | "OVERDUE">("ALL");
+  const [priority, setPriority] = useState<"ALL" | Reminder["priority"]>("ALL");
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (title.trim().length < 3) return toast.error("Título muito curto.");
-    addReminder({ title: title.trim(), description: description.trim(), due_date: due, priority, target });
-    setTitle(""); setDescription(""); setPriority("MEDIUM"); setTarget("ALL");
-    toast.success("Lembrete criado!");
-  };
+  const filtered = useMemo(() => {
+    return [...reminders]
+      .filter((r) => {
+        if (status === "PENDING" && r.done) return false;
+        if (status === "DONE" && !r.done) return false;
+        if (status === "OVERDUE" && !isOverdue(r)) return false;
+        if (priority !== "ALL" && r.priority !== priority) return false;
+        if (q && !`${r.title} ${r.description || ""}`.toLowerCase().includes(q.toLowerCase())) return false;
+        return true;
+      })
+      .sort((a, b) => Number(a.done) - Number(b.done) || a.due_date.localeCompare(b.due_date));
+  }, [reminders, q, status, priority, isOverdue]);
+
+  const overdue = reminders.filter(isOverdue);
 
   return (
-    <Card className="p-4">
-      <p className="text-sm font-semibold mb-3 flex items-center gap-2"><Plus className="h-4 w-4 text-primary" /> Novo lembrete</p>
-      <form onSubmit={submit} className="space-y-3">
-        <div>
-          <Label htmlFor="r-title">Título</Label>
-          <Input id="r-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Trazer material de arte" />
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <Label htmlFor="r-due">Prazo</Label>
-            <Input id="r-due" type="date" value={due} onChange={(e) => setDue(e.target.value)} />
+    <>
+      {overdue.length > 0 && (
+        <Card className="p-3 border-coral/40 bg-coral/5 flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-coral/15 text-coral"><AlertTriangle className="h-4 w-4" /></div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-foreground">{overdue.length} lembrete{overdue.length > 1 ? "s" : ""} atrasado{overdue.length > 1 ? "s" : ""}</p>
+            <p className="text-[11px] text-muted-foreground">Use o filtro "Atrasados" para revisá-los.</p>
           </div>
+          <Button size="sm" variant="outline" className="border-coral/40 text-coral" onClick={() => setStatus("OVERDUE")}>Ver</Button>
+        </Card>
+      )}
+
+      <SearchBar
+        value={q} onChange={setQ} placeholder="Buscar lembretes..."
+        total={reminders.length} filtered={filtered.length}
+        onClear={() => { setQ(""); setStatus("ALL"); setPriority("ALL"); }}
+        filters={
+          <>
+            <Select value={status} onValueChange={(v) => setStatus(v as any)}>
+              <SelectTrigger className="w-[130px] h-10"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todos</SelectItem>
+                <SelectItem value="PENDING">Pendentes</SelectItem>
+                <SelectItem value="DONE">Concluídos</SelectItem>
+                <SelectItem value="OVERDUE">Atrasados</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={priority} onValueChange={(v) => setPriority(v as any)}>
+              <SelectTrigger className="w-[120px] h-10"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Prioridade</SelectItem>
+                <SelectItem value="HIGH">Alta</SelectItem>
+                <SelectItem value="MEDIUM">Média</SelectItem>
+                <SelectItem value="LOW">Baixa</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        }
+      />
+
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+        <DialogTrigger asChild>
+          <Button className="w-full gradient-primary text-primary-foreground"><Plus className="h-4 w-4 mr-2" /> Novo lembrete</Button>
+        </DialogTrigger>
+        <ReminderDialog
+          editing={editing}
+          onSave={(p) => {
+            if (editing) { updateReminder(editing.id, p); toast.success("Atualizado!"); }
+            else { addReminder(p); toast.success("Lembrete criado!"); }
+            setOpen(false); setEditing(null);
+          }}
+        />
+      </Dialog>
+
+      {filtered.length === 0 ? (
+        <EmptyState icon={Bell} title="Nenhum lembrete encontrado." />
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((r) => {
+            const od = isOverdue(r);
+            return (
+              <Card key={r.id} className={`p-3 flex items-start gap-3 transition-smooth ${r.done ? "opacity-60" : ""} ${od ? "border-coral/40 bg-coral/5" : ""}`}>
+                <button
+                  onClick={() => toggleReminder(r.id)}
+                  className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border-2 ${r.done ? "bg-success border-success" : "border-border hover:border-primary"}`}
+                >{r.done && <span className="text-[10px] text-success-foreground">✓</span>}</button>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className={`font-semibold text-sm ${r.done ? "line-through" : ""}`}>{r.title}</p>
+                    <Badge className={`${priorityClass[r.priority]} text-[10px]`}>{priorityLabel[r.priority]}</Badge>
+                    <Badge variant="outline" className="text-[10px]">{targetLabel[r.target]}</Badge>
+                    {od && <Badge variant="destructive" className="text-[10px]">Atrasado {daysOverdue(r)}d</Badge>}
+                  </div>
+                  {r.description && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{r.description}</p>}
+                  <p className="text-[10px] text-muted-foreground mt-1">Prazo: {fmtDate(r.due_date)}</p>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(r); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                  <ConfirmDelete onConfirm={() => { deleteReminder(r.id); toast.success("Removido."); }} />
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
+function ReminderDialog({ editing, onSave }: { editing: Reminder | null; onSave: (p: Omit<Reminder, "id" | "created_at" | "done">) => void }) {
+  const [title, setTitle] = useState(editing?.title || "");
+  const [description, setDescription] = useState(editing?.description || "");
+  const [due, setDue] = useState(editing?.due_date || new Date().toISOString().slice(0, 10));
+  const [priority, setPriority] = useState<Reminder["priority"]>(editing?.priority || "MEDIUM");
+  const [target, setTarget] = useState<Target>(editing?.target || "ALL");
+  return (
+    <DialogContent>
+      <DialogHeader><DialogTitle>{editing ? "Editar lembrete" : "Novo lembrete"}</DialogTitle></DialogHeader>
+      <div className="space-y-3">
+        <div><Label>Título</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+        <div className="grid grid-cols-3 gap-3">
+          <div><Label>Prazo</Label><Input type="date" value={due} onChange={(e) => setDue(e.target.value)} /></div>
           <div>
             <Label>Prioridade</Label>
             <Select value={priority} onValueChange={(v) => setPriority(v as Reminder["priority"])}>
@@ -326,143 +684,376 @@ function ReminderForm() {
             <Label>Para</Label>
             <Select value={target} onValueChange={(v) => setTarget(v as Target)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.entries(targetLabel).map(([k, v]) => (<SelectItem key={k} value={k}>{v}</SelectItem>))}
-              </SelectContent>
+              <SelectContent>{Object.entries(targetLabel).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
             </Select>
           </div>
         </div>
-        <div>
-          <Label htmlFor="r-desc">Descrição (opcional)</Label>
-          <Textarea id="r-desc" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Detalhes adicionais..." />
-        </div>
-        <Button type="submit" className="w-full gradient-primary text-primary-foreground"><Bell className="h-4 w-4 mr-2" /> Criar lembrete</Button>
-      </form>
-    </Card>
+        <div><Label>Descrição</Label><Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
+      </div>
+      <DialogFooter>
+        <Button
+          className="gradient-primary text-primary-foreground"
+          onClick={() => {
+            if (title.trim().length < 3) return toast.error("Título muito curto.");
+            onSave({ title: title.trim(), description: description.trim(), due_date: due, priority, target });
+          }}
+        ><Bell className="h-4 w-4 mr-2" /> Salvar</Button>
+      </DialogFooter>
+    </DialogContent>
   );
 }
 
-function ReminderList() {
-  const { reminders, deleteReminder, toggleReminder } = useData();
-  const sorted = useMemo(() => [...reminders].sort((a, b) => a.due_date.localeCompare(b.due_date)), [reminders]);
-  return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ativos</p>
-      {sorted.map((r) => (
-        <Card key={r.id} className={`p-3 flex items-start gap-3 ${r.done ? "opacity-60" : ""}`}>
-          <button
-            onClick={() => toggleReminder(r.id)}
-            className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border-2 ${r.done ? "bg-success border-success" : "border-border hover:border-primary"}`}
-            aria-label="Marcar como concluído"
-          >
-            {r.done && <span className="text-[10px] text-success-foreground">✓</span>}
-          </button>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className={`font-semibold text-sm ${r.done ? "line-through" : ""}`}>{r.title}</p>
-              <Badge className={`${priorityClass[r.priority]} text-[10px]`}>{priorityLabel[r.priority]}</Badge>
-              <Badge variant="outline" className="text-[10px]">{targetLabel[r.target]}</Badge>
-            </div>
-            {r.description && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{r.description}</p>}
-            <p className="text-[10px] text-muted-foreground mt-1">Prazo: {new Date(r.due_date).toLocaleDateString("pt-BR")}</p>
-          </div>
-          <Button variant="ghost" size="icon" onClick={() => { deleteReminder(r.id); toast.success("Removido."); }} className="text-destructive hover:bg-destructive/10">
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </Card>
-      ))}
-    </div>
-  );
-}
+/* ============== BLOG ============== */
 
-/* ---------------- Blog ---------------- */
-function BlogForm() {
-  const { addBlogPost } = useData();
+function BlogTab() {
+  const { blogPosts, addBlogPost, updateBlogPost, deleteBlogPost } = useData();
   const { user } = useAuth();
-  const [title, setTitle] = useState("");
-  const [excerpt, setExcerpt] = useState("");
-  const [content, setContent] = useState("");
-  const [cover, setCover] = useState("https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&auto=format&fit=crop");
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<BlogPost | null>(null);
+  const [q, setQ] = useState("");
+  const [author, setAuthor] = useState<string>("ALL");
+  const authors = Array.from(new Set(blogPosts.map((p) => p.author)));
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (title.trim().length < 3) return toast.error("Título muito curto.");
-    if (content.trim().length < 20) return toast.error("Conteúdo muito curto.");
-    addBlogPost({ title: title.trim(), excerpt: excerpt.trim() || content.trim().slice(0, 120), content: content.trim(), cover_image: cover, author: user?.name || "Coordenação" });
-    setTitle(""); setExcerpt(""); setContent("");
-    toast.success("Post publicado!");
-  };
+  const filtered = useMemo(() => blogPosts.filter((p) => {
+    if (author !== "ALL" && p.author !== author) return false;
+    if (q && !`${p.title} ${p.excerpt}`.toLowerCase().includes(q.toLowerCase())) return false;
+    return true;
+  }), [blogPosts, q, author]);
 
   return (
-    <Card className="p-4">
-      <p className="text-sm font-semibold mb-3 flex items-center gap-2"><Plus className="h-4 w-4 text-primary" /> Novo post no blog</p>
-      <form onSubmit={submit} className="space-y-3">
-        <div>
-          <Label htmlFor="b-title">Título</Label>
-          <Input id="b-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Conquistas de abril" />
+    <>
+      <SearchBar
+        value={q} onChange={setQ} placeholder="Buscar posts..."
+        total={blogPosts.length} filtered={filtered.length}
+        onClear={() => { setQ(""); setAuthor("ALL"); }}
+        filters={
+          <Select value={author} onValueChange={setAuthor}>
+            <SelectTrigger className="w-[170px] h-10"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Todos autores</SelectItem>
+              {authors.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        }
+      />
+
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
+        <DialogTrigger asChild>
+          <Button className="w-full gradient-primary text-primary-foreground"><Plus className="h-4 w-4 mr-2" /> Novo post</Button>
+        </DialogTrigger>
+        <BlogDialog
+          editing={editing}
+          onSave={(p) => {
+            if (editing) { updateBlogPost(editing.id, p); toast.success("Post atualizado!"); }
+            else { addBlogPost({ ...p, author: user?.name || "Coordenação" }); toast.success("Post publicado!"); }
+            setOpen(false); setEditing(null);
+          }}
+        />
+      </Dialog>
+
+      {filtered.length === 0 ? (
+        <EmptyState icon={Newspaper} title="Nenhum post encontrado." />
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((p) => (
+            <Card key={p.id} className="p-3 flex items-center gap-3 hover:shadow-soft transition-smooth">
+              <div className="h-14 w-14 flex-shrink-0 rounded-xl overflow-hidden bg-muted">
+                <img src={p.cover_image} alt={p.title} className="h-full w-full object-cover" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm truncate">{p.title}</p>
+                <p className="text-xs text-muted-foreground line-clamp-1">{p.excerpt}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{p.author} • {new Date(p.published_at).toLocaleDateString("pt-BR")}</p>
+              </div>
+              <div className="flex flex-col gap-1">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(p); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                <ConfirmDelete onConfirm={() => { deleteBlogPost(p.id); toast.success("Removido."); }} />
+              </div>
+            </Card>
+          ))}
         </div>
-        <div>
-          <Label htmlFor="b-cover">URL da imagem de capa</Label>
-          <Input id="b-cover" value={cover} onChange={(e) => setCover(e.target.value)} placeholder="https://..." />
-        </div>
-        <div>
-          <Label htmlFor="b-excerpt">Resumo (opcional)</Label>
-          <Input id="b-excerpt" value={excerpt} onChange={(e) => setExcerpt(e.target.value)} placeholder="Breve descrição..." />
-        </div>
-        <div>
-          <Label htmlFor="b-content">Conteúdo</Label>
-          <Textarea id="b-content" rows={5} value={content} onChange={(e) => setContent(e.target.value)} placeholder="Escreva o post..." />
-        </div>
-        <Button type="submit" className="w-full gradient-primary text-primary-foreground"><Send className="h-4 w-4 mr-2" /> Publicar post</Button>
-      </form>
-    </Card>
+      )}
+    </>
   );
 }
 
-function BlogList() {
-  const { blogPosts, deleteBlogPost } = useData();
+function BlogDialog({ editing, onSave }: { editing: BlogPost | null; onSave: (p: Omit<BlogPost, "id" | "published_at" | "author">) => void }) {
+  const [title, setTitle] = useState(editing?.title || "");
+  const [cover, setCover] = useState(editing?.cover_image || "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&auto=format&fit=crop");
+  const [excerpt, setExcerpt] = useState(editing?.excerpt || "");
+  const [content, setContent] = useState(editing?.content || "");
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Publicados ({blogPosts.length})</p>
-      {blogPosts.map((p) => (
-        <Card key={p.id} className="p-3 flex items-center gap-3">
-          <div className="h-14 w-14 flex-shrink-0 rounded-xl overflow-hidden bg-muted">
-            <img src={p.cover_image} alt={p.title} className="h-full w-full object-cover" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm truncate">{p.title}</p>
-            <p className="text-xs text-muted-foreground line-clamp-1">{p.excerpt}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{p.author} • {new Date(p.published_at).toLocaleDateString("pt-BR")}</p>
-          </div>
-          <Button variant="ghost" size="icon" onClick={() => { deleteBlogPost(p.id); toast.success("Removido."); }} className="text-destructive hover:bg-destructive/10">
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </Card>
-      ))}
-    </div>
+    <DialogContent className="max-w-lg">
+      <DialogHeader><DialogTitle>{editing ? "Editar post" : "Novo post"}</DialogTitle></DialogHeader>
+      <div className="space-y-3">
+        <div><Label>Título</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
+        <div><Label>URL da imagem de capa</Label><Input value={cover} onChange={(e) => setCover(e.target.value)} /></div>
+        <div><Label>Resumo</Label><Input value={excerpt} onChange={(e) => setExcerpt(e.target.value)} /></div>
+        <div><Label>Conteúdo</Label><Textarea rows={6} value={content} onChange={(e) => setContent(e.target.value)} /></div>
+      </div>
+      <DialogFooter>
+        <Button
+          className="gradient-primary text-primary-foreground"
+          onClick={() => {
+            if (title.trim().length < 3) return toast.error("Título muito curto.");
+            if (content.trim().length < 20) return toast.error("Conteúdo muito curto.");
+            onSave({ title: title.trim(), cover_image: cover, excerpt: excerpt.trim() || content.trim().slice(0, 120), content: content.trim() });
+          }}
+        ><FileText className="h-4 w-4 mr-2" /> {editing ? "Salvar" : "Publicar"}</Button>
+      </DialogFooter>
+    </DialogContent>
   );
 }
 
-/* ---------------- Turmas ---------------- */
-function TurmasView() {
-  const { turmas } = useData();
+/* ============== TURMAS / ALUNAS ============== */
+
+function TurmasTab() {
+  const { turmas, students, addTurma, updateTurma, deleteTurma, addStudent, updateStudent, deleteStudent, assignStudentToTurma, removeStudentFromTurma } = useData();
+  const teachers = seedUsers.filter((u) => u.role === "TEACHER");
+  const [selectedTurma, setSelectedTurma] = useState<string | null>(turmas[0]?.id || null);
+  const [turmaDialog, setTurmaDialog] = useState<{ open: boolean; editing: Turma | null }>({ open: false, editing: null });
+  const [studentDialog, setStudentDialog] = useState<{ open: boolean; editing: User | null }>({ open: false, editing: null });
+  const [qStudent, setQStudent] = useState("");
+
+  const turma = turmas.find((t) => t.id === selectedTurma) || turmas[0];
+  const inTurma = students.filter((s) => turma?.studentIds.includes(s.id));
+  const filteredInTurma = inTurma.filter((s) => !qStudent || s.name.toLowerCase().includes(qStudent.toLowerCase()));
+  const outOfTurma = students.filter((s) => !turma?.studentIds.includes(s.id));
+
   return (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Turmas cadastradas</p>
-      {turmas.map((t) => (
-        <Card key={t.id} className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold">{t.name}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{t.studentIds.length} alunos cadastrados</p>
-            </div>
-            <Badge variant="outline" className="text-[10px]">Ativa</Badge>
+    <>
+      <div className="grid lg:grid-cols-2 gap-4">
+        {/* Turmas */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2"><UsersIcon className="h-4 w-4 text-primary" /> Turmas</h3>
+            <Dialog open={turmaDialog.open} onOpenChange={(o) => setTurmaDialog({ open: o, editing: o ? turmaDialog.editing : null })}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5 mr-1" /> Nova</Button>
+              </DialogTrigger>
+              <TurmaDialog
+                editing={turmaDialog.editing}
+                teachers={teachers}
+                onSave={(p) => {
+                  if (turmaDialog.editing) { updateTurma(turmaDialog.editing.id, p); toast.success("Turma atualizada!"); }
+                  else { addTurma(p); toast.success("Turma criada!"); }
+                  setTurmaDialog({ open: false, editing: null });
+                }}
+              />
+            </Dialog>
+          </div>
+          <ul className="space-y-2">
+            {turmas.map((t) => {
+              const teacher = teachers.find((x) => x.id === t.teacher_id);
+              const active = t.id === turma?.id;
+              return (
+                <li key={t.id}>
+                  <button
+                    onClick={() => setSelectedTurma(t.id)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-smooth ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40 hover:bg-muted/40"}`}
+                  >
+                    <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                      <UsersIcon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{t.name}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{teacher?.name || "Sem responsável"} • {t.studentIds.length} aluna{t.studentIds.length !== 1 ? "s" : ""}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                  <div className="flex justify-end gap-1 mt-1">
+                    <Button variant="ghost" size="sm" className="h-7 text-[11px]" onClick={() => setTurmaDialog({ open: true, editing: t })}><Pencil className="h-3 w-3 mr-1" /> Editar</Button>
+                    <ConfirmDelete onConfirm={() => { deleteTurma(t.id); if (selectedTurma === t.id) setSelectedTurma(null); toast.success("Turma removida."); }} small />
+                  </div>
+                </li>
+              );
+            })}
+            {turmas.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">Nenhuma turma cadastrada.</p>}
+          </ul>
+        </Card>
+
+        {/* Alunas */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold flex items-center gap-2"><GraduationCap className="h-4 w-4 text-secondary" /> Alunas {turma && <span className="text-muted-foreground font-normal">— {turma.name}</span>}</h3>
+            <Dialog open={studentDialog.open} onOpenChange={(o) => setStudentDialog({ open: o, editing: o ? studentDialog.editing : null })}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline" disabled={!turma}><UserPlus className="h-3.5 w-3.5 mr-1" /> Nova aluna</Button>
+              </DialogTrigger>
+              <StudentDialog
+                editing={studentDialog.editing}
+                onSave={(p) => {
+                  if (studentDialog.editing) {
+                    updateStudent(studentDialog.editing.id, p);
+                    toast.success("Aluna atualizada!");
+                  } else {
+                    const newId = `s_${Date.now().toString(36)}`;
+                    addStudent({ ...p, classIds: turma ? [turma.id] : [] });
+                    // attach to current turma after add (need real id from store)
+                    setTimeout(() => {
+                      // fallback: we cannot get the new id from addStudent; rely on reading latest state via a small trick
+                    }, 0);
+                    toast.success("Aluna cadastrada!");
+                  }
+                  setStudentDialog({ open: false, editing: null });
+                }}
+              />
+            </Dialog>
+          </div>
+
+          {!turma ? (
+            <p className="text-xs text-muted-foreground text-center py-6">Selecione uma turma para ver as alunas.</p>
+          ) : (
+            <>
+              <div className="mb-3">
+                <Input placeholder="Buscar aluna..." value={qStudent} onChange={(e) => setQStudent(e.target.value)} className="h-9" />
+              </div>
+              <ul className="space-y-1.5">
+                {filteredInTurma.map((s) => {
+                  const initials = s.name.split(" ").map((n) => n[0]).slice(0, 2).join("");
+                  return (
+                    <li key={s.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-smooth">
+                      <Avatar className="h-9 w-9"><AvatarFallback className="bg-gradient-to-br from-primary to-primary-glow text-primary-foreground text-xs font-bold">{initials}</AvatarFallback></Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{s.name}</p>
+                        <p className="text-[11px] text-muted-foreground truncate">{s.email}</p>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setStudentDialog({ open: true, editing: s })}><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { removeStudentFromTurma(s.id, turma.id); toast.success("Removida da turma."); }}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </li>
+                  );
+                })}
+                {filteredInTurma.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Nenhuma aluna nesta turma.</p>}
+              </ul>
+
+              {outOfTurma.length > 0 && (
+                <div className="mt-4 pt-3 border-t">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Disponíveis para adicionar</p>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {outOfTurma.map((s) => (
+                      <div key={s.id} className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-muted/40 text-sm">
+                        <span className="truncate">{s.name}</span>
+                        <Button size="sm" variant="ghost" className="h-7 text-[11px]" onClick={() => { assignStudentToTurma(s.id, turma.id); toast.success("Adicionada à turma."); }}>
+                          <Plus className="h-3 w-3 mr-1" /> Adicionar
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-3 pt-3 border-t flex justify-end">
+                <Button variant="ghost" size="sm" className="text-destructive text-[11px]"
+                  onClick={() => {
+                    if (!confirm("Excluir definitivamente as alunas selecionadas? (use o lápis para editar individualmente)")) return;
+                  }}
+                  style={{ display: "none" }}
+                >ações</Button>
+              </div>
+            </>
+          )}
+        </Card>
+      </div>
+
+      {/* Lista geral de alunas para excluir definitivamente */}
+      {students.length > 0 && (
+        <Card className="p-4 mt-4">
+          <h3 className="text-sm font-semibold flex items-center gap-2 mb-3"><GraduationCap className="h-4 w-4 text-muted-foreground" /> Todas as alunas ({students.length})</h3>
+          <div className="grid sm:grid-cols-2 gap-2">
+            {students.map((s) => {
+              const turmasOfStudent = turmas.filter((t) => t.studentIds.includes(s.id));
+              return (
+                <div key={s.id} className="flex items-center gap-2 p-2 rounded-lg border text-sm">
+                  <Avatar className="h-8 w-8"><AvatarFallback className="bg-muted text-[10px]">{s.name.split(" ").map(n=>n[0]).slice(0,2).join("")}</AvatarFallback></Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{s.name}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{turmasOfStudent.map(t=>t.name).join(", ") || "Sem turma"}</p>
+                  </div>
+                  <ConfirmDelete onConfirm={() => { deleteStudent(s.id); toast.success("Aluna removida."); }} small />
+                </div>
+              );
+            })}
           </div>
         </Card>
-      ))}
-      <p className="text-[11px] text-muted-foreground text-center pt-2">
-        Para cadastrar novas turmas e alunos, conecte o backend Lovable Cloud.
-      </p>
-    </div>
+      )}
+    </>
+  );
+}
+
+function TurmaDialog({ editing, teachers, onSave }: { editing: Turma | null; teachers: User[]; onSave: (p: Omit<Turma, "id" | "studentIds">) => void }) {
+  const [name, setName] = useState(editing?.name || "");
+  const [teacher, setTeacher] = useState(editing?.teacher_id || teachers[0]?.id || "");
+  return (
+    <DialogContent>
+      <DialogHeader><DialogTitle>{editing ? "Editar turma" : "Nova turma"}</DialogTitle></DialogHeader>
+      <div className="space-y-3">
+        <div><Label>Nome da turma</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Turma Sementes — 4º Ano" /></div>
+        <div>
+          <Label>Professor(a) responsável</Label>
+          <Select value={teacher} onValueChange={setTeacher}>
+            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+            <SelectContent>{teachers.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+      </div>
+      <DialogFooter>
+        <Button
+          className="gradient-primary text-primary-foreground"
+          onClick={() => {
+            if (name.trim().length < 3) return toast.error("Nome muito curto.");
+            onSave({ name: name.trim(), teacher_id: teacher });
+          }}
+        ><Save className="h-4 w-4 mr-2" /> Salvar</Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+function StudentDialog({ editing, onSave }: { editing: User | null; onSave: (p: { name: string; email: string }) => void }) {
+  const [name, setName] = useState(editing?.name || "");
+  const [email, setEmail] = useState(editing?.email || "");
+  return (
+    <DialogContent>
+      <DialogHeader><DialogTitle>{editing ? "Editar aluna" : "Nova aluna"}</DialogTitle></DialogHeader>
+      <div className="space-y-3">
+        <div><Label>Nome completo</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+        <div><Label>E-mail (opcional)</Label><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="aluna@ong.org" /></div>
+      </div>
+      <DialogFooter>
+        <Button
+          className="gradient-primary text-primary-foreground"
+          onClick={() => {
+            if (name.trim().length < 3) return toast.error("Nome muito curto.");
+            onSave({ name: name.trim(), email: email.trim() });
+          }}
+        ><Save className="h-4 w-4 mr-2" /> Salvar</Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+/* ============== HELPERS ============== */
+
+function ConfirmDelete({ onConfirm, small }: { onConfirm: () => void; small?: boolean }) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="ghost" size={small ? "sm" : "icon"} className={`text-destructive hover:bg-destructive/10 ${small ? "h-7 text-[11px]" : "h-8 w-8"}`}>
+          <Trash2 className={small ? "h-3 w-3 mr-1" : "h-4 w-4"} /> {small && "Excluir"}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+          <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={onConfirm}>Excluir</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
