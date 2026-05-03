@@ -11,13 +11,15 @@ import EmptyState from "@/components/EmptyState";
 
 export default function ParentDashboard() {
   const { user, selectedChildId, switchChild } = useAuth();
-  const { announcements, events } = useData();
+  const { announcements, events, turmas, reminders, isOverdue } = useData();
   const children = users.filter((u) => user?.childrenIds?.includes(u.id));
   const child = children.find((c) => c.id === selectedChildId) || children[0];
   const today = new Date().toISOString().slice(0, 10);
   const upcoming = events.filter((e) => e.date >= today && (!e.class_id || child?.classIds?.includes(e.class_id))).slice(0, 3);
   const parentNotices = announcements.filter((a) => a.target === "ALL" || a.target === "PARENTS").slice(0, 3);
   const initials = child?.name.split(" ").map((n) => n[0]).slice(0, 2).join("") || "";
+  const childTurma = turmas.find((t) => child?.classIds?.includes(t.id));
+  const overdue = reminders.filter((r) => isOverdue(r) && (r.target === "ALL" || r.target === "PARENTS")).length;
 
   return (
     <AppLayout>
@@ -43,7 +45,19 @@ export default function ParentDashboard() {
           </Avatar>
           <div className="flex-1">
             <p className="font-bold text-lg">{child.name}</p>
-            <p className="text-xs text-muted-foreground">Turma Sementes — 4º Ano</p>
+            <p className="text-xs text-muted-foreground">{childTurma?.name || "Sem turma cadastrada"}</p>
+          </div>
+        </Card>
+      )}
+
+      {overdue > 0 && (
+        <Card className="p-3 mb-4 border-coral/40 bg-coral/5 flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-coral/15 text-coral">
+            <CheckCircle2 className="h-4 w-4" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold">{overdue} lembrete{overdue > 1 ? "s" : ""} atrasado{overdue > 1 ? "s" : ""}</p>
+            <p className="text-[11px] text-muted-foreground">Veja em "Lembretes" no menu inferior.</p>
           </div>
         </Card>
       )}
