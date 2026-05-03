@@ -18,6 +18,9 @@ import BlogPost from "./pages/BlogPost.tsx";
 import Menu from "./pages/Menu.tsx";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminDashboard from "./pages/AdminDashboard.tsx";
+import Reminders from "./pages/Reminders.tsx";
+import { DataProvider } from "./contexts/DataContext";
 
 const queryClient = new QueryClient();
 
@@ -28,9 +31,11 @@ const App = () => (
       <Sonner position="top-center" richColors closeButton />
       <BrowserRouter>
         <AuthProvider>
+         <DataProvider>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/admin" element={<ProtectedRoute roles={["ADMIN"]}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/professor" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><TeacherDashboard /></ProtectedRoute>} />
             <Route path="/aluno" element={<ProtectedRoute roles={["STUDENT"]}><StudentDashboard /></ProtectedRoute>} />
             <Route path="/responsavel" element={<ProtectedRoute roles={["PARENT"]}><ParentDashboard /></ProtectedRoute>} />
@@ -38,12 +43,14 @@ const App = () => (
             <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
             <Route path="/comunicados" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
             <Route path="/comunicados/novo" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><NewAnnouncement /></ProtectedRoute>} />
+            <Route path="/lembretes" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
             <Route path="/blog" element={<ProtectedRoute><Blog /></ProtectedRoute>} />
             <Route path="/blog/:id" element={<ProtectedRoute><BlogPost /></ProtectedRoute>} />
             <Route path="/menu" element={<ProtectedRoute><Menu /></ProtectedRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+         </DataProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

@@ -1,12 +1,13 @@
 import { useParams, useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
-import { blogPosts } from "@/lib/mockData";
+import { useData } from "@/contexts/DataContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, User } from "lucide-react";
 
 export default function BlogPost() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { blogPosts } = useData();
   const post = blogPosts.find((p) => p.id === id);
 
   if (!post) {

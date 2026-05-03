@@ -2,7 +2,8 @@ import { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
-import { events, games, quizQuestions } from "@/lib/mockData";
+import { games, quizQuestions } from "@/lib/mockData";
+import { useData } from "@/contexts/DataContext";
 import { Calculator, FlaskConical, BookOpen, Map, Brain, Sparkles, Sparkle, Star, Trophy } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ const iconMap: Record<string, any> = { Calculator, FlaskConical, BookOpen, Map, 
 
 export default function StudentDashboard() {
   const { user } = useAuth();
+  const { events } = useData();
   const today = new Date().toISOString().slice(0, 10);
   const upcoming = events.filter((e) => e.date >= today).slice(0, 3);
   const [activeGame, setActiveGame] = useState<string | null>(null);

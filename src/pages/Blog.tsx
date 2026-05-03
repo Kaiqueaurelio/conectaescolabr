@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
-import { blogPosts } from "@/lib/mockData";
+import { useData } from "@/contexts/DataContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 import { Calendar } from "lucide-react";
 
 export default function Blog() {
+  const { blogPosts } = useData();
   const [loading, setLoading] = useState(true);
   useEffect(() => { const t = setTimeout(() => setLoading(false), 600); return () => clearTimeout(t); }, []);
 

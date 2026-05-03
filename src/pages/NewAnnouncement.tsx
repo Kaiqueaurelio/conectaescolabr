@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Loader2, Send } from "lucide-react";
 import { z } from "zod";
+import { useData } from "@/contexts/DataContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const schema = z.object({
   title: z.string().trim().min(3, "Título deve ter ao menos 3 caracteres").max(100, "Título muito longo"),
@@ -20,6 +22,8 @@ const schema = z.object({
 
 export default function NewAnnouncement() {
   const navigate = useNavigate();
+  const { addAnnouncement } = useData();
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [target, setTarget] = useState<"ALL" | "TEACHERS" | "PARENTS" | "STUDENTS">("ALL");
@@ -37,7 +41,8 @@ export default function NewAnnouncement() {
     }
     setErrors({});
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 700));
+    await new Promise((r) => setTimeout(r, 500));
+    addAnnouncement({ title: title.trim(), content: content.trim(), target, author: user?.name || "Equipe" });
     setSubmitting(false);
     toast.success("Comunicado publicado com sucesso!");
     navigate("/comunicados");

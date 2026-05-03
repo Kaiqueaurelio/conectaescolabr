@@ -3,7 +3,7 @@ import AppLayout from "@/components/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { announcements } from "@/lib/mockData";
+import { useData } from "@/contexts/DataContext";
 import { Badge } from "@/components/ui/badge";
 import { Megaphone, Plus, RefreshCw, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,12 +14,13 @@ import { toast } from "sonner";
 
 export default function Announcements() {
   const { user } = useAuth();
+  const { announcements } = useData();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const visible = announcements.filter((a) => {
     if (a.target === "ALL") return true;
-    if (user?.role === "TEACHER") return a.target === "TEACHERS";
+    if (user?.role === "TEACHER" || user?.role === "ADMIN") return a.target === "TEACHERS";
     if (user?.role === "PARENT") return a.target === "PARENTS";
     if (user?.role === "STUDENT") return a.target === "STUDENTS";
     return true;
@@ -44,7 +45,7 @@ export default function Announcements() {
             <Button variant="outline" size="icon" onClick={refresh} disabled={refreshing}>
               {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </Button>
-            {user?.role === "TEACHER" && (
+            {(user?.role === "TEACHER" || user?.role === "ADMIN") && (
               <Link to="/comunicados/novo">
                 <Button size="icon" className="gradient-primary text-primary-foreground"><Plus className="h-4 w-4" /></Button>
               </Link>

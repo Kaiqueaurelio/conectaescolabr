@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Home, Calendar, Megaphone, Menu } from "lucide-react";
+import { Home, Calendar, Megaphone, Bell, Menu } from "lucide-react";
 import { useAuth, roleHome } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -9,12 +9,13 @@ export default function BottomNav() {
   const items = [
     { to: roleHome(user.role), label: "Início", icon: Home, end: true },
     { to: "/agenda", label: "Agenda", icon: Calendar },
+    { to: "/lembretes", label: "Lembretes", icon: Bell },
     { to: "/comunicados", label: "Comunicados", icon: Megaphone },
     { to: "/menu", label: "Menu", icon: Menu },
   ];
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur-md shadow-floating">
-      <div className="mx-auto grid max-w-3xl grid-cols-4">
+      <div className="mx-auto grid max-w-3xl grid-cols-5">
         {items.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to + label}
