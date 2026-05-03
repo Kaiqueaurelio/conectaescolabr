@@ -4,6 +4,7 @@ Use qualquer senha para entrar (autenticação simulada).
 
 | Perfil          | E-mail                  |
 | --------------- | ----------------------- |
+| Administração   | admin@associacaocamila.br (senha: Admin@2026) |
 | Administração   | admin@ong.org           |
 | Professor(a)    | professor@ong.org       |
 | Aluno(a)        | aluno@ong.org           |

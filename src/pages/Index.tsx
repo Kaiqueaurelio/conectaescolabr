@@ -53,7 +53,7 @@ export default function Landing() {
     { icon: Bell, title: "Lembretes inteligentes", desc: "Tarefas com prioridade e alerta automático para itens atrasados." },
     { icon: GraduationCap, title: "Gestão de turmas", desc: "Cadastro de alunas, vínculo com responsáveis e acompanhamento." },
     { icon: Newspaper, title: "Blog institucional", desc: "Histórias, resultados e impacto social publicados em poucos cliques." },
-    { icon: Users, function: "Multi-perfil", title: "Multi-perfil", desc: "Áreas dedicadas para Admin, Professor, Aluno e Responsável." },
+    { icon: Users, title: "Multi-perfil", desc: "Áreas dedicadas para Admin, Professor, Aluno e Responsável." },
   ];
 
   const techs = [
