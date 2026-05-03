@@ -3,7 +3,7 @@ import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
-import { Newspaper, ClipboardCheck, LogOut, ChevronRight, Settings, HelpCircle, Heart } from "lucide-react";
+import { Newspaper, ClipboardCheck, LogOut, ChevronRight, Settings, HelpCircle, Heart, ShieldCheck, Bell } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import Logo from "@/components/Logo";
 
@@ -12,8 +12,10 @@ export default function Menu() {
   const initials = user?.name.split(" ").map((n) => n[0]).slice(0, 2).join("") || "";
 
   const items = [
+    ...(user?.role === "ADMIN" ? [{ to: "/admin", icon: ShieldCheck, label: "Painel administrativo", desc: "Gerenciar conteúdo da ONG" }] : []),
     { to: "/blog", icon: Newspaper, label: "Blog da ONG", desc: "Notícias e histórias" },
-    ...(user?.role === "TEACHER" ? [{ to: "/chamada", icon: ClipboardCheck, label: "Fazer Chamada", desc: "Registrar presença" }] : []),
+    { to: "/lembretes", icon: Bell, label: "Lembretes", desc: "Tarefas e prazos" },
+    ...((user?.role === "TEACHER" || user?.role === "ADMIN") ? [{ to: "/chamada", icon: ClipboardCheck, label: "Fazer Chamada", desc: "Registrar presença" }] : []),
     { to: "#", icon: Settings, label: "Configurações", desc: "Preferências da conta" },
     { to: "#", icon: HelpCircle, label: "Ajuda e Suporte", desc: "Tire suas dúvidas" },
   ];
