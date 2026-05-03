@@ -141,6 +141,27 @@ All colors MUST be HSL.
   .shadow-warm { box-shadow: var(--shadow-warm); }
   .transition-smooth { transition: var(--transition-smooth); }
   .text-balance { text-wrap: balance; }
+
+  .hover-scale { @apply transition-transform duration-200 hover:scale-[1.03]; }
+  .hover-lift { @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-floating; }
+  .story-link {
+    @apply relative inline-block after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-primary after:origin-bottom-right after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-bottom-left;
+  }
+  .text-gradient-brand {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Reveal-on-scroll */
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1); will-change: opacity, transform; }
+  .reveal.is-visible { opacity: 1; transform: translateY(0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal, .reveal.is-visible { opacity: 1 !important; transform: none !important; transition: none !important; }
+    .animate-blob, .animate-float, .animate-shimmer, .animate-marquee { animation: none !important; }
+  }
 }
 
 @keyframes fade-in {
