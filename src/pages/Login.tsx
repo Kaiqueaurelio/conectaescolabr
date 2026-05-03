@@ -4,18 +4,10 @@ import { useAuth, roleHome } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, MessageSquareHeart, BookHeart, Users } from "lucide-react";
 import heroImg from "@/assets/hero-education.jpg";
 import Logo from "@/components/Logo";
-
-const demoAccounts = [
-  { label: "Administrador(a)", email: "admin@ong.org" },
-  { label: "Professor(a)", email: "professor@ong.org" },
-  { label: "Aluno(a)", email: "aluno@ong.org" },
-  { label: "Responsável", email: "responsavel@ong.org" },
-];
 
 export default function Login() {
   const { user, login } = useAuth();
@@ -58,6 +50,17 @@ export default function Login() {
           <p className="mt-4 text-lg text-primary-foreground/95">
             Conectando educadores, crianças e famílias em uma jornada de aprendizado, acolhimento e cuidado.
           </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur px-3 py-1.5 text-xs font-medium">
+              <MessageSquareHeart className="h-3.5 w-3.5" /> Comunicação direta
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur px-3 py-1.5 text-xs font-medium">
+              <BookHeart className="h-3.5 w-3.5" /> Acompanhamento real
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur px-3 py-1.5 text-xs font-medium">
+              <Users className="h-3.5 w-3.5" /> Famílias engajadas
+            </span>
+          </div>
           <img
             src={heroImg}
             alt="Crianças aprendendo juntas"
@@ -92,7 +95,16 @@ export default function Login() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Senha</Label>
+                <button
+                  type="button"
+                  onClick={() => toast.info("Entre em contato com a coordenação para redefinir sua senha.")}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
               <div className="relative">
                 <Input
                   id="password"
@@ -119,23 +131,9 @@ export default function Login() {
             </Button>
           </form>
 
-          <Card className="mt-8 p-4 bg-muted/40 border-dashed">
-            <p className="text-xs font-semibold text-muted-foreground mb-2">CONTAS DE DEMONSTRAÇÃO</p>
-            <div className="space-y-1.5">
-              {demoAccounts.map((d) => (
-                <button
-                  key={d.email}
-                  type="button"
-                  onClick={() => { setEmail(d.email); setPassword("demo123"); }}
-                  className="w-full flex justify-between items-center text-left text-sm py-1.5 px-2 rounded-md hover:bg-background transition-smooth"
-                >
-                  <span className="font-medium">{d.label}</span>
-                  <span className="text-xs text-muted-foreground">{d.email}</span>
-                </button>
-              ))}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-2">Use qualquer senha para entrar.</p>
-          </Card>
+          <p className="mt-10 text-center text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Associação Camila — Em defesa e valorização da vida.
+          </p>
         </div>
       </div>
     </div>
