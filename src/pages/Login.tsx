@@ -11,6 +11,7 @@ import heroImg from "@/assets/hero-education.jpg";
 import Logo from "@/components/Logo";
 
 const demoAccounts = [
+  { label: "Administrador(a)", email: "admin@ong.org" },
   { label: "Professor(a)", email: "professor@ong.org" },
   { label: "Aluno(a)", email: "aluno@ong.org" },
   { label: "Responsável", email: "responsavel@ong.org" },

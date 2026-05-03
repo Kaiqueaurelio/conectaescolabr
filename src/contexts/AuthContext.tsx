@@ -71,6 +71,6 @@ export function roleHome(role: Role): string {
     case "TEACHER": return "/professor";
     case "STUDENT": return "/aluno";
     case "PARENT": return "/responsavel";
-    case "ADMIN": return "/professor";
+    case "ADMIN": return "/admin";
   }
 }
