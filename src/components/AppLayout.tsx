@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import BottomNav from "./BottomNav";
 import TopBar from "./TopBar";
+import Onboarding from "./Onboarding";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
@@ -8,6 +9,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <TopBar />
       <main className="mx-auto max-w-3xl px-4 pt-4 animate-fade-in">{children}</main>
       <BottomNav />
+      <Onboarding />
     </div>
   );
 }
