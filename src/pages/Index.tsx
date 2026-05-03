@@ -11,9 +11,9 @@ import {
   Megaphone, CalendarDays, Bell, Newspaper, Users, GraduationCap,
   Smartphone, Download, Share, Plus, MoreVertical, Apple, MonitorSmartphone,
   Wifi, Zap, Shield, Heart, ArrowRight, CheckCircle2, Sparkles,
-  Palette, Laptop, TreePine, HandHeart, Phone, Mail, MapPin, Globe,
+  Laptop, HandHeart, Phone, Mail, MapPin, Globe,
   Scale, Sprout, Music, Baby, UserPlus, Gift, ShoppingBag, Receipt,
-  Quote, Calendar, Building2, Target, Eye, Compass,
+  Quote, Building2, Target, Eye, Compass,
 } from "lucide-react";
 import { toast } from "sonner";
 
