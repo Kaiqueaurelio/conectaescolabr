@@ -17,8 +17,8 @@ export default function Menu() {
     { to: "/lembretes", icon: Bell, label: "Lembretes", desc: "Tarefas e prazos" },
     ...((user?.role === "TEACHER" || user?.role === "ADMIN") ? [{ to: "/turmas", icon: Users, label: "Turmas", desc: "Alunas e responsáveis" }] : []),
     ...((user?.role === "TEACHER" || user?.role === "ADMIN") ? [{ to: "/chamada", icon: ClipboardCheck, label: "Fazer Chamada", desc: "Registrar presença" }] : []),
-    { to: "#", icon: Settings, label: "Configurações", desc: "Preferências da conta" },
-    { to: "#", icon: HelpCircle, label: "Ajuda e Suporte", desc: "Tire suas dúvidas" },
+    { to: "/configuracoes", icon: Settings, label: "Configurações", desc: "Preferências da conta" },
+    { to: "/ajuda", icon: HelpCircle, label: "Ajuda e Suporte", desc: "Tire suas dúvidas" },
   ];
 
   return (
