@@ -12,6 +12,7 @@ interface AuthContextValue {
   updateProfile: (patch: Partial<Pick<User, "name" | "email" | "avatar_url">>) => void;
   approveUser: (userId: string) => void;
   rejectUser: (userId: string) => void;
+  linkChild: (childId: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -74,7 +75,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     
     users.push(newUser);
-    // Não faz login automático, pois precisa de aprovação
     return { success: true };
   };
 
@@ -105,8 +105,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (u) u.status = "REJECTED";
   };
 
+  const linkChild = async (childId: string) => {
+    if (!user || user.role !== "PARENT") return { success: false, error: "Apenas responsáveis podem vincular alunos." };
+    
+    const updatedUser = {
+      ...user,
+      childrenIds: [...(user.childrenIds || []), childId]
+    };
+    
+    setUser(updatedUser);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+    
+    if (!selectedChildId) {
+      setSelectedChildId(childId);
+    }
+    
+    return { success: true };
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading, switchChild, selectedChildId, updateProfile, approveUser, rejectUser }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, switchChild, selectedChildId, updateProfile, approveUser, rejectUser, linkChild }}>
       {children}
     </AuthContext.Provider>
   );
@@ -124,6 +142,6 @@ export function roleHome(role: Role): string {
     case "STUDENT": return "/aluno";
     case "PARENT": return "/responsavel";
     case "ADMIN": return "/admin";
-    case "VOLUNTEER": return "/aluno"; // Voluntários usam dashboard similar ao aluno ou blog
+    case "VOLUNTEER": return "/aluno";
   }
 }

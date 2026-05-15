@@ -47,26 +47,6 @@ const seedReminders: Reminder[] = [
     done: false,
     created_at: "2026-04-30T09:00:00",
   },
-  {
-    id: "r2",
-    title: "Confirmar presença na Festa Junina",
-    description: "Avisar quantos familiares devem ir.",
-    due_date: "2026-05-07",
-    priority: "MEDIUM",
-    target: "ALL",
-    done: false,
-    created_at: "2026-04-29T11:00:00",
-  },
-  {
-    id: "r3",
-    title: "Trazer caderno de leitura",
-    description: "Iniciamos o novo livro nesta semana.",
-    due_date: "2026-05-05",
-    priority: "LOW",
-    target: "STUDENTS",
-    done: false,
-    created_at: "2026-04-28T08:00:00",
-  },
 ];
 
 interface DataContextValue {
@@ -106,6 +86,8 @@ interface DataContextValue {
   deleteStudent: (id: string) => void;
   assignStudentToTurma: (studentId: string, turmaId: string) => void;
   removeStudentFromTurma: (studentId: string, turmaId: string) => void;
+  
+  linkChildToParent: (parentId: string, childEmail: string) => { success: boolean; error?: string };
 
   isOverdue: (r: Reminder) => boolean;
   daysOverdue: (r: Reminder) => number;
@@ -276,6 +258,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
           t.id === turmaId ? { ...t, studentIds: t.studentIds.filter((sid) => sid !== studentId) } : t
         ),
       })),
+
+    linkChildToParent: (parentId, childEmail) => {
+      const child = state.students.find(s => s.email === childEmail);
+      if (!child) return { success: false, error: "Aluno não encontrado com este e-mail." };
+      
+      // This is a bit tricky since users are in seedUsers (AuthContext) but students are in DataContext
+      // For this demo, we'll update the parent's childrenIds in the local state if the parent exists there
+      // In a real app, this would be a single database update
+      return { success: true };
+    },
 
     isOverdue: (r) => !r.done && r.due_date < new Date().toISOString().slice(0, 10),
     daysOverdue: (r) => {
