@@ -8,6 +8,7 @@ interface AuthContextValue {
   loading: boolean;
   switchChild: (childId: string) => void;
   selectedChildId: string | null;
+  updateProfile: (patch: Partial<Pick<User, "name" | "email" | "avatar_url">>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -53,8 +54,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const switchChild = (childId: string) => setSelectedChildId(childId);
 
+  const updateProfile: AuthContextValue["updateProfile"] = (patch) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...patch };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, switchChild, selectedChildId }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, switchChild, selectedChildId, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
