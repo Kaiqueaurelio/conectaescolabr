@@ -13,12 +13,14 @@ const iconMap: Record<string, any> = { Calculator, FlaskConical, BookOpen, Map, 
 
 export default function StudentDashboard() {
   const { user } = useAuth();
-  const { events } = useData();
+  const { events, studentPoints, addStudentPoints, studentFrequency } = useData();
   const today = new Date().toISOString().slice(0, 10);
   const upcoming = events.filter((e) => e.date >= today).slice(0, 3);
   const [activeGame, setActiveGame] = useState<string | null>(null);
   const [qIndex, setQIndex] = useState(0);
   const [score, setScore] = useState(0);
+  const myPoints = user ? studentPoints[user.id] || 0 : 0;
+  const myFreq = user ? studentFrequency(user.id) : { rate: 0, total: 0, present: 0 };
 
   const openGame = (id: string, title: string) => {
     if (id === "g2") {
@@ -36,7 +38,12 @@ export default function StudentDashboard() {
     if (qIndex < quizQuestions.length - 1) {
       setQIndex((q) => q + 1);
     } else {
-      toast.success(`Quiz finalizado! Você acertou ${score + (correct ? 1 : 0)} de ${quizQuestions.length}.`);
+      const final = score + (correct ? 1 : 0);
+      const earned = final * 10;
+      if (user) addStudentPoints(user.id, earned);
+      toast.success(`Quiz finalizado! Você acertou ${final} de ${quizQuestions.length}.`, {
+        description: `+${earned} pontos adicionados ao seu perfil.`,
+      });
       setActiveGame(null);
     }
   };
@@ -51,8 +58,14 @@ export default function StudentDashboard() {
         <p className="mt-2 text-sm opacity-95">Pronto(a) para aprender hoje?</p>
         <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/25 backdrop-blur px-3 py-1.5">
           <Trophy className="h-4 w-4" />
-          <span className="text-xs font-semibold">120 pontos esta semana</span>
+          <span className="text-xs font-semibold">{myPoints} pontos acumulados</span>
         </div>
+        {myFreq.total > 0 && (
+          <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-white/20 backdrop-blur px-3 py-1.5 ml-2">
+            <Star className="h-4 w-4" />
+            <span className="text-xs font-semibold">{myFreq.rate}% de presença</span>
+          </div>
+        )}
       </section>
 
       <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Próximas atividades</h2>

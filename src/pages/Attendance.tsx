@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { turmas, users, AttendanceEntry } from "@/lib/mockData";
+import { AttendanceEntry } from "@/lib/mockData";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Check, X, FileText, Save, Loader2 } from "lucide-react";
+import { Check, X, FileText, Save, Loader2, History, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useData } from "@/contexts/DataContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { Input } from "@/components/ui/input";
 
 const statusConfig = {
   PRESENT: { label: "Presente", icon: Check, classes: "bg-success text-success-foreground" },
@@ -17,20 +20,35 @@ const statusConfig = {
 } as const;
 
 export default function Attendance() {
-  const [classId, setClassId] = useState(turmas[0].id);
-  const today = new Date().toISOString().slice(0, 10);
-  const turma = turmas.find((t) => t.id === classId)!;
-  const students = users.filter((u) => turma.studentIds.includes(u.id));
-  const [attendance, setAttendance] = useState<Record<string, AttendanceEntry["status"]>>(
-    () => Object.fromEntries(students.map((s) => [s.id, "PRESENT"]))
+  const { user } = useAuth();
+  const { turmas, students: allStudents, saveAttendance, getAttendanceFor, attendance: allRecords } = useData();
+  const [classId, setClassId] = useState(turmas[0]?.id || "");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const turma = turmas.find((t) => t.id === classId);
+  const students = useMemo(
+    () => (turma ? allStudents.filter((u) => turma.studentIds.includes(u.id)) : []),
+    [turma, allStudents]
   );
+  const [attendance, setAttendance] = useState<Record<string, AttendanceEntry["status"]>>({});
   const [saving, setSaving] = useState(false);
 
-  const handleClassChange = (id: string) => {
-    setClassId(id);
-    const t = turmas.find((x) => x.id === id)!;
-    setAttendance(Object.fromEntries(t.studentIds.map((sid) => [sid, "PRESENT"])));
-  };
+  // Load existing record (or default all PRESENT) when class/date changes
+  useEffect(() => {
+    if (!turma) return;
+    const existing = getAttendanceFor(date, turma.id);
+    if (existing) {
+      setAttendance(Object.fromEntries(existing.entries.map((e) => [e.student_id, e.status])));
+    } else {
+      setAttendance(Object.fromEntries(turma.studentIds.map((sid) => [sid, "PRESENT" as const])));
+    }
+  }, [classId, date, turma, getAttendanceFor]);
+
+  const lastRecord = useMemo(() => {
+    if (!turma) return null;
+    return [...allRecords]
+      .filter((r) => r.class_id === turma.id)
+      .sort((a, b) => b.saved_at.localeCompare(a.saved_at))[0] || null;
+  }, [allRecords, turma]);
 
   const setStatus = (sid: string, status: AttendanceEntry["status"]) => {
     setAttendance((prev) => ({ ...prev, [sid]: status }));
@@ -42,20 +60,43 @@ export default function Attendance() {
   );
 
   const save = async () => {
+    if (!turma) return;
     setSaving(true);
     await new Promise((r) => setTimeout(r, 700));
+    saveAttendance({
+      date,
+      class_id: turma.id,
+      entries: Object.entries(attendance).map(([student_id, status]) => ({ student_id, status })),
+      saved_by: user?.name,
+    });
     setSaving(false);
-    toast.success("Chamada registrada com sucesso!", {
+    toast.success("Chamada salva!", {
       description: `${counts.PRESENT || 0} presente(s), ${counts.ABSENT || 0} falta(s), ${counts.EXCUSED || 0} justificada(s).`,
     });
   };
 
+  const markAllPresent = () => {
+    if (!turma) return;
+    setAttendance(Object.fromEntries(turma.studentIds.map((sid) => [sid, "PRESENT" as const])));
+  };
+
+  if (!turma) {
+    return (
+      <AppLayout>
+        <PageHeader title="Fazer Chamada" />
+        <Card className="p-6 text-center text-sm text-muted-foreground">
+          Nenhuma turma cadastrada. Crie uma turma no painel administrativo.
+        </Card>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
-      <PageHeader title="Fazer Chamada" subtitle={new Date(today).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })} />
+      <PageHeader title="Fazer Chamada" subtitle={new Date(date + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })} />
 
-      <div className="mb-4">
-        <Select value={classId} onValueChange={handleClassChange}>
+      <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <Select value={classId} onValueChange={setClassId}>
           <SelectTrigger className="h-12">
             <SelectValue />
           </SelectTrigger>
@@ -65,6 +106,22 @@ export default function Attendance() {
             ))}
           </SelectContent>
         </Select>
+        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-12" />
+      </div>
+
+      {lastRecord && (
+        <Card className="p-3 mb-4 flex items-center gap-3 bg-muted/40">
+          <History className="h-4 w-4 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground flex-1">
+            Última chamada salva em <strong className="text-foreground">{new Date(lastRecord.saved_at).toLocaleString("pt-BR")}</strong> por {lastRecord.saved_by || "—"}
+          </p>
+        </Card>
+      )}
+
+      <div className="mb-4 flex justify-end">
+        <Button variant="outline" size="sm" onClick={markAllPresent}>
+          <CheckCheck className="h-3.5 w-3.5 mr-1.5" /> Marcar todas presentes
+        </Button>
       </div>
 
       <div className="grid grid-cols-3 gap-2 mb-4">

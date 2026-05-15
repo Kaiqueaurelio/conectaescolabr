@@ -23,6 +23,19 @@ export interface Reminder {
   created_at: string;
 }
 
+export interface AttendanceRecord {
+  id: string;
+  date: string; // YYYY-MM-DD
+  class_id: string;
+  entries: { student_id: string; status: "PRESENT" | "ABSENT" | "EXCUSED" }[];
+  saved_at: string;
+  saved_by?: string;
+}
+
+export interface ReadStateMap {
+  announcements: string[]; // ids read
+}
+
 const seedReminders: Reminder[] = [
   {
     id: "r1",
@@ -63,6 +76,9 @@ interface DataContextValue {
   blogPosts: BlogPost[];
   turmas: Turma[];
   students: User[];
+  attendance: AttendanceRecord[];
+  studentPoints: Record<string, number>;
+  readAnnouncements: string[];
 
   addAnnouncement: (a: Omit<Announcement, "id" | "created_at" | "unread">) => void;
   updateAnnouncement: (id: string, patch: Partial<Announcement>) => void;
@@ -94,6 +110,16 @@ interface DataContextValue {
   isOverdue: (r: Reminder) => boolean;
   daysOverdue: (r: Reminder) => number;
 
+  saveAttendance: (
+    record: Omit<AttendanceRecord, "id" | "saved_at">
+  ) => void;
+  getAttendanceFor: (date: string, class_id: string) => AttendanceRecord | undefined;
+  studentFrequency: (studentId: string) => { rate: number; total: number; present: number };
+  addStudentPoints: (studentId: string, delta: number) => void;
+  markAnnouncementRead: (id: string) => void;
+  markAllAnnouncementsRead: () => void;
+  unreadAnnouncementsFor: (role?: string) => Announcement[];
+
   resetAll: () => void;
 }
 
@@ -108,6 +134,9 @@ interface Persisted {
   blogPosts: BlogPost[];
   turmas: Turma[];
   students: User[];
+  attendance: AttendanceRecord[];
+  studentPoints: Record<string, number>;
+  readAnnouncements: string[];
 }
 
 const initial = (): Persisted => ({
@@ -117,6 +146,9 @@ const initial = (): Persisted => ({
   blogPosts: seedBlogPosts,
   turmas: seedTurmas,
   students: seedUsers.filter((u) => u.role === "STUDENT"),
+  attendance: [],
+  studentPoints: {},
+  readAnnouncements: [],
 });
 
 const uid = (p: string) => `${p}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
@@ -125,7 +157,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<Persisted>(() => {
     try {
       const raw = localStorage.getItem(KEY);
-      if (raw) return JSON.parse(raw) as Persisted;
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<Persisted>;
+        return { ...initial(), ...parsed };
+      }
     } catch {}
     return initial();
   });
@@ -247,6 +282,56 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const today = new Date(); today.setHours(0,0,0,0);
       const due = new Date(r.due_date + "T00:00:00");
       return Math.max(0, Math.floor((today.getTime() - due.getTime()) / 86400000));
+    },
+
+    saveAttendance: (rec) =>
+      setState((s) => {
+        const others = s.attendance.filter(
+          (a) => !(a.date === rec.date && a.class_id === rec.class_id)
+        );
+        return {
+          ...s,
+          attendance: [
+            ...others,
+            { ...rec, id: uid("at"), saved_at: new Date().toISOString() },
+          ],
+        };
+      }),
+    getAttendanceFor: (date, class_id) =>
+      state.attendance.find((a) => a.date === date && a.class_id === class_id),
+    studentFrequency: (studentId) => {
+      const records = state.attendance.flatMap((a) =>
+        a.entries.filter((e) => e.student_id === studentId)
+      );
+      const total = records.length;
+      const present = records.filter((r) => r.status === "PRESENT" || r.status === "EXCUSED").length;
+      const rate = total === 0 ? 0 : Math.round((present / total) * 100);
+      return { rate, total, present };
+    },
+    addStudentPoints: (studentId, delta) =>
+      setState((s) => ({
+        ...s,
+        studentPoints: { ...s.studentPoints, [studentId]: (s.studentPoints[studentId] || 0) + delta },
+      })),
+    markAnnouncementRead: (id) =>
+      setState((s) => ({
+        ...s,
+        readAnnouncements: s.readAnnouncements.includes(id) ? s.readAnnouncements : [...s.readAnnouncements, id],
+      })),
+    markAllAnnouncementsRead: () =>
+      setState((s) => ({
+        ...s,
+        readAnnouncements: Array.from(new Set([...s.readAnnouncements, ...s.announcements.map((a) => a.id)])),
+      })),
+    unreadAnnouncementsFor: (role) => {
+      const aud = state.announcements.filter((a) => {
+        if (a.target === "ALL") return true;
+        if (role === "TEACHER" || role === "ADMIN") return a.target === "TEACHERS";
+        if (role === "PARENT") return a.target === "PARENTS";
+        if (role === "STUDENT") return a.target === "STUDENTS";
+        return true;
+      });
+      return aud.filter((a) => !state.readAnnouncements.includes(a.id));
     },
 
     resetAll: () => {

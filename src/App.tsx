@@ -21,6 +21,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
 import Reminders from "./pages/Reminders.tsx";
 import Turmas from "./pages/Turmas.tsx";
+import Settings from "./pages/Settings.tsx";
+import Help from "./pages/Help.tsx";
 import { DataProvider } from "./contexts/DataContext";
 
 const queryClient = new QueryClient();
@@ -46,6 +48,8 @@ const App = () => (
             <Route path="/comunicados/novo" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><NewAnnouncement /></ProtectedRoute>} />
             <Route path="/lembretes" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
             <Route path="/turmas" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><Turmas /></ProtectedRoute>} />
+            <Route path="/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/ajuda" element={<ProtectedRoute><Help /></ProtectedRoute>} />
             <Route path="/blog" element={<ProtectedRoute><Blog /></ProtectedRoute>} />
             <Route path="/blog/:id" element={<ProtectedRoute><BlogPost /></ProtectedRoute>} />
             <Route path="/menu" element={<ProtectedRoute><Menu /></ProtectedRoute>} />
