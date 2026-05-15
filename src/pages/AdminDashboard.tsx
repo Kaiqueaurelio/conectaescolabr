@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useData, Reminder } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Announcement, EventItem, BlogPost, Turma, User, users as seedUsers } from "@/lib/mockData";
+import { Announcement, EventItem, BlogPost, Turma, User, users as seedUsers, Role } from "@/lib/mockData";
 import { toast } from "sonner";
 import StatCard from "@/components/dashboard/StatCard";
 import SearchBar from "@/components/admin/SearchBar";
@@ -27,7 +27,7 @@ import EmptyState from "@/components/EmptyState";
 import {
   Megaphone, CalendarDays, Bell, Newspaper, Users as UsersIcon,
   Plus, Trash2, RotateCcw, ShieldCheck, Send, Save, Pencil, AlertTriangle,
-  Activity, GraduationCap, UserPlus, ChevronRight, FileText, Sparkles,
+  Activity, GraduationCap, UserPlus, ChevronRight, FileText, Sparkles, CheckCircle, XCircle, Clock
 } from "lucide-react";
 
 type Target = "ALL" | "TEACHERS" | "PARENTS" | "STUDENTS";
@@ -39,6 +39,14 @@ const priorityClass: Record<Reminder["priority"], string> = {
   HIGH: "bg-coral text-coral-foreground",
   MEDIUM: "bg-secondary text-secondary-foreground",
   LOW: "bg-tertiary text-tertiary-foreground",
+};
+
+const roleLabel: Record<Role, string> = {
+  ADMIN: "Administrador",
+  TEACHER: "Professor(a)",
+  STUDENT: "Aluno(a)",
+  PARENT: "Responsável",
+  VOLUNTEER: "Voluntário(a)",
 };
 
 function greeting() {
@@ -64,6 +72,8 @@ export default function AdminDashboard() {
   const totalStudents = data.students.length;
   const dateLong = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
 
+  const pendingUsersCount = seedUsers.filter(u => u.status === "PENDING").length;
+
   return (
     <AppLayout>
       {/* Hero */}
@@ -84,12 +94,12 @@ export default function AdminDashboard() {
         <StatCard icon={Megaphone} label="Comunicados ativos" value={data.announcements.length} tone="primary" />
         <StatCard icon={CalendarDays} label="Eventos próximos (14d)" value={upcomingEvents.length} tone="tertiary" hint={`${data.events.length} no total`} />
         <StatCard
-          icon={AlertTriangle}
-          label="Lembretes atrasados"
-          value={overdueCount}
-          tone="coral"
-          alert={overdueCount > 0}
-          hint={overdueCount > 0 ? "Requer atenção" : "Tudo em dia"}
+          icon={Clock}
+          label="Aprovações pendentes"
+          value={pendingUsersCount}
+          tone="secondary"
+          alert={pendingUsersCount > 0}
+          hint={pendingUsersCount > 0 ? "Novos cadastros" : "Tudo revisado"}
         />
         <StatCard icon={GraduationCap} label="Alunas cadastradas" value={totalStudents} tone="secondary" hint={`${data.turmas.length} turmas`} />
       </div>
@@ -100,23 +110,22 @@ export default function AdminDashboard() {
         <UrgentRemindersCard />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4 mb-8">
-        <ActivityCard />
-        <ClassDistributionCard />
-      </div>
-
       {/* Tabs gestão */}
       <div className="mb-3 flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-primary" />
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Gestão</h2>
       </div>
       <Tabs defaultValue="comunicados" className="w-full">
-        <TabsList className="grid grid-cols-5 w-full h-auto">
-          <TabsTrigger value="comunicados" className="flex-col gap-1 py-2 text-[11px]"><Megaphone className="h-4 w-4" /> Comunicados</TabsTrigger>
-          <TabsTrigger value="eventos" className="flex-col gap-1 py-2 text-[11px]"><CalendarDays className="h-4 w-4" /> Eventos</TabsTrigger>
-          <TabsTrigger value="lembretes" className="flex-col gap-1 py-2 text-[11px]"><Bell className="h-4 w-4" /> Lembretes</TabsTrigger>
-          <TabsTrigger value="blog" className="flex-col gap-1 py-2 text-[11px]"><Newspaper className="h-4 w-4" /> Blog</TabsTrigger>
-          <TabsTrigger value="turmas" className="flex-col gap-1 py-2 text-[11px]"><UsersIcon className="h-4 w-4" /> Turmas</TabsTrigger>
+        <TabsList className="grid grid-cols-6 w-full h-auto">
+          <TabsTrigger value="comunicados" className="flex-col gap-1 py-2 text-[10px]"><Megaphone className="h-4 w-4" /> Comunicados</TabsTrigger>
+          <TabsTrigger value="eventos" className="flex-col gap-1 py-2 text-[10px]"><CalendarDays className="h-4 w-4" /> Eventos</TabsTrigger>
+          <TabsTrigger value="lembretes" className="flex-col gap-1 py-2 text-[10px]"><Bell className="h-4 w-4" /> Lembretes</TabsTrigger>
+          <TabsTrigger value="blog" className="flex-col gap-1 py-2 text-[10px]"><Newspaper className="h-4 w-4" /> Blog</TabsTrigger>
+          <TabsTrigger value="turmas" className="flex-col gap-1 py-2 text-[10px]"><UsersIcon className="h-4 w-4" /> Turmas</TabsTrigger>
+          <TabsTrigger value="aprovacoes" className="flex-col gap-1 py-2 text-[10px] relative">
+            <Clock className="h-4 w-4" /> Aprovações
+            {pendingUsersCount > 0 && <span className="absolute top-1 right-1 h-2 w-2 bg-coral rounded-full" />}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="comunicados" className="mt-4 space-y-4"><AnnouncementsTab /></TabsContent>
@@ -124,6 +133,7 @@ export default function AdminDashboard() {
         <TabsContent value="lembretes" className="mt-4 space-y-4"><RemindersTab /></TabsContent>
         <TabsContent value="blog" className="mt-4 space-y-4"><BlogTab /></TabsContent>
         <TabsContent value="turmas" className="mt-4 space-y-4"><TurmasTab /></TabsContent>
+        <TabsContent value="aprovacoes" className="mt-4 space-y-4"><ApprovalsTab /></TabsContent>
       </Tabs>
 
       <div className="mt-8 flex justify-center">
@@ -150,6 +160,65 @@ export default function AdminDashboard() {
         </AlertDialog>
       </div>
     </AppLayout>
+  );
+}
+
+/* ============== APPROVALS TAB ============== */
+
+function ApprovalsTab() {
+  const { approveUser, rejectUser } = useAuth();
+  const [pendingUsers, setPendingUsers] = useState<User[]>(seedUsers.filter(u => u.status === "PENDING"));
+
+  const handleApprove = (id: string) => {
+    approveUser(id);
+    setPendingUsers(prev => prev.filter(u => u.id !== id));
+    toast.success("Usuário aprovado com sucesso!");
+  };
+
+  const handleReject = (id: string) => {
+    rejectUser(id);
+    setPendingUsers(prev => prev.filter(u => u.id !== id));
+    toast.error("Solicitação recusada.");
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Solicitações de Cadastro</h3>
+        <Badge variant="secondary">{pendingUsers.length} pendentes</Badge>
+      </div>
+
+      {pendingUsers.length === 0 ? (
+        <EmptyState icon={CheckCircle} title="Nenhuma solicitação pendente." description="Todos os novos cadastros foram revisados." />
+      ) : (
+        <div className="grid gap-3">
+          {pendingUsers.map((u) => (
+            <Card key={u.id} className="p-4 flex items-center justify-between hover:shadow-soft transition-smooth">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                  <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                    {u.name.split(" ").map(n => n[0]).slice(0, 2).join("")}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold text-sm">{u.name}</p>
+                  <p className="text-xs text-muted-foreground">{u.email}</p>
+                  <Badge variant="outline" className="mt-1 text-[10px]">{roleLabel[u.role]}</Badge>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="text-destructive border-destructive/20 hover:bg-destructive/10" onClick={() => handleReject(u.id)}>
+                  <XCircle className="h-4 w-4 mr-1" /> Recusar
+                </Button>
+                <Button size="sm" className="gradient-primary text-primary-foreground" onClick={() => handleApprove(u.id)}>
+                  <CheckCircle className="h-4 w-4 mr-1" /> Aprovar
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -230,64 +299,6 @@ function UrgentRemindersCard() {
   );
 }
 
-function ActivityCard() {
-  const { announcements, events, reminders, blogPosts } = useData();
-  const items = useMemo(() => {
-    const all: { id: string; title: string; when: string; type: string; icon: any; tone: string }[] = [
-      ...announcements.map((a) => ({ id: a.id, title: a.title, when: a.created_at, type: "Comunicado", icon: Megaphone, tone: "text-primary bg-primary/12" })),
-      ...events.map((e) => ({ id: e.id, title: e.title, when: e.date + "T00:00:00", type: "Evento", icon: CalendarDays, tone: "text-tertiary bg-tertiary/15" })),
-      ...reminders.map((r) => ({ id: r.id, title: r.title, when: r.created_at, type: "Lembrete", icon: Bell, tone: "text-secondary bg-secondary/15" })),
-      ...blogPosts.map((p) => ({ id: p.id, title: p.title, when: p.published_at + "T00:00:00", type: "Post", icon: Newspaper, tone: "text-accent-foreground bg-accent/30" })),
-    ];
-    return all.sort((a, b) => b.when.localeCompare(a.when)).slice(0, 5);
-  }, [announcements, events, reminders, blogPosts]);
-  return (
-    <Card className="p-5">
-      <h3 className="text-sm font-semibold flex items-center gap-2 mb-3"><Activity className="h-4 w-4 text-primary" /> Atividade recente</h3>
-      <ul className="space-y-3">
-        {items.map((it) => {
-          const Icon = it.icon;
-          return (
-            <li key={it.type + it.id} className="flex items-start gap-3">
-              <div className={`flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0 ${it.tone}`}>
-                <Icon className="h-4 w-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{it.title}</p>
-                <p className="text-[11px] text-muted-foreground">{it.type} • {new Date(it.when).toLocaleDateString("pt-BR")}</p>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </Card>
-  );
-}
-
-function ClassDistributionCard() {
-  const { turmas } = useData();
-  const max = Math.max(1, ...turmas.map((t) => t.studentIds.length));
-  return (
-    <Card className="p-5">
-      <h3 className="text-sm font-semibold flex items-center gap-2 mb-4"><UsersIcon className="h-4 w-4 text-secondary" /> Distribuição por turma</h3>
-      <div className="space-y-3">
-        {turmas.map((t) => (
-          <div key={t.id}>
-            <div className="flex items-center justify-between text-xs mb-1">
-              <span className="font-medium truncate">{t.name}</span>
-              <span className="text-muted-foreground">{t.studentIds.length} aluna{t.studentIds.length !== 1 ? "s" : ""}</span>
-            </div>
-            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-              <div className="h-full gradient-primary rounded-full transition-all" style={{ width: `${(t.studentIds.length / max) * 100}%` }} />
-            </div>
-          </div>
-        ))}
-        {turmas.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Sem turmas cadastradas.</p>}
-      </div>
-    </Card>
-  );
-}
-
 /* ============== ANNOUNCEMENTS ============== */
 
 function AnnouncementsTab() {
@@ -315,9 +326,9 @@ function AnnouncementsTab() {
         onClear={() => { setQ(""); setTarget("ALL_F"); }}
         filters={
           <Select value={target} onValueChange={(v) => setTarget(v as any)}>
-            <SelectTrigger className="w-[170px] h-10"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[160px] h-10"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL_F">Todos destinatários</SelectItem>
+              <SelectItem value="ALL_F">Todos públicos</SelectItem>
               {Object.entries(targetLabel).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -330,40 +341,33 @@ function AnnouncementsTab() {
         </DialogTrigger>
         <AnnouncementDialog
           editing={editing}
-          onSave={(payload) => {
-            if (editing) {
-              updateAnnouncement(editing.id, payload);
-              toast.success("Comunicado atualizado!");
-            } else {
-              addAnnouncement({ ...payload, author: user?.name || "Coordenação" });
-              toast.success("Comunicado publicado!");
-            }
+          onSave={(p) => {
+            if (editing) { updateAnnouncement(editing.id, p); toast.success("Comunicado atualizado!"); }
+            else { addAnnouncement({ ...p, author: user?.name || "Coordenação" }); toast.success("Comunicado enviado!"); }
             setOpen(false); setEditing(null);
           }}
         />
       </Dialog>
 
       {filtered.length === 0 ? (
-        <EmptyState icon={Megaphone} title="Nenhum comunicado encontrado." description="Ajuste os filtros ou crie um novo." />
+        <EmptyState icon={Megaphone} title="Nenhum comunicado encontrado." />
       ) : (
         <div className="space-y-2">
           {filtered.map((a) => (
-            <Card key={a.id} className="p-3 flex items-start gap-3 hover:shadow-soft transition-smooth">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/12 text-primary flex-shrink-0">
-                <Megaphone className="h-4 w-4" />
+            <Card key={a.id} className="p-3 flex items-center gap-3 hover:shadow-soft transition-smooth">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/12 text-primary flex-shrink-0">
+                <Megaphone className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-semibold text-sm">{a.title}</p>
-                  <Badge variant="outline" className="text-[10px]">{targetLabel[a.target]}</Badge>
+                <p className="font-semibold text-sm truncate">{a.title}</p>
+                <p className="text-xs text-muted-foreground line-clamp-1">{a.content}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <Badge variant="outline" className="text-[10px] h-4 px-1.5">{targetLabel[a.target]}</Badge>
+                  <span className="text-[10px] text-muted-foreground">{new Date(a.created_at).toLocaleDateString("pt-BR")}</span>
                 </div>
-                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{a.content}</p>
-                <p className="text-[10px] text-muted-foreground mt-1">{a.author} • {new Date(a.created_at).toLocaleDateString("pt-BR")}</p>
               </div>
               <div className="flex flex-col gap-1">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(a); setOpen(true); }}>
-                  <Pencil className="h-4 w-4" />
-                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(a); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                 <ConfirmDelete onConfirm={() => { deleteAnnouncement(a.id); toast.success("Removido."); }} />
               </div>
             </Card>
@@ -374,7 +378,7 @@ function AnnouncementsTab() {
   );
 }
 
-function AnnouncementDialog({ editing, onSave }: { editing: Announcement | null; onSave: (p: { title: string; content: string; target: Target }) => void }) {
+function AnnouncementDialog({ editing, onSave }: { editing: Announcement | null; onSave: (p: Omit<Announcement, "id" | "created_at" | "author">) => void }) {
   const [title, setTitle] = useState(editing?.title || "");
   const [content, setContent] = useState(editing?.content || "");
   const [target, setTarget] = useState<Target>(editing?.target || "ALL");
@@ -382,27 +386,24 @@ function AnnouncementDialog({ editing, onSave }: { editing: Announcement | null;
     <DialogContent>
       <DialogHeader><DialogTitle>{editing ? "Editar comunicado" : "Novo comunicado"}</DialogTitle></DialogHeader>
       <div className="space-y-3">
-        <div><Label>Título</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Reunião extraordinária" /></div>
+        <div><Label>Título</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} /></div>
         <div>
-          <Label>Destinatários</Label>
+          <Label>Público-alvo</Label>
           <Select value={target} onValueChange={(v) => setTarget(v as Target)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{Object.entries(targetLabel).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <div><Label>Mensagem</Label><Textarea rows={4} value={content} onChange={(e) => setContent(e.target.value)} /></div>
+        <div><Label>Conteúdo</Label><Textarea rows={4} value={content} onChange={(e) => setContent(e.target.value)} /></div>
       </div>
       <DialogFooter>
         <Button
           className="gradient-primary text-primary-foreground"
           onClick={() => {
             if (title.trim().length < 3) return toast.error("Título muito curto.");
-            if (content.trim().length < 10) return toast.error("Conteúdo muito curto.");
             onSave({ title: title.trim(), content: content.trim(), target });
           }}
-        >
-          <Send className="h-4 w-4 mr-2" /> {editing ? "Salvar" : "Publicar"}
-        </Button>
+        ><Send className="h-4 w-4 mr-2" /> {editing ? "Salvar" : "Publicar"}</Button>
       </DialogFooter>
     </DialogContent>
   );
@@ -415,47 +416,19 @@ function EventsTab() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<EventItem | null>(null);
   const [q, setQ] = useState("");
-  const [classFilter, setClassFilter] = useState<string>("ALL");
-  const [when, setWhen] = useState<"ALL" | "UPCOMING" | "PAST">("UPCOMING");
 
-  const today = new Date().toISOString().slice(0, 10);
   const filtered = useMemo(() => {
     return [...events]
-      .filter((e) => {
-        if (when === "UPCOMING" && e.date < today) return false;
-        if (when === "PAST" && e.date >= today) return false;
-        if (classFilter !== "ALL" && e.class_id !== classFilter) return false;
-        if (q && !`${e.title} ${e.description}`.toLowerCase().includes(q.toLowerCase())) return false;
-        return true;
-      })
-      .sort((a, b) => a.date.localeCompare(b.date));
-  }, [events, q, classFilter, when, today]);
+      .filter((e) => !q || e.title.toLowerCase().includes(q.toLowerCase()))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [events, q]);
 
   return (
     <>
       <SearchBar
         value={q} onChange={setQ} placeholder="Buscar eventos..."
         total={events.length} filtered={filtered.length}
-        onClear={() => { setQ(""); setClassFilter("ALL"); setWhen("UPCOMING"); }}
-        filters={
-          <>
-            <Select value={when} onValueChange={(v) => setWhen(v as any)}>
-              <SelectTrigger className="w-[130px] h-10"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="UPCOMING">Próximos</SelectItem>
-                <SelectItem value="PAST">Passados</SelectItem>
-                <SelectItem value="ALL">Todos</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={classFilter} onValueChange={setClassFilter}>
-              <SelectTrigger className="w-[150px] h-10"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">Todas turmas</SelectItem>
-                {turmas.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </>
-        }
+        onClear={() => setQ("")}
       />
 
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
@@ -482,13 +455,12 @@ function EventsTab() {
             return (
               <Card key={e.id} className="p-3 flex items-center gap-3 hover:shadow-soft transition-smooth">
                 <div className="flex h-12 w-12 flex-col items-center justify-center rounded-xl bg-tertiary/15 text-tertiary flex-shrink-0">
-                  <span className="text-[10px] font-semibold uppercase">{new Date(e.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span>
+                  <span className="text-[10px] font-bold uppercase">{new Date(e.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span>
                   <span className="text-base font-bold leading-none">{new Date(e.date).getDate()}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm truncate">{e.title}</p>
-                  <p className="text-xs text-muted-foreground line-clamp-1">{e.description}</p>
-                  {t && <Badge variant="outline" className="mt-1 text-[10px]">{t.name}</Badge>}
+                  <p className="text-xs text-muted-foreground truncate">{t?.name || "Aberto a todos"}</p>
                 </div>
                 <div className="flex flex-col gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(e); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
@@ -797,7 +769,7 @@ function BlogDialog({ editing, onSave }: { editing: BlogPost | null; onSave: (p:
           onClick={() => {
             if (title.trim().length < 3) return toast.error("Título muito curto.");
             if (content.trim().length < 20) return toast.error("Conteúdo muito curto.");
-            onSave({ title: title.trim(), cover_image: cover, excerpt: excerpt.trim() || content.trim().slice(0, 120), content: content.trim() });
+            onSave({ title: title.trim(), cover_image: cover, excerpt: excerpt.trim(), content: content.trim() });
           }}
         ><FileText className="h-4 w-4 mr-2" /> {editing ? "Salvar" : "Publicar"}</Button>
       </DialogFooter>
@@ -887,12 +859,7 @@ function TurmasTab() {
                     updateStudent(studentDialog.editing.id, p);
                     toast.success("Aluna atualizada!");
                   } else {
-                    const newId = `s_${Date.now().toString(36)}`;
                     addStudent({ ...p, classIds: turma ? [turma.id] : [] });
-                    // attach to current turma after add (need real id from store)
-                    setTimeout(() => {
-                      // fallback: we cannot get the new id from addStudent; rely on reading latest state via a small trick
-                    }, 0);
                     toast.success("Aluna cadastrada!");
                   }
                   setStudentDialog({ open: false, editing: null });
@@ -943,21 +910,12 @@ function TurmasTab() {
                   </div>
                 </div>
               )}
-
-              <div className="mt-3 pt-3 border-t flex justify-end">
-                <Button variant="ghost" size="sm" className="text-destructive text-[11px]"
-                  onClick={() => {
-                    if (!confirm("Excluir definitivamente as alunas selecionadas? (use o lápis para editar individualmente)")) return;
-                  }}
-                  style={{ display: "none" }}
-                >ações</Button>
-              </div>
             </>
           )}
         </Card>
       </div>
 
-      {/* Lista geral de alunas para excluir definitivamente */}
+      {/* Lista geral de alunas */}
       {students.length > 0 && (
         <Card className="p-4 mt-4">
           <h3 className="text-sm font-semibold flex items-center gap-2 mb-3"><GraduationCap className="h-4 w-4 text-muted-foreground" /> Todas as alunas ({students.length})</h3>

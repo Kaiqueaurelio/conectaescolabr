@@ -4,12 +4,14 @@ import { users, User, Role } from "@/lib/mockData";
 interface AuthContextValue {
   user: User | null;
   login: (email: string, password: string) => Promise<{ error?: string }>;
-  register: (name: string, email: string, password: string) => Promise<{ error?: string }>;
+  register: (name: string, email: string, password: string, role: Role) => Promise<{ error?: string }>;
   logout: () => void;
   loading: boolean;
   switchChild: (childId: string) => void;
   selectedChildId: string | null;
   updateProfile: (patch: Partial<Pick<User, "name" | "email" | "avatar_url">>) => void;
+  approveUser: (userId: string) => void;
+  rejectUser: (userId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -39,6 +41,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await new Promise((r) => setTimeout(r, 600));
     const found = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
     if (!found) return { error: "Credenciais inválidas. Verifique seu e-mail e senha." };
+    
+    if (found.status === "PENDING") {
+      return { error: "Sua conta está aguardando aprovação do administrador." };
+    }
+    if (found.status === "REJECTED") {
+      return { error: "Sua solicitação de cadastro foi recusada. Entre em contato com a coordenação." };
+    }
+
     setUser(found);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(found));
     if (found.role === "PARENT" && found.childrenIds?.length) {
@@ -47,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {};
   };
 
-  const register = async (name: string, email: string, _password: string) => {
+  const register = async (name: string, email: string, _password: string, role: Role) => {
     await new Promise((r) => setTimeout(r, 600));
     const exists = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
     if (exists) return { error: "Este e-mail já está cadastrado." };
@@ -55,17 +65,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!email.trim()) return { error: "E-mail é obrigatório." };
     
     const newUser: User = {
-      id: `s_${Date.now().toString(36)}`,
-      role: "STUDENT",
+      id: `u_${Date.now().toString(36)}`,
+      role: role,
       name: name.trim(),
       email: email.trim(),
       avatar_url: "",
+      status: "PENDING",
     };
     
     users.push(newUser);
-    setUser(newUser);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
-    return {};
+    // Não faz login automático, pois precisa de aprovação
+    return { success: true };
   };
 
   const logout = () => {
@@ -85,8 +95,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const approveUser = (userId: string) => {
+    const u = users.find(u => u.id === userId);
+    if (u) u.status = "APPROVED";
+  };
+
+  const rejectUser = (userId: string) => {
+    const u = users.find(u => u.id === userId);
+    if (u) u.status = "REJECTED";
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading, switchChild, selectedChildId, updateProfile }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, switchChild, selectedChildId, updateProfile, approveUser, rejectUser }}>
       {children}
     </AuthContext.Provider>
   );
@@ -104,5 +124,6 @@ export function roleHome(role: Role): string {
     case "STUDENT": return "/aluno";
     case "PARENT": return "/responsavel";
     case "ADMIN": return "/admin";
+    case "VOLUNTEER": return "/aluno"; // Voluntários usam dashboard similar ao aluno ou blog
   }
 }

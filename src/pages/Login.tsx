@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, MessageSquareHeart, BookHeart, Users } from "lucide-react";
+import { Loader2, Eye, EyeOff, MessageSquareHeart, BookHeart, Users, Briefcase } from "lucide-react";
 import heroImg from "@/assets/hero-education.jpg";
 import Logo from "@/components/Logo";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Role } from "@/lib/mockData";
 
 export default function Login() {
   const { user, login, register } = useAuth();
@@ -16,6 +18,7 @@ export default function Login() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<Role>("STUDENT");
   const [showPwd, setShowPwd] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -45,12 +48,18 @@ export default function Login() {
     if (password.length < 6) return toast.error("A senha deve ter pelo menos 6 caracteres.");
     
     setSubmitting(true);
-    const { error } = await register(name.trim(), email.trim(), password);
+    const { error, success } = await register(name.trim(), email.trim(), password, role);
     setSubmitting(false);
     if (error) {
       toast.error(error);
-    } else {
-      toast.success("Conta criada com sucesso!");
+    } else if (success) {
+      toast.success("Solicitação enviada!", {
+        description: "Sua conta foi criada e aguarda aprovação do administrador.",
+      });
+      setIsRegister(false);
+      setName("");
+      setEmail("");
+      setPassword("");
     }
   };
 
@@ -100,7 +109,7 @@ export default function Login() {
           </h1>
           <p className="mt-2 text-muted-foreground">
             {isRegister
-              ? "Preencha os dados abaixo para criar sua conta."
+              ? "Preencha os dados abaixo para solicitar seu acesso."
               : "Bem-vindo(a) de volta! Faça login para continuar."}
           </p>
 
@@ -165,14 +174,31 @@ export default function Login() {
               </div>
             </div>
 
+            {isRegister && (
+              <div className="space-y-2">
+                <Label htmlFor="role">Tipo de Perfil</Label>
+                <Select value={role} onValueChange={(v) => setRole(v as Role)}>
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Selecione seu perfil" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="STUDENT">Aluno(a)</SelectItem>
+                    <SelectItem value="PARENT">Responsável</SelectItem>
+                    <SelectItem value="TEACHER">Professor(a)</SelectItem>
+                    <SelectItem value="VOLUNTEER">Voluntário(a)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <Button type="submit" disabled={submitting} className="w-full h-11 gradient-primary text-primary-foreground font-semibold shadow-elevated hover:opacity-95">
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isRegister ? "Criando conta..." : "Entrando..."}
+                  {isRegister ? "Solicitando..." : "Entrando..."}
                 </>
               ) : isRegister ? (
-                "Criar conta"
+                "Solicitar Cadastro"
               ) : (
                 "Entrar"
               )}

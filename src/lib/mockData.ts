@@ -1,4 +1,4 @@
-export type Role = "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
+export type Role = "ADMIN" | "TEACHER" | "STUDENT" | "PARENT" | "VOLUNTEER";
 
 export interface User {
   id: string;
@@ -8,18 +8,19 @@ export interface User {
   avatar_url?: string;
   childrenIds?: string[];
   classIds?: string[];
+  status: "PENDING" | "APPROVED" | "REJECTED";
 }
 
 export const users: User[] = [
-  { id: "t1", role: "TEACHER", name: "Profa. Mariana Souza", email: "professor@ong.org", avatar_url: "", classIds: ["c1", "c2"] },
-  { id: "s1", role: "STUDENT", name: "Lucas Oliveira", email: "aluno@ong.org", avatar_url: "", classIds: ["c1"] },
-  { id: "s2", role: "STUDENT", name: "Beatriz Santos", email: "beatriz@ong.org", avatar_url: "", classIds: ["c1"] },
-  { id: "s3", role: "STUDENT", name: "Pedro Almeida", email: "pedro@ong.org", avatar_url: "", classIds: ["c2"] },
-  { id: "s4", role: "STUDENT", name: "Júlia Ferreira", email: "julia@ong.org", avatar_url: "", classIds: ["c2"] },
-  { id: "s5", role: "STUDENT", name: "Gabriel Costa", email: "gabriel@ong.org", avatar_url: "", classIds: ["c1"] },
-  { id: "p1", role: "PARENT", name: "Carla Oliveira", email: "responsavel@ong.org", avatar_url: "", childrenIds: ["s1", "s3"] },
-  { id: "a1", role: "ADMIN", name: "Coordenação ONG", email: "admin@ong.org", avatar_url: "" },
-  { id: "a2", role: "ADMIN", name: "Administração Camila", email: "admin@associacaocamila.br", avatar_url: "" },
+  { id: "t1", role: "TEACHER", name: "Profa. Mariana Souza", email: "professor@ong.org", avatar_url: "", classIds: ["c1", "c2"], status: "APPROVED" },
+  { id: "s1", role: "STUDENT", name: "Lucas Oliveira", email: "aluno@ong.org", avatar_url: "", classIds: ["c1"], status: "APPROVED" },
+  { id: "s2", role: "STUDENT", name: "Beatriz Santos", email: "beatriz@ong.org", avatar_url: "", classIds: ["c1"], status: "APPROVED" },
+  { id: "s3", role: "STUDENT", name: "Pedro Almeida", email: "pedro@ong.org", avatar_url: "", classIds: ["c2"], status: "APPROVED" },
+  { id: "s4", role: "STUDENT", name: "Júlia Ferreira", email: "julia@ong.org", avatar_url: "", classIds: ["c2"], status: "APPROVED" },
+  { id: "s5", role: "STUDENT", name: "Gabriel Costa", email: "gabriel@ong.org", avatar_url: "", classIds: ["c1"], status: "APPROVED" },
+  { id: "p1", role: "PARENT", name: "Carla Oliveira", email: "responsavel@ong.org", avatar_url: "", childrenIds: ["s1", "s3"], status: "APPROVED" },
+  { id: "a1", role: "ADMIN", name: "Coordenação ONG", email: "admin@ong.org", avatar_url: "", status: "APPROVED" },
+  { id: "a2", role: "ADMIN", name: "Administração Camila", email: "admin@associacaocamila.br", avatar_url: "", status: "APPROVED" },
 ];
 
 export interface Turma {
