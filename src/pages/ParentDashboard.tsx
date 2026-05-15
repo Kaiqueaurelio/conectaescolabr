@@ -5,13 +5,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { users } from "@/lib/mockData";
 import { useData } from "@/contexts/DataContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Megaphone, Calendar as CalIcon, TrendingUp, CheckCircle2 } from "lucide-react";
+import { Megaphone, Calendar as CalIcon, TrendingUp, CheckCircle2, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import EmptyState from "@/components/EmptyState";
 
 export default function ParentDashboard() {
   const { user, selectedChildId, switchChild } = useAuth();
-  const { announcements, events, turmas, reminders, isOverdue } = useData();
+  const { announcements, events, turmas, reminders, isOverdue, studentFrequency, studentPoints } = useData();
   const children = users.filter((u) => user?.childrenIds?.includes(u.id));
   const child = children.find((c) => c.id === selectedChildId) || children[0];
   const today = new Date().toISOString().slice(0, 10);
@@ -20,6 +20,8 @@ export default function ParentDashboard() {
   const initials = child?.name.split(" ").map((n) => n[0]).slice(0, 2).join("") || "";
   const childTurma = turmas.find((t) => child?.classIds?.includes(t.id));
   const overdue = reminders.filter((r) => isOverdue(r) && (r.target === "ALL" || r.target === "PARENTS")).length;
+  const freq = child ? studentFrequency(child.id) : { rate: 0, total: 0, present: 0 };
+  const points = child ? studentPoints[child.id] || 0 : 0;
 
   return (
     <AppLayout>
@@ -67,15 +69,15 @@ export default function ParentDashboard() {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-success/15 text-success mb-2">
             <CheckCircle2 className="h-5 w-5" />
           </div>
-          <p className="text-2xl font-bold">96%</p>
-          <p className="text-xs text-muted-foreground">Frequência</p>
+          <p className="text-2xl font-bold">{freq.total === 0 ? "—" : `${freq.rate}%`}</p>
+          <p className="text-xs text-muted-foreground">{freq.total === 0 ? "Sem chamadas" : `${freq.present}/${freq.total} aulas`}</p>
         </Card>
         <Card className="p-4">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/15 text-secondary mb-2">
             <TrendingUp className="h-5 w-5" />
           </div>
-          <p className="text-2xl font-bold">B+</p>
-          <p className="text-xs text-muted-foreground">Desempenho</p>
+          <p className="text-2xl font-bold">{points}</p>
+          <p className="text-xs text-muted-foreground">Pontos em atividades</p>
         </Card>
       </div>
 
