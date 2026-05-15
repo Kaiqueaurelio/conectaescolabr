@@ -1,6 +1,6 @@
 # Credenciais de demonstração — Associação Camila
 
-Use qualquer senha para entrar (autenticação simulada).
+Utilize qualquer senha para realizar o login (autenticação simulada).
 
 | Perfil          | E-mail                  |
 | --------------- | ----------------------- |
@@ -10,4 +10,4 @@ Use qualquer senha para entrar (autenticação simulada).
 | Aluno(a)        | aluno@ong.org           |
 | Responsável     | responsavel@ong.org     |
 
-Os dados são persistidos no `localStorage` do navegador. Para resetar, use o botão **"Restaurar dados de demonstração"** no painel administrativo.
+Os dados são persistidos no `localStorage` do navegador. Para redefinir, utilize o botão **"Restaurar dados de demonstração"** no painel administrativo.

@@ -41,13 +41,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, _password: string) => {
     await new Promise((r) => setTimeout(r, 600));
     const found = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-    if (!found) return { error: "Credenciais inválidas. Verifique seu e-mail e senha." };
+    if (!found) return { error: "Credenciais inválidas. Por favor, verifique seu e-mail e senha." };
     
     if (found.status === "PENDING") {
-      return { error: "Sua conta está aguardando aprovação do administrador." };
+      return { error: "Sua conta está aguardando a aprovação de um administrador." };
     }
     if (found.status === "REJECTED") {
-      return { error: "Sua solicitação de cadastro foi recusada. Entre em contato com a coordenação." };
+      return { error: "Sua solicitação de cadastro foi recusada. Por favor, entre em contato com a coordenação." };
     }
 
     setUser(found);
@@ -61,9 +61,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (name: string, email: string, _password: string, role: Role) => {
     await new Promise((r) => setTimeout(r, 600));
     const exists = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-    if (exists) return { error: "Este e-mail já está cadastrado." };
-    if (!name.trim()) return { error: "Nome é obrigatório." };
-    if (!email.trim()) return { error: "E-mail é obrigatório." };
+    if (exists) return { error: "Este e-mail já se encontra cadastrado no sistema." };
+    if (!name.trim()) return { error: "O preenchimento do nome é obrigatório." };
+    if (!email.trim()) return { error: "O preenchimento do e-mail é obrigatório." };
     
     const newUser: User = {
       id: `u_${Date.now().toString(36)}`,

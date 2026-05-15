@@ -54,7 +54,7 @@ export default function Login() {
       toast.error(error);
     } else if (success) {
       toast.success("Solicitação enviada!", {
-        description: "Sua conta foi criada e aguarda aprovação do administrador.",
+        description: "Sua conta foi criada com sucesso e agora aguarda a aprovação de um administrador.",
       });
       setIsRegister(false);
       setName("");
@@ -135,7 +135,7 @@ export default function Login() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
+                placeholder="seu.email@exemplo.com"
                 autoComplete={isRegister ? "email" : "email"}
                 className="h-11"
               />
@@ -146,7 +146,7 @@ export default function Login() {
                 {!isRegister && (
                   <button
                     type="button"
-                    onClick={() => toast.info("Entre em contato com a coordenação para redefinir sua senha.")}
+                    onClick={() => toast.info("Por favor, entre em contato com a coordenação para redefinir sua senha.")}
                     className="text-xs font-medium text-primary hover:underline"
                   >
                     Esqueci minha senha
@@ -179,7 +179,7 @@ export default function Login() {
                 <Label htmlFor="role">Tipo de Perfil</Label>
                 <Select value={role} onValueChange={(v) => setRole(v as Role)}>
                   <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Selecione seu perfil" />
+                    <SelectValue placeholder="Selecione o seu perfil" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="STUDENT">Aluno(a)</SelectItem>
