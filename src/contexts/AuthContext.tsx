@@ -1,10 +1,15 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { users, User, Role } from "@/lib/mockData";
 
+interface AuthResult {
+  success?: boolean;
+  error?: string;
+}
+
 interface AuthContextValue {
   user: User | null;
-  login: (email: string, password: string) => Promise<{ error?: string }>;
-  register: (name: string, email: string, password: string, role: Role) => Promise<{ error?: string }>;
+  login: (email: string, password: string) => Promise<AuthResult>;
+  register: (name: string, email: string, password: string, role: Role) => Promise<AuthResult>;
   logout: () => void;
   loading: boolean;
   switchChild: (childId: string) => void;
@@ -12,7 +17,7 @@ interface AuthContextValue {
   updateProfile: (patch: Partial<Pick<User, "name" | "email" | "avatar_url">>) => void;
   approveUser: (userId: string) => void;
   rejectUser: (userId: string) => void;
-  linkChild: (childId: string) => Promise<{ success: boolean; error?: string }>;
+  linkChild: (childId: string) => Promise<AuthResult>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -33,16 +38,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (u.role === "PARENT" && u.childrenIds?.length) {
           setSelectedChildId(u.childrenIds[0]);
         }
-      } catch {}
+      } catch {
+        localStorage.removeItem(STORAGE_KEY);
+      }
     }
     setLoading(false);
   }, []);
 
-  const login = async (email: string, _password: string) => {
+  const login = async (email: string, _password: string): Promise<AuthResult> => {
     await new Promise((r) => setTimeout(r, 600));
     const found = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
     if (!found) return { error: "Credenciais inválidas. Por favor, verifique seu e-mail e senha." };
-    
+
     if (found.status === "PENDING") {
       return { error: "Sua conta está aguardando a aprovação de um administrador." };
     }
@@ -54,26 +61,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(found));
     if (found.role === "PARENT" && found.childrenIds?.length) {
       setSelectedChildId(found.childrenIds[0]);
+    } else {
+      setSelectedChildId(null);
     }
-    return {};
+    return { success: true };
   };
 
-  const register = async (name: string, email: string, _password: string, role: Role) => {
+  const register = async (name: string, email: string, _password: string, role: Role): Promise<AuthResult> => {
     await new Promise((r) => setTimeout(r, 600));
     const exists = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
     if (exists) return { error: "Este e-mail já se encontra cadastrado no sistema." };
     if (!name.trim()) return { error: "O preenchimento do nome é obrigatório." };
     if (!email.trim()) return { error: "O preenchimento do e-mail é obrigatório." };
-    
+
     const newUser: User = {
       id: `u_${Date.now().toString(36)}`,
-      role: role,
+      role,
       name: name.trim(),
       email: email.trim(),
       avatar_url: "",
       status: "PENDING",
     };
-    
+
     users.push(newUser);
     return { success: true };
   };
@@ -96,30 +105,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const approveUser = (userId: string) => {
-    const u = users.find(u => u.id === userId);
-    if (u) u.status = "APPROVED";
+    const approvedUser = users.find((u) => u.id === userId);
+    if (approvedUser) approvedUser.status = "APPROVED";
   };
 
   const rejectUser = (userId: string) => {
-    const u = users.find(u => u.id === userId);
-    if (u) u.status = "REJECTED";
+    const rejectedUser = users.find((u) => u.id === userId);
+    if (rejectedUser) rejectedUser.status = "REJECTED";
   };
 
-  const linkChild = async (childId: string) => {
-    if (!user || user.role !== "PARENT") return { success: false, error: "Apenas responsáveis podem vincular alunos." };
-    
+  const linkChild = async (childId: string): Promise<AuthResult> => {
+    if (!user || user.role !== "PARENT") {
+      return { success: false, error: "Apenas responsáveis podem vincular alunos." };
+    }
+
+    if (user.childrenIds?.includes(childId)) {
+      return { success: true };
+    }
+
     const updatedUser = {
       ...user,
-      childrenIds: [...(user.childrenIds || []), childId]
+      childrenIds: [...(user.childrenIds || []), childId],
     };
-    
+
     setUser(updatedUser);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
-    
+
     if (!selectedChildId) {
       setSelectedChildId(childId);
     }
-    
+
     return { success: true };
   };
 
@@ -138,10 +153,17 @@ export function useAuth() {
 
 export function roleHome(role: Role): string {
   switch (role) {
-    case "TEACHER": return "/professor";
-    case "STUDENT": return "/aluno";
-    case "PARENT": return "/responsavel";
-    case "ADMIN": return "/admin";
-    case "VOLUNTEER": return "/aluno";
+    case "TEACHER":
+      return "/professor";
+    case "STUDENT":
+      return "/aluno";
+    case "PARENT":
+      return "/responsavel";
+    case "ADMIN":
+      return "/admin";
+    case "VOLUNTEER":
+      return "/aluno";
+    default:
+      return "/";
   }
 }
