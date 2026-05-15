@@ -4,6 +4,7 @@ import { users, User, Role } from "@/lib/mockData";
 interface AuthContextValue {
   user: User | null;
   login: (email: string, password: string) => Promise<{ error?: string }>;
+  register: (name: string, email: string, password: string) => Promise<{ error?: string }>;
   logout: () => void;
   loading: boolean;
   switchChild: (childId: string) => void;
@@ -46,6 +47,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {};
   };
 
+  const register = async (name: string, email: string, _password: string) => {
+    await new Promise((r) => setTimeout(r, 600));
+    const exists = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    if (exists) return { error: "Este e-mail já está cadastrado." };
+    if (!name.trim()) return { error: "Nome é obrigatório." };
+    if (!email.trim()) return { error: "E-mail é obrigatório." };
+    
+    const newUser: User = {
+      id: `s_${Date.now().toString(36)}`,
+      role: "STUDENT",
+      name: name.trim(),
+      email: email.trim(),
+      avatar_url: "",
+    };
+    
+    users.push(newUser);
+    setUser(newUser);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
+    return {};
+  };
+
   const logout = () => {
     setUser(null);
     setSelectedChildId(null);
@@ -64,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, switchChild, selectedChildId, updateProfile }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, switchChild, selectedChildId, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

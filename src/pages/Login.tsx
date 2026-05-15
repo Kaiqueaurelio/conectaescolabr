@@ -10,8 +10,10 @@ import heroImg from "@/assets/hero-education.jpg";
 import Logo from "@/components/Logo";
 
 export default function Login() {
-  const { user, login } = useAuth();
+  const { user, login, register } = useAuth();
   const navigate = useNavigate();
+  const [isRegister, setIsRegister] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
@@ -21,7 +23,7 @@ export default function Login() {
     if (user) navigate(roleHome(user.role), { replace: true });
   }, [user, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return toast.error("Informe o seu e-mail.");
     if (!password.trim()) return toast.error("Informe a sua senha.");
@@ -32,6 +34,23 @@ export default function Login() {
       toast.error(error);
     } else {
       toast.success("Bem-vindo(a) de volta!");
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return toast.error("Informe seu nome completo.");
+    if (!email.trim()) return toast.error("Informe seu e-mail.");
+    if (!password.trim()) return toast.error("Informe uma senha.");
+    if (password.length < 6) return toast.error("A senha deve ter pelo menos 6 caracteres.");
+    
+    setSubmitting(true);
+    const { error } = await register(name.trim(), email.trim(), password);
+    setSubmitting(false);
+    if (error) {
+      toast.error(error);
+    } else {
+      toast.success("Conta criada com sucesso!");
     }
   };
 
@@ -76,12 +95,30 @@ export default function Login() {
           <div className="mb-8 lg:hidden flex justify-center">
             <Logo size="xl" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">Acesse sua conta</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {isRegister ? "Criar conta" : "Acesse sua conta"}
+          </h1>
           <p className="mt-2 text-muted-foreground">
-            Bem-vindo(a) de volta! Faça login para continuar.
+            {isRegister
+              ? "Preencha os dados abaixo para criar sua conta."
+              : "Bem-vindo(a) de volta! Faça login para continuar."}
           </p>
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          <form onSubmit={isRegister ? handleRegister : handleLogin} className="mt-8 space-y-5">
+            {isRegister && (
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome completo</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Seu nome completo"
+                  autoComplete="name"
+                  className="h-11"
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>
               <Input
@@ -90,20 +127,22 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
-                autoComplete="email"
+                autoComplete={isRegister ? "email" : "email"}
                 className="h-11"
               />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Senha</Label>
-                <button
-                  type="button"
-                  onClick={() => toast.info("Entre em contato com a coordenação para redefinir sua senha.")}
-                  className="text-xs font-medium text-primary hover:underline"
-                >
-                  Esqueci minha senha
-                </button>
+                {!isRegister && (
+                  <button
+                    type="button"
+                    onClick={() => toast.info("Entre em contato com a coordenação para redefinir sua senha.")}
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    Esqueci minha senha
+                  </button>
+                )}
               </div>
               <div className="relative">
                 <Input
@@ -112,7 +151,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  autoComplete="current-password"
+                  autoComplete={isRegister ? "new-password" : "current-password"}
                   className="h-11 pr-10"
                 />
                 <button
@@ -127,9 +166,36 @@ export default function Login() {
             </div>
 
             <Button type="submit" disabled={submitting} className="w-full h-11 gradient-primary text-primary-foreground font-semibold shadow-elevated hover:opacity-95">
-              {submitting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Entrando...</>) : "Entrar"}
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {isRegister ? "Criando conta..." : "Entrando..."}
+                </>
+              ) : isRegister ? (
+                "Criar conta"
+              ) : (
+                "Entrar"
+              )}
             </Button>
           </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              {isRegister ? "Já tem conta? " : "Não tem conta? "}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegister(!isRegister);
+                  setName("");
+                  setEmail("");
+                  setPassword("");
+                }}
+                className="font-semibold text-primary hover:underline"
+              >
+                {isRegister ? "Faça login" : "Crie uma conta"}
+              </button>
+            </p>
+          </div>
 
           <p className="mt-10 text-center text-xs text-muted-foreground">
             © {new Date().getFullYear()} Associação Camila — Em defesa e valorização da vida.
