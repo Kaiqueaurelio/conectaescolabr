@@ -39,6 +39,7 @@ import { DocumentScanningPage } from "./pages/DocumentScanning";
 import { ReportsGenerationPage } from "./pages/ReportsGeneration";
 import { ParentPortalPage } from "./pages/ParentPortal";
 import { SecurityAndLGPDPage } from "./pages/SecurityAndLGPD";
+import { ColorPalettePageGlass } from "./pages/ColorPalettePage";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,7 @@ const App = () => (
                 <Route path="/admin/scanning" element={<ProtectedRoute roles={["ADMIN"]}><DocumentScanningPage /></ProtectedRoute>} />
                 <Route path="/admin/reports" element={<ProtectedRoute roles={["ADMIN"]}><ReportsGenerationPage /></ProtectedRoute>} />
                 <Route path="/admin/security" element={<ProtectedRoute><SecurityAndLGPDPage /></ProtectedRoute>} />
+                <Route path="/admin/colors" element={<ProtectedRoute roles={["ADMIN"]}><ColorPalettePageGlass /></ProtectedRoute>} />
                 
                 {/* Portal do Responsável */}
                 <Route path="/parent/portal" element={<ProtectedRoute roles={["PARENT"]}><ParentPortalPage /></ProtectedRoute>} />

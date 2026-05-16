@@ -17,18 +17,18 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 200 25% 18%;
 
-    /* Associação Camila — paleta institucional */
-    --primary: 158 75% 30%;          /* verde institucional */
+    /* Associação Camila — paleta institucional extraída do logo */
+    --primary: 162 98% 30%;          /* verde esmeralda #01965c */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 152 60% 45%;
+    --primary-glow: 162 98% 45%;
 
-    --secondary: 28 90% 55%;         /* laranja da flor */
+    --secondary: 30 100% 47%;        /* laranja vibrante #f08900 */
     --secondary-foreground: 0 0% 100%;
 
-    --tertiary: 210 75% 45%;         /* azul */
+    --tertiary: 213 88% 38%;         /* azul royal #0f71b8 */
     --tertiary-foreground: 0 0% 100%;
 
-    --coral: 5 75% 52%;              /* vermelho-coral */
+    --coral: 11 90% 49%;             /* vermelho coral #e53c15 */
     --coral-foreground: 0 0% 100%;
 
     --muted: 150 15% 95%;
@@ -51,16 +51,16 @@ All colors MUST be HSL.
 
     --radius: 0.85rem;
 
-    --gradient-primary: linear-gradient(135deg, hsl(158 75% 28%), hsl(152 60% 42%));
-    --gradient-warm: linear-gradient(135deg, hsl(28 90% 55%), hsl(38 95% 62%));
-    --gradient-hero: linear-gradient(135deg, hsl(158 75% 28%) 0%, hsl(210 75% 45%) 55%, hsl(28 90% 55%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(150 25% 97%));
-    --gradient-brand: linear-gradient(120deg, hsl(158 75% 30%) 0%, hsl(210 75% 45%) 35%, hsl(28 90% 55%) 70%, hsl(5 75% 52%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(162 98% 30%), hsl(162 98% 45%));
+    --gradient-warm: linear-gradient(135deg, hsl(30 100% 47%), hsl(30 100% 60%));
+    --gradient-hero: linear-gradient(135deg, hsl(162 98% 30%) 0%, hsl(213 88% 38%) 50%, hsl(30 100% 47%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(162 50% 97%));
+    --gradient-brand: linear-gradient(120deg, hsl(162 98% 30%) 0%, hsl(213 88% 38%) 35%, hsl(30 100% 47%) 70%, hsl(11 90% 49%) 100%);
 
-    --shadow-sm: 0 2px 8px -2px hsl(158 50% 15% / 0.08);
-    --shadow-md: 0 8px 20px -6px hsl(158 75% 28% / 0.20);
-    --shadow-lg: 0 20px 40px -12px hsl(158 75% 28% / 0.28);
-    --shadow-warm: 0 10px 30px -8px hsl(28 90% 55% / 0.35);
+    --shadow-sm: 0 2px 8px -2px hsl(162 98% 15% / 0.08);
+    --shadow-md: 0 8px 20px -6px hsl(162 98% 30% / 0.20);
+    --shadow-lg: 0 20px 40px -12px hsl(162 98% 30% / 0.28);
+    --shadow-warm: 0 10px 30px -8px hsl(30 100% 47% / 0.35);
 
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -75,20 +75,20 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 158 35% 8%;
+    --background: 162 98% 8%;
     --foreground: 40 30% 96%;
-    --card: 158 30% 12%;
+    --card: 162 98% 12%;
     --card-foreground: 40 30% 96%;
-    --popover: 158 30% 12%;
+    --popover: 162 98% 12%;
     --popover-foreground: 40 30% 96%;
-    --primary: 152 60% 50%;
-    --primary-foreground: 158 35% 8%;
-    --primary-glow: 152 65% 60%;
-    --secondary: 28 90% 60%;
-    --secondary-foreground: 158 35% 8%;
-    --tertiary: 210 75% 55%;
+    --primary: 162 98% 50%;
+    --primary-foreground: 162 98% 8%;
+    --primary-glow: 162 98% 60%;
+    --secondary: 30 100% 60%;
+    --secondary-foreground: 162 98% 8%;
+    --tertiary: 213 88% 55%;
     --tertiary-foreground: 0 0% 100%;
-    --coral: 5 75% 58%;
+    --coral: 11 90% 58%;
     --coral-foreground: 0 0% 100%;
     --muted: 158 25% 18%;
     --muted-foreground: 150 15% 65%;
@@ -96,13 +96,13 @@ All colors MUST be HSL.
     --accent-foreground: 158 35% 8%;
     --destructive: 5 70% 50%;
     --destructive-foreground: 0 0% 100%;
-    --success: 152 55% 50%;
+    --success: 162 98% 50%;
     --success-foreground: 0 0% 100%;
     --warning: 28 90% 55%;
     --warning-foreground: 158 35% 8%;
-    --border: 158 25% 22%;
-    --input: 158 25% 22%;
-    --ring: 152 60% 50%;
+    --border: 162 98% 22%;
+    --input: 162 98% 22%;
+    --ring: 162 98% 50%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
