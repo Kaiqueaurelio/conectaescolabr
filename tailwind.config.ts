@@ -79,6 +79,28 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        "2xl": "24px",
+        "3xl": "32px",
+      },
+      boxShadow: {
+        soft: "0 4px 6px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.06)",
+        "soft-lg": "0 10px 15px rgba(0, 0, 0, 0.08), 0 4px 6px rgba(0, 0, 0, 0.05)",
+        "soft-xl": "0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04)",
+        glass: "0 8px 32px rgba(31, 38, 135, 0.15)",
+        glow: "0 0 20px rgba(22, 143, 62, 0.3)",
+        "glow-orange": "0 0 20px rgba(230, 126, 34, 0.3)",
+      },
+      backdropBlur: {
+        xs: "2px",
+        sm: "4px",
+        md: "8px",
+        lg: "12px",
+        xl: "16px",
+      },
+      backgroundImage: {
+        "gradient-primary": "linear-gradient(135deg, hsl(var(--primary)) 0%, #2ecc71 100%)",
+        "gradient-secondary": "linear-gradient(135deg, hsl(var(--secondary)) 0%, #f39c12 100%)",
+        "gradient-soft": "linear-gradient(135deg, rgba(22, 143, 62, 0.1) 0%, rgba(230, 126, 34, 0.1) 100%)",
       },
       keyframes: {
         "accordion-down": {
@@ -113,20 +135,20 @@ export default {
           "0%": { opacity: "0", transform: "translateX(24px)" },
           "100%": { opacity: "1", transform: "translateX(0)" },
         },
-        "blob": {
+        blob: {
           "0%, 100%": { transform: "translate(0,0) scale(1)" },
           "33%": { transform: "translate(30px,-20px) scale(1.08)" },
           "66%": { transform: "translate(-20px,20px) scale(0.95)" },
         },
-        "float": {
+        float: {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-10px)" },
         },
-        "shimmer": {
+        shimmer: {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
-        "marquee": {
+        marquee: {
           "0%": { transform: "translateX(0)" },
           "100%": { transform: "translateX(-50%)" },
         },
@@ -138,10 +160,10 @@ export default {
         "fade-in-up": "fade-in-up 0.7s cubic-bezier(0.22,1,0.36,1) both",
         "scale-in": "scale-in 0.5s ease-out both",
         "slide-in-right": "slide-in-right 0.6s ease-out both",
-        "blob": "blob 14s ease-in-out infinite",
-        "float": "float 4s ease-in-out infinite",
-        "shimmer": "shimmer 3s linear infinite",
-        "marquee": "marquee 30s linear infinite",
+        blob: "blob 14s ease-in-out infinite",
+        float: "float 4s ease-in-out infinite",
+        shimmer: "shimmer 3s linear infinite",
+        marquee: "marquee 30s linear infinite",
       },
     },
   },

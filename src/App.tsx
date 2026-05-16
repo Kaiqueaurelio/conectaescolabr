@@ -27,12 +27,12 @@ import Help from "./pages/Help.tsx";
 import { DataProvider } from "./contexts/DataContext";
 
 // Novas Páginas Implementadas
-import { AdminDashboardNewPage } from "./pages/AdminDashboardNew";
-import { UsersListPage } from "./pages/UsersList";
+import { AdminDashboardGlassPage as AdminDashboardNewPage } from "./pages/AdminDashboardGlass";
+import { UsersListGlassPage as UsersListPage } from "./pages/UsersListGlass";
 import { UserProfilePage } from "./pages/UserProfile";
 import { SocialRecordPage } from "./pages/SocialRecord";
-import { AttendanceAdvancedPage } from "./pages/AttendanceAdvanced";
-import { BenefitsManagementPage } from "./pages/BenefitsManagement";
+import { AttendanceGlassPage as AttendanceAdvancedPage } from "./pages/AttendanceGlass";
+import { BenefitsGlassPage as BenefitsManagementPage } from "./pages/BenefitsGlass";
 import { CommunicationsPage } from "./pages/Communications";
 import { SmartCalendarPage } from "./pages/SmartCalendar";
 import { DocumentScanningPage } from "./pages/DocumentScanning";
