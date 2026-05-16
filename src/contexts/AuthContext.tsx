@@ -1,5 +1,18 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { users, User, Role } from "@/lib/mockData";
+import { createContext, useContext, ReactNode, useState, useEffect } from "react";
+import { useSupabaseAuth } from "./SupabaseAuthContext";
+
+export type Role = "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
+
+export interface User {
+  id: string;
+  role: Role;
+  name: string;
+  email: string;
+  avatar_url?: string;
+  childrenIds?: string[];
+  classIds?: string[];
+  status: "PENDING" | "APPROVED" | "REJECTED";
+}
 
 interface AuthResult {
   success?: boolean;
@@ -25,145 +38,163 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const STORAGE_KEY = "ong_auth_user";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const supabaseAuth = useSupabaseAuth();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
 
+  // Sincronizar com Supabase
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        const u = JSON.parse(stored) as User;
-        setUser(u);
-        if (u.role === "PARENT" && u.childrenIds?.length) {
-          setSelectedChildId(u.childrenIds[0]);
+    if (supabaseAuth.user) {
+      const authUser: User = {
+        id: supabaseAuth.user.id,
+        role: (supabaseAuth.user.user_metadata?.role as Role) || "STUDENT",
+        name: supabaseAuth.user.user_metadata?.full_name || supabaseAuth.user.email || "",
+        email: supabaseAuth.user.email || "",
+        avatar_url: supabaseAuth.user.user_metadata?.avatar_url,
+        status: "APPROVED",
+      };
+      setUser(authUser);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(authUser));
+    } else {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          const u = JSON.parse(stored) as User;
+          setUser(u);
+          if (u.role === "PARENT" && u.childrenIds?.length) {
+            setSelectedChildId(u.childrenIds[0]);
+          }
+        } catch {
+          localStorage.removeItem(STORAGE_KEY);
         }
-      } catch {
-        localStorage.removeItem(STORAGE_KEY);
       }
     }
-    setLoading(false);
-  }, []);
+    setLoading(supabaseAuth.loading);
+  }, [supabaseAuth.user, supabaseAuth.loading]);
 
-  const login = async (email: string, _password: string): Promise<AuthResult> => {
-    await new Promise((r) => setTimeout(r, 600));
-    const found = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-    if (!found) return { error: "Credenciais inválidas. Por favor, verifique seu e-mail e senha." };
-
-    if (found.status === "PENDING") {
-      return { error: "Sua conta está aguardando a aprovação de um administrador." };
+  const login = async (email: string, password: string): Promise<AuthResult> => {
+    try {
+      const result = await supabaseAuth.login(email, password);
+      if (result.success) {
+        return { success: true };
+      }
+      return { error: result.error || "Falha ao fazer login" };
+    } catch (error) {
+      return { error: "Erro ao fazer login. Tente novamente." };
     }
-    if (found.status === "REJECTED") {
-      return { error: "Sua solicitação de cadastro foi recusada. Por favor, entre em contato com a coordenação." };
-    }
-
-    setUser(found);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(found));
-    if (found.role === "PARENT" && found.childrenIds?.length) {
-      setSelectedChildId(found.childrenIds[0]);
-    } else {
-      setSelectedChildId(null);
-    }
-    return { success: true };
   };
 
-  const register = async (name: string, email: string, _password: string, role: Role): Promise<AuthResult> => {
-    await new Promise((r) => setTimeout(r, 600));
-    const exists = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-    if (exists) return { error: "Este e-mail já se encontra cadastrado no sistema." };
-    if (!name.trim()) return { error: "O preenchimento do nome é obrigatório." };
-    if (!email.trim()) return { error: "O preenchimento do e-mail é obrigatório." };
+  const register = async (name: string, email: string, password: string, role: Role): Promise<AuthResult> => {
+    try {
+      if (!name.trim()) return { error: "O preenchimento do nome é obrigatório." };
+      if (!email.trim()) return { error: "O preenchimento do e-mail é obrigatório." };
+      if (!password.trim()) return { error: "O preenchimento da senha é obrigatório." };
 
-    const newUser: User = {
-      id: `u_${Date.now().toString(36)}`,
-      role,
-      name: name.trim(),
-      email: email.trim(),
-      avatar_url: "",
-      status: "PENDING",
-    };
+      const result = await supabaseAuth.register(email, password, {
+        full_name: name,
+        role: role,
+      });
 
-    users.push(newUser);
-    return { success: true };
+      if (result.success) {
+        return { success: true };
+      }
+      return { error: result.error || "Falha ao registrar" };
+    } catch (error) {
+      return { error: "Erro ao registrar. Tente novamente." };
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabaseAuth.logout();
     setUser(null);
     setSelectedChildId(null);
     localStorage.removeItem(STORAGE_KEY);
   };
 
-  const switchChild = (childId: string) => setSelectedChildId(childId);
-
-  const updateProfile: AuthContextValue["updateProfile"] = (patch) => {
-    setUser((prev) => {
-      if (!prev) return prev;
-      const next = { ...prev, ...patch };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      return next;
-    });
+  const switchChild = (childId: string) => {
+    setSelectedChildId(childId);
   };
 
-  const approveUser = (userId: string) => {
-    const approvedUser = users.find((u) => u.id === userId);
-    if (approvedUser) approvedUser.status = "APPROVED";
+  const updateProfile = async (patch: Partial<Pick<User, "name" | "email" | "avatar_url">>) => {
+    if (!user) return;
+    
+    try {
+      await supabaseAuth.updateProfile(patch);
+      const updated = { ...user, ...patch };
+      setUser(updated);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch (error) {
+      console.error("Erro ao atualizar perfil:", error);
+    }
   };
 
-  const rejectUser = (userId: string) => {
-    const rejectedUser = users.find((u) => u.id === userId);
-    if (rejectedUser) rejectedUser.status = "REJECTED";
+  const approveUser = async (userId: string) => {
+    try {
+      // Implementar via Supabase RPC ou API
+      console.log("Aprovando usuário:", userId);
+    } catch (error) {
+      console.error("Erro ao aprovar usuário:", error);
+    }
+  };
+
+  const rejectUser = async (userId: string) => {
+    try {
+      // Implementar via Supabase RPC ou API
+      console.log("Rejeitando usuário:", userId);
+    } catch (error) {
+      console.error("Erro ao rejeitar usuário:", error);
+    }
   };
 
   const linkChild = async (childId: string): Promise<AuthResult> => {
-    if (!user || user.role !== "PARENT") {
-      return { success: false, error: "Apenas responsáveis podem vincular alunos." };
-    }
-
-    if (user.childrenIds?.includes(childId)) {
+    try {
+      if (!user) return { error: "Usuário não autenticado" };
+      
+      const childrenIds = user.childrenIds || [];
+      if (!childrenIds.includes(childId)) {
+        childrenIds.push(childId);
+        await updateProfile({ ...user });
+      }
       return { success: true };
+    } catch (error) {
+      return { error: "Erro ao vincular filho" };
     }
-
-    const updatedUser = {
-      ...user,
-      childrenIds: [...(user.childrenIds || []), childId],
-    };
-
-    setUser(updatedUser);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
-
-    if (!selectedChildId) {
-      setSelectedChildId(childId);
-    }
-
-    return { success: true };
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading, switchChild, selectedChildId, updateProfile, approveUser, rejectUser, linkChild }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        register,
+        logout,
+        loading,
+        switchChild,
+        selectedChildId,
+        updateProfile,
+        approveUser,
+        rejectUser,
+        linkChild,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth deve ser usado dentro de AuthProvider");
+  return context;
 }
 
 export function roleHome(role: Role): string {
-  switch (role) {
-    case "TEACHER":
-      return "/professor";
-    case "STUDENT":
-      return "/aluno";
-    case "PARENT":
-      return "/responsavel";
-    case "ADMIN":
-      return "/admin";
-    case "VOLUNTEER":
-      return "/aluno";
-    default:
-      return "/";
-  }
+  const homes: Record<Role, string> = {
+    ADMIN: "/admin/dashboard",
+    TEACHER: "/professor",
+    STUDENT: "/aluno",
+    PARENT: "/responsavel",
+  };
+  return homes[role] || "/";
 }

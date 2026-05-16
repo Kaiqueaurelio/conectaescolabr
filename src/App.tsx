@@ -16,7 +16,7 @@ import NewAnnouncement from "./pages/NewAnnouncement.tsx";
 import Blog from "./pages/Blog.tsx";
 import BlogPost from "./pages/BlogPost.tsx";
 import Menu from "./pages/Menu.tsx";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider } from "./contexts/AuthContext"; // Usando a versão limpa
 import { SupabaseAuthProvider } from "./contexts/SupabaseAuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
@@ -40,6 +40,7 @@ import { ReportsGenerationPage } from "./pages/ReportsGeneration";
 import { ParentPortalPage } from "./pages/ParentPortal";
 import { SecurityAndLGPDPage } from "./pages/SecurityAndLGPD";
 import { ColorPalettePageGlass } from "./pages/ColorPalettePage";
+import { ImpactDashboardPage } from "./pages/ImpactDashboard";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
                 
                 {/* Rotas Administrativas Modernas */}
                 <Route path="/admin/dashboard" element={<ProtectedRoute roles={["ADMIN"]}><AdminDashboardNewPage /></ProtectedRoute>} />
+                <Route path="/admin/impact" element={<ProtectedRoute roles={["ADMIN"]}><ImpactDashboardPage /></ProtectedRoute>} />
                 <Route path="/admin/users" element={<ProtectedRoute roles={["ADMIN"]}><UsersListPage /></ProtectedRoute>} />
                 <Route path="/admin/users/new" element={<ProtectedRoute roles={["ADMIN"]}><UserProfilePage /></ProtectedRoute>} />
                 <Route path="/admin/users/:userId" element={<ProtectedRoute roles={["ADMIN"]}><UserProfilePage /></ProtectedRoute>} />

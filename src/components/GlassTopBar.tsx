@@ -1,14 +1,15 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Search, Bell, Settings, LogOut, User } from "lucide-react";
+import { Settings, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { GlobalSearch } from "./GlobalSearch";
+import { NotificationCenter } from "./NotificationCenter";
 
 interface UserInfo {
   name: string;
@@ -32,7 +33,6 @@ export function GlassTopBar({
   user,
   onLogout,
   showSearch = true,
-  onSearch,
 }: GlassTopBarProps) {
   return (
     <header
@@ -53,32 +53,14 @@ export function GlassTopBar({
         {/* Center: Search */}
         {showSearch && (
           <div className="flex-1 max-w-md hidden md:block">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar..."
-                className={cn(
-                  "pl-10 bg-white/50 border-white/30",
-                  "focus:bg-white/80 focus:border-primary/50",
-                  "rounded-lg"
-                )}
-                onChange={(e) => onSearch?.(e.target.value)}
-              />
-            </div>
+            <GlobalSearch />
           </div>
         )}
 
         {/* Right: Actions */}
         <div className="flex items-center gap-4">
           {/* Notifications */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative hover:bg-white/20"
-          >
-            <Bell className="w-5 h-5 text-foreground" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
-          </Button>
+          <NotificationCenter />
 
           {/* Settings */}
           <Button
