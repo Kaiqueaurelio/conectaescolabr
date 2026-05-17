@@ -24,6 +24,7 @@ import Reminders from "./pages/Reminders.tsx";
 import Turmas from "./pages/Turmas.tsx";
 import Settings from "./pages/Settings.tsx";
 import Help from "./pages/Help.tsx";
+import CadastroGeral from "./pages/CadastroGeral.tsx";
 import { DataProvider } from "./contexts/DataContext";
 
 // Novas Páginas Implementadas
@@ -89,6 +90,7 @@ const App = () => (
                 <Route path="/responsavel" element={<ProtectedRoute roles={["PARENT"]}><ParentDashboard /></ProtectedRoute>} />
                 <Route path="/chamada" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><Attendance /></ProtectedRoute>} />
                 <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
+                <Route path="/cadastro" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><CadastroGeral /></ProtectedRoute>} />
                 <Route path="/comunicados" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
                 <Route path="/comunicados/novo" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><NewAnnouncement /></ProtectedRoute>} />
                 <Route path="/lembretes" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
