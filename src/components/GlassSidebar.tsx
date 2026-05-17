@@ -5,7 +5,7 @@ import { ChevronDown, LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface SidebarItem {
-  label?: string;
+  label: string;
   href?: string;
   icon?: string;
   divider?: boolean;

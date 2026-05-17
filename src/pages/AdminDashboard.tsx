@@ -859,7 +859,7 @@ function TurmasTab() {
                     updateStudent(studentDialog.editing.id, p);
                     toast.success("Aluna atualizada!");
                   } else {
-                    addStudent({ ...p, classIds: turma ? [turma.id] : [], status: "APPROVED" });
+                    addStudent({ ...p, classIds: turma ? [turma.id] : [] });
                     toast.success("Aluna cadastrada!");
                   }
                   setStudentDialog({ open: false, editing: null });

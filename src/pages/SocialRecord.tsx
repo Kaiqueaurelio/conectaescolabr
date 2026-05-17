@@ -47,6 +47,8 @@ export function SocialRecordPage() {
       record_date: formData.record_date,
       attachments: [],
       created_by: currentUser.id,
+      created_at: new Date().toISOString(),
+      id: "",
     });
 
     if (result.success) {
@@ -80,7 +82,7 @@ export function SocialRecordPage() {
       BENEFIT: "success",
       EVENT: "secondary",
       OBSERVATION: "warning",
-      DOCUMENT: "secondary",
+      DOCUMENT: "muted",
     };
     return colors[type];
   };

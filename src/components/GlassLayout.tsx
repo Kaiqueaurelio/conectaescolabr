@@ -4,7 +4,7 @@ import { GlassSidebar } from "./GlassSidebar";
 import { GlassTopBar } from "./GlassTopBar";
 
 interface SidebarItem {
-  label?: string;
+  label: string;
   href?: string;
   icon?: string;
   divider?: boolean;
