@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Home, Calendar, Megaphone, Bell, Menu } from "lucide-react";
+import { Home, Calendar, Bell, Menu, ClipboardList, ClipboardCheck } from "lucide-react";
 import { useAuth, roleHome } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { cn } from "@/lib/utils";
@@ -18,9 +18,15 @@ export default function BottomNav() {
   }).length;
   const items = [
     { to: roleHome(user.role), label: "Início", icon: Home, end: true },
+    ...(user.role === "ADMIN" || user.role === "TEACHER"
+      ? [
+          { to: "/cadastro", label: "Cadastro", icon: ClipboardList },
+          { to: "/chamada", label: "Chamada", icon: ClipboardCheck },
+        ]
+      : [
+          { to: "/lembretes", label: "Lembretes", icon: Bell, badge: overdue },
+        ]),
     { to: "/agenda", label: "Agenda", icon: Calendar },
-    { to: "/lembretes", label: "Lembretes", icon: Bell, badge: overdue },
-    { to: "/comunicados", label: "Comunicados", icon: Megaphone },
     { to: "/menu", label: "Menu", icon: Menu },
   ] as const;
   return (
