@@ -1,6 +1,16 @@
-// Re-export the auto-managed Lovable Cloud client so legacy code keeps working.
-export { supabase } from "@/integrations/supabase/client";
-export const isSupabaseConfigured = true;
+import { createClient } from "@supabase/supabase-js";
+
+// Untyped client for legacy code that references tables not yet in the typed schema.
+const url =
+  import.meta.env.VITE_SUPABASE_URL ||
+  "https://placeholder.supabase.co";
+const key =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTYwMDAwMDAwMCwiZXhwIjoxOTAwMDAwMDAwfQ.placeholder";
+
+export const isSupabaseConfigured = Boolean(import.meta.env.VITE_SUPABASE_URL);
+export const supabase = createClient(url, key);
 
 // Type definitions for database schema
 export interface UserProfile {
