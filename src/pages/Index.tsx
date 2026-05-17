@@ -13,7 +13,8 @@ import {
   Wifi, Zap, Shield, Heart, ArrowRight, CheckCircle2, Sparkles,
   Laptop, HandHeart, Phone, Mail, MapPin, Globe,
   Scale, Sprout, Music, Baby, UserPlus, Gift, ShoppingBag, Receipt,
-  Quote, Building2, Target, Eye, Compass,
+  Quote, Building2, Target, Eye, Compass, ClipboardCheck, ClipboardList,
+  HelpCircle, History as HistoryIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -127,6 +128,14 @@ export default function Landing() {
             <a href="#app" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground px-3">App</a>
             <a href="#apoiar" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground px-3">Apoiar</a>
             <a href="#contato" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground px-3">Contato</a>
+            <a
+              href="https://www.associacaocamila.org.br/doe-hoje-transforme-vidas-todos-os-dias/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-coral/15 text-coral hover:bg-coral/25 transition-colors"
+            >
+              <Heart className="h-3 w-3" /> Doar
+            </a>
             {user ? (
               <Button asChild size="sm" className="gradient-primary text-primary-foreground">
                 <Link to={roleHome(user.role)}>Ir para o app <ArrowRight className="h-4 w-4 ml-1" /></Link>
@@ -233,8 +242,9 @@ export default function Landing() {
               </div>
               <h3 className="font-semibold">Missão</h3>
               <p className="text-sm text-muted-foreground mt-2">
-                Promover a defesa dos direitos sociais de crianças, adolescentes e idosos, fortalecendo vínculos
-                familiares, incentivando a cultura de paz e a justiça social.
+                Atuar na defesa dos direitos sociais, desenvolvendo processos educativos que incorporem a
+                cultura da não violência entre crianças, jovens, grupo familiar e a comunidade — defendendo
+                ética, liberdade, democracia, equidade e cidadania.
               </p>
             </Card>
             <Card className="p-5 reveal hover-lift" style={{ transitionDelay: "80ms" }}>
@@ -243,8 +253,9 @@ export default function Landing() {
               </div>
               <h3 className="font-semibold">Visão</h3>
               <p className="text-sm text-muted-foreground mt-2">
-                Ser referência na promoção da inclusão social, influenciando políticas públicas para uma sociedade
-                mais justa, igualitária e sustentável.
+                Tornar-se uma associação com efetiva influência no fortalecimento das ações entre o público
+                jovem, com integração entre educação, tecnologia, cidadania e empreendedorismo — em prol da
+                transformação da realidade.
               </p>
             </Card>
             <Card className="p-5 sm:col-span-2 reveal hover-lift" style={{ transitionDelay: "160ms" }}>
@@ -261,6 +272,82 @@ export default function Landing() {
               </div>
             </Card>
           </div>
+        </div>
+      </section>
+
+      {/* Filosofia + História */}
+      <section className="bg-muted/40 py-16 md:py-24 fluid-bg">
+        <div className="container mx-auto px-4 grid md:grid-cols-2 gap-10 items-start">
+          <Card className="p-7 reveal tone-tertiary tone-border-t bg-card/85 backdrop-blur">
+            <div className="h-12 w-12 rounded-2xl tone-gradient text-white flex items-center justify-center mb-4 tone-glow-shadow">
+              <Compass className="h-6 w-6" />
+            </div>
+            <h3 className="text-2xl font-bold tracking-tight">Nossa filosofia</h3>
+            <p className="mt-4 text-muted-foreground leading-relaxed">
+              Reconhecemos no outro a nossa imagem e semelhança, sujeito de direitos e de
+              corresponsabilidades com a sua história e a sociedade. Acreditamos que cada pessoa tem um
+              potencial e basta que sejam concedidas oportunidades para que ela possa, por si mesma,
+              desencadear processos de transformação da realidade em que vive.
+            </p>
+            <p className="mt-3 text-muted-foreground leading-relaxed">
+              Defendemos que é dever do Estado garantir a proteção social da comunidade, e que cabe a nós
+              cidadãos a corresponsabilidade na construção de uma nova cultura de paz.
+            </p>
+          </Card>
+
+          <div className="reveal">
+            <Badge variant="secondary" className="mb-3"><HistoryIcon className="h-3 w-3 mr-1" /> Nossa trajetória</Badge>
+            <h3 className="text-2xl md:text-3xl font-bold tracking-tight">Mais de 24 anos transformando vidas</h3>
+            <ol className="mt-6 relative border-l-2 border-primary/30 pl-6 space-y-6">
+              {[
+                { year: "1997", title: "A origem", desc: "Após a perda de Camila, vítima de violência, a família transforma o luto em ação social pela cultura de paz." },
+                { year: "2001", title: "Fundação oficial", desc: "Nasce em Osasco/SP a Associação Camila em Defesa e Valorização da Vida." },
+                { year: "2010+", title: "Expansão", desc: "Novos projetos: inclusão digital, arte, esporte, meio ambiente e fortalecimento familiar." },
+                { year: "Hoje", title: "Presente atuante", desc: "Atendimento contínuo a crianças, jovens, idosos e famílias em situação de vulnerabilidade." },
+              ].map((t) => (
+                <li key={t.year} className="relative">
+                  <span className="absolute -left-[33px] top-1 h-4 w-4 rounded-full gradient-primary ring-4 ring-background" />
+                  <p className="text-xs font-bold text-primary tracking-wider">{t.year}</p>
+                  <p className="font-semibold mt-0.5">{t.title}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{t.desc}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      {/* Prioridades do App: Cadastro, Chamada, Agenda */}
+      <section className="container mx-auto px-4 py-16 md:py-24">
+        <div className="text-center max-w-2xl mx-auto mb-12 reveal">
+          <Badge className="bg-primary/15 text-primary border-primary/30 mb-3">
+            <Sparkles className="h-3 w-3 mr-1" /> Funcionalidades prioritárias
+          </Badge>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">O dia a dia da ONG, organizado</h2>
+          <p className="mt-3 text-muted-foreground">
+            Três módulos centrais reúnem o que mais importa: pessoas, presença e calendário.
+          </p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-5">
+          {[
+            { icon: ClipboardList, tone: "tone-primary", title: "Cadastro Geral", desc: "Centralize alunas, responsáveis, professores, voluntários e turmas em um único lugar." },
+            { icon: ClipboardCheck, tone: "tone-secondary", title: "Chamada", desc: "Registre presença, falta ou justificativa por turma e data. Histórico salvo automaticamente." },
+            { icon: CalendarDays, tone: "tone-tertiary", title: "Agenda", desc: "Aulas, reuniões e eventos visíveis para toda a comunidade — com filtros por turma." },
+          ].map((m, i) => {
+            const Icon = m.icon;
+            return (
+              <Card key={m.title} className={`${m.tone} p-7 reveal hover-lift tone-border-t bg-card/85 backdrop-blur`} style={{ transitionDelay: `${i * 100}ms` }}>
+                <div className="h-14 w-14 rounded-2xl tone-gradient text-white flex items-center justify-center mb-4 tone-glow-shadow">
+                  <Icon className="h-7 w-7" />
+                </div>
+                <h3 className="text-xl font-bold">{m.title}</h3>
+                <p className="text-sm text-muted-foreground mt-2">{m.desc}</p>
+                <Button asChild variant="link" className="px-0 mt-3 tone-text">
+                  <Link to="/login">Acessar no app <ArrowRight className="h-4 w-4 ml-1" /></Link>
+                </Button>
+              </Card>
+            );
+          })}
         </div>
       </section>
 
@@ -497,8 +584,64 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Doar — banner */}
+      <section className="container mx-auto px-4 pb-4 pt-12">
+        <Card className="relative overflow-hidden p-8 md:p-10 border-0 shadow-floating gradient-warm text-secondary-foreground reveal">
+          <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-white/15 blur-3xl animate-blob" />
+          <div className="relative grid md:grid-cols-[1fr_auto] gap-6 items-center">
+            <div>
+              <Badge className="bg-white/25 text-white border-0 backdrop-blur mb-3">
+                <Heart className="h-3 w-3 mr-1" /> Doe hoje, transforme vidas todos os dias
+              </Badge>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Sua contribuição sustenta projetos vivos
+              </h2>
+              <p className="mt-2 text-secondary-foreground/95 max-w-2xl">
+                Doações pontuais ou recorrentes mantêm aulas, oficinas, refeições e atendimentos para
+                centenas de crianças e famílias em Osasco/SP.
+              </p>
+            </div>
+            <Button asChild size="lg" className="bg-white text-secondary hover:bg-white/90 h-12 px-6 font-semibold hover-scale">
+              <a
+                href="https://www.associacaocamila.org.br/doe-hoje-transforme-vidas-todos-os-dias/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Heart className="h-5 w-5 mr-2" /> Quero doar agora
+              </a>
+            </Button>
+          </div>
+        </Card>
+      </section>
+
+      {/* FAQ */}
+      <section className="container mx-auto px-4 py-16 md:py-24">
+        <div className="text-center max-w-2xl mx-auto mb-10 reveal">
+          <Badge variant="secondary" className="mb-3"><HelpCircle className="h-3 w-3 mr-1" /> Perguntas frequentes</Badge>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Tire suas dúvidas</h2>
+        </div>
+        <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+          {[
+            { q: "Quem pode se cadastrar no app?", a: "Famílias, alunas, professores, voluntários e a equipe da ONG. Cada perfil tem sua área dedicada." },
+            { q: "Como funciona a Chamada?", a: "O professor seleciona a turma e a data, marca presença, falta ou justificativa para cada aluna e salva. O histórico fica acessível." },
+            { q: "Como matriculo minha filha?", a: "O Cadastro Geral concentra pessoas e turmas. Procure a equipe da ONG em Osasco/SP ou ligue (11) 3592-0330." },
+            { q: "Posso ser voluntário?", a: "Sim! Acesse a seção \"Como apoiar\" ou fale com a ONG. O app exibe a agenda de ações e oportunidades." },
+            { q: "Preciso baixar na loja de apps?", a: "Não. É um PWA — instalável direto pelo navegador no celular ou computador. Veja as instruções acima." },
+            { q: "Meus dados estão seguros?", a: "Sim. Conexões HTTPS, autenticação por e-mail e armazenamento em nuvem com controle de acesso por perfil." },
+          ].map((f, i) => (
+            <Card key={f.q} className="p-5 reveal hover-lift" style={{ transitionDelay: `${i * 60}ms` }}>
+              <p className="font-semibold flex items-start gap-2">
+                <HelpCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" /> {f.q}
+              </p>
+              <p className="text-sm text-muted-foreground mt-2 pl-6">{f.a}</p>
+            </Card>
+          ))}
+        </div>
+      </section>
+
       {/* Contato */}
       <section id="contato" className="container mx-auto px-4 py-16 md:py-24">
+
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <div className="reveal">
             <Badge variant="secondary" className="mb-3"><Phone className="h-3 w-3 mr-1" /> Fale conosco</Badge>
