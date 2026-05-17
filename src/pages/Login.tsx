@@ -9,7 +9,7 @@ import { Loader2, Eye, EyeOff, MessageSquareHeart, BookHeart, Users, Briefcase }
 import heroImg from "@/assets/hero-education.jpg";
 import Logo from "@/components/Logo";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Role } from "@/lib/mockData";
+import type { Role } from "@/contexts/AuthContext";
 
 export default function Login() {
   const { user, login, register } = useAuth();

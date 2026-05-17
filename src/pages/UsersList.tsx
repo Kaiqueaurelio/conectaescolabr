@@ -165,11 +165,8 @@ export function UsersListPage() {
           ) : (
             <div className="space-y-3">
               {filteredUsers.map((user) => (
-                <ModernCard
-                  key={user.id}
-                  className="p-4 hover-lift cursor-pointer"
-                  onClick={() => navigate(`/admin/users/${user.id}`)}
-                >
+                <div key={user.id} onClick={() => navigate(`/admin/users/${user.id}`)}>
+                <ModernCard className="p-4 hover-lift cursor-pointer">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-4 flex-1 min-w-0">
                       <Avatar className="w-12 h-12 flex-shrink-0">
@@ -223,6 +220,7 @@ export function UsersListPage() {
                     </div>
                   </div>
                 </ModernCard>
+                </div>
               ))}
             </div>
           )}
