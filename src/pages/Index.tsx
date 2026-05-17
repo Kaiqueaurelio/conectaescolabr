@@ -139,11 +139,12 @@ export default function Landing() {
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 gradient-brand opacity-95" />
-        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-white/10 blur-3xl animate-blob" />
-        <div className="absolute -bottom-32 -right-32 w-[28rem] h-[28rem] rounded-full bg-secondary/30 blur-3xl animate-blob [animation-delay:-6s]" />
-        <div className="absolute top-1/3 right-1/4 w-72 h-72 rounded-full bg-tertiary/20 blur-3xl animate-blob [animation-delay:-3s]" />
+      <section className="relative overflow-hidden bg-primary">
+        {/* blobs nas cores do logo */}
+        <div className="absolute -top-40 -left-32 w-[28rem] h-[28rem] rounded-full bg-secondary/40 blur-3xl animate-blob" />
+        <div className="absolute -bottom-40 -right-32 w-[32rem] h-[32rem] rounded-full bg-tertiary/40 blur-3xl animate-blob [animation-delay:-6s]" />
+        <div className="absolute top-1/4 right-1/3 w-72 h-72 rounded-full bg-coral/30 blur-3xl animate-blob [animation-delay:-3s]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,transparent_0%,hsl(var(--primary)/0.6)_70%)]" />
 
         <div className="container mx-auto px-4 py-16 md:py-24 relative z-10 grid md:grid-cols-2 gap-10 items-center text-primary-foreground">
           <div className="animate-fade-in-up">
@@ -151,7 +152,7 @@ export default function Landing() {
               <Heart className="h-3 w-3 mr-1" /> Em defesa e valorização da vida
             </Badge>
             <h1 className="mt-4 text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight text-balance animate-fade-in-up [animation-delay:120ms]">
-              Transformando luto em ação social <span className="text-white/90">desde 2001.</span>
+              Transformando luto em <span className="bg-gradient-to-r from-white via-secondary/90 to-white bg-clip-text text-transparent">ação social</span> desde 2001.
             </h1>
             <p className="mt-5 text-lg text-primary-foreground/95 max-w-xl animate-fade-in-up [animation-delay:240ms]">
               A Associação Camila atua em Osasco-SP promovendo direitos sociais, cultura de paz e fortalecimento de vínculos familiares.
@@ -197,6 +198,23 @@ export default function Landing() {
               className="relative rounded-3xl shadow-floating bg-white/95 p-2 w-full animate-float"
             />
           </div>
+        </div>
+      </section>
+
+      {/* Faixa de impacto — cores do logo */}
+      <section className="border-y border-border/60 bg-card">
+        <div className="container mx-auto px-4 py-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { v: "+24", l: "anos de atuação", color: "text-primary", bg: "bg-primary/10" },
+            { v: "+1.500", l: "famílias atendidas", color: "text-secondary", bg: "bg-secondary/10" },
+            { v: "+5", l: "projetos contínuos", color: "text-tertiary", bg: "bg-tertiary/10" },
+            { v: "100%", l: "sem fins lucrativos", color: "text-coral", bg: "bg-coral/10" },
+          ].map((s) => (
+            <div key={s.l} className={`flex items-center gap-3 p-3 rounded-xl ${s.bg} reveal`}>
+              <p className={`text-2xl md:text-3xl font-bold ${s.color}`}>{s.v}</p>
+              <p className="text-xs md:text-sm text-muted-foreground leading-tight">{s.l}</p>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -276,13 +294,22 @@ export default function Landing() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.map((p, i) => {
               const Icon = p.icon;
+              const accents = [
+                { bg: "gradient-primary", text: "text-primary", border: "border-t-primary" },
+                { bg: "gradient-warm", text: "text-secondary", border: "border-t-secondary" },
+                { bg: "bg-tertiary", text: "text-tertiary", border: "border-t-tertiary" },
+                { bg: "bg-coral", text: "text-coral", border: "border-t-coral" },
+                { bg: "gradient-primary", text: "text-primary", border: "border-t-primary" },
+                { bg: "gradient-warm", text: "text-secondary", border: "border-t-secondary" },
+              ];
+              const a = accents[i % accents.length];
               return (
-                <Card key={p.title} className="p-6 border-border/60 group reveal hover-lift" style={{ transitionDelay: `${i * 70}ms` }}>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl gradient-primary text-primary-foreground mb-4 group-hover:scale-110 transition-smooth">
+                <Card key={p.title} className={`p-6 border-border/60 border-t-4 ${a.border} group reveal hover-lift`} style={{ transitionDelay: `${i * 70}ms` }}>
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${a.bg} text-white mb-4 group-hover:scale-110 transition-smooth`}>
                     <Icon className="h-6 w-6" />
                   </div>
                   <h3 className="font-semibold text-lg leading-tight">{p.title}</h3>
-                  <p className="text-xs text-secondary font-medium mt-0.5">{p.subtitle}</p>
+                  <p className={`text-xs ${a.text} font-medium mt-0.5`}>{p.subtitle}</p>
                   <p className="text-sm text-muted-foreground mt-3">{p.desc}</p>
                 </Card>
               );
@@ -437,6 +464,33 @@ export default function Landing() {
 
       {/* Como apoiar */}
       <section id="apoiar" className="container mx-auto px-4 py-16 md:py-24">
+        {/* Depoimentos */}
+        <div className="mb-20">
+          <div className="text-center max-w-2xl mx-auto mb-10 reveal">
+            <Badge variant="secondary" className="mb-3"><Quote className="h-3 w-3 mr-1" /> Histórias reais</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Vozes da comunidade</h2>
+            <p className="mt-3 text-muted-foreground">
+              O impacto dos projetos vai além dos números — está nas histórias de quem participa.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            {[
+              { name: "Mariana", role: "Mãe atendida", color: "border-l-primary", quote: "Aqui minha filha encontrou um lugar seguro para aprender, brincar e sonhar." },
+              { name: "Ricardo", role: "Voluntário", color: "border-l-secondary", quote: "Dedicar algumas horas por semana mudou minha forma de enxergar o mundo." },
+              { name: "Prof. Helena", role: "Educadora", color: "border-l-tertiary", quote: "A escuta ativa da comunidade transforma a forma como ensinamos e aprendemos juntos." },
+            ].map((t, i) => (
+              <Card key={t.name} className={`p-6 border-l-4 ${t.color} reveal hover-lift`} style={{ transitionDelay: `${i * 100}ms` }}>
+                <Quote className="h-6 w-6 text-muted-foreground/40 mb-3" />
+                <p className="text-sm italic text-foreground/90 leading-relaxed">"{t.quote}"</p>
+                <div className="mt-4 pt-4 border-t border-border/60">
+                  <p className="font-semibold text-sm">{t.name}</p>
+                  <p className="text-xs text-muted-foreground">{t.role}</p>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+
         <div className="text-center max-w-2xl mx-auto mb-12 reveal">
           <Badge className="bg-coral/15 text-coral border-coral/30 mb-3">
             <HandHeart className="h-3 w-3 mr-1" /> Faça parte
