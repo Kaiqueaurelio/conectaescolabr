@@ -584,6 +584,61 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Doar — banner */}
+      <section className="container mx-auto px-4 pb-4 pt-12">
+        <Card className="relative overflow-hidden p-8 md:p-10 border-0 shadow-floating gradient-warm text-secondary-foreground reveal">
+          <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-white/15 blur-3xl animate-blob" />
+          <div className="relative grid md:grid-cols-[1fr_auto] gap-6 items-center">
+            <div>
+              <Badge className="bg-white/25 text-white border-0 backdrop-blur mb-3">
+                <Heart className="h-3 w-3 mr-1" /> Doe hoje, transforme vidas todos os dias
+              </Badge>
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Sua contribuição sustenta projetos vivos
+              </h2>
+              <p className="mt-2 text-secondary-foreground/95 max-w-2xl">
+                Doações pontuais ou recorrentes mantêm aulas, oficinas, refeições e atendimentos para
+                centenas de crianças e famílias em Osasco/SP.
+              </p>
+            </div>
+            <Button asChild size="lg" className="bg-white text-secondary hover:bg-white/90 h-12 px-6 font-semibold hover-scale">
+              <a
+                href="https://www.associacaocamila.org.br/doe-hoje-transforme-vidas-todos-os-dias/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Heart className="h-5 w-5 mr-2" /> Quero doar agora
+              </a>
+            </Button>
+          </div>
+        </Card>
+      </section>
+
+      {/* FAQ */}
+      <section className="container mx-auto px-4 py-16 md:py-24">
+        <div className="text-center max-w-2xl mx-auto mb-10 reveal">
+          <Badge variant="secondary" className="mb-3"><HelpCircle className="h-3 w-3 mr-1" /> Perguntas frequentes</Badge>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Tire suas dúvidas</h2>
+        </div>
+        <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto">
+          {[
+            { q: "Quem pode se cadastrar no app?", a: "Famílias, alunas, professores, voluntários e a equipe da ONG. Cada perfil tem sua área dedicada." },
+            { q: "Como funciona a Chamada?", a: "O professor seleciona a turma e a data, marca presença, falta ou justificativa para cada aluna e salva. O histórico fica acessível." },
+            { q: "Como matriculo minha filha?", a: "O Cadastro Geral concentra pessoas e turmas. Procure a equipe da ONG em Osasco/SP ou ligue (11) 3592-0330." },
+            { q: "Posso ser voluntário?", a: "Sim! Acesse a seção \"Como apoiar\" ou fale com a ONG. O app exibe a agenda de ações e oportunidades." },
+            { q: "Preciso baixar na loja de apps?", a: "Não. É um PWA — instalável direto pelo navegador no celular ou computador. Veja as instruções acima." },
+            { q: "Meus dados estão seguros?", a: "Sim. Conexões HTTPS, autenticação por e-mail e armazenamento em nuvem com controle de acesso por perfil." },
+          ].map((f, i) => (
+            <Card key={f.q} className="p-5 reveal hover-lift" style={{ transitionDelay: `${i * 60}ms` }}>
+              <p className="font-semibold flex items-start gap-2">
+                <HelpCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" /> {f.q}
+              </p>
+              <p className="text-sm text-muted-foreground mt-2 pl-6">{f.a}</p>
+            </Card>
+          ))}
+        </div>
+      </section>
+
       {/* Contato */}
       <section id="contato" className="container mx-auto px-4 py-16 md:py-24">
 
