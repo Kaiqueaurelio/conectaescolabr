@@ -1,97 +1,169 @@
 import { useAuth } from "@/contexts/AuthContext";
-import AppLayout from "@/components/AppLayout";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ClipboardCheck, Megaphone, Users, Calendar, ChevronRight, Clock, Bell, AlertTriangle } from "lucide-react";
-import { Link } from "react-router-dom";
 import { useData } from "@/contexts/DataContext";
-import StatCard from "@/components/dashboard/StatCard";
+import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { ColorStatCard } from "@/components/dashboard/ColorStatCard";
+import { Card } from "@/components/ui/card";
+import {
+  LayoutDashboard,
+  Users,
+  ClipboardCheck,
+  Megaphone,
+  CalendarDays,
+  GraduationCap,
+  Bell,
+  AlertTriangle,
+  Settings,
+  HelpCircle,
+  BookOpen,
+  ChevronRight,
+} from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
+import { Link } from "react-router-dom";
+
+const sidebarItems = [
+  { label: "Painel", to: "/professor", icon: LayoutDashboard, end: true },
+  { label: "Turmas", to: "/turmas", icon: GraduationCap },
+  { label: "Chamada", to: "/chamada", icon: ClipboardCheck },
+  { label: "Comunicados", to: "/comunicados", icon: Megaphone },
+  { label: "Agenda", to: "/agenda", icon: CalendarDays },
+  { label: "Lembretes", to: "/lembretes", icon: Bell },
+  { label: "Blog", to: "/blog", icon: BookOpen },
+  { label: "Configurações", to: "/configuracoes", icon: Settings },
+  { label: "Ajuda", to: "/ajuda", icon: HelpCircle },
+];
+
+const attendanceData = [
+  { day: "Seg", presentes: 28 },
+  { day: "Ter", presentes: 30 },
+  { day: "Qua", presentes: 26 },
+  { day: "Qui", presentes: 31 },
+  { day: "Sex", presentes: 29 },
+];
+
+const palette = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--tertiary))", "hsl(var(--coral))", "hsl(var(--success))"];
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
-  const { events, turmas, reminders, isOverdue } = useData();
+  const { turmas, events, reminders, isOverdue } = useData();
   const myClasses = turmas.filter((t) => t.teacher_id === user?.id);
-  const today = new Date().toISOString().slice(0, 10);
-  const todayEvents = events.filter((e) => e.date >= today).slice(0, 4);
   const totalStudents = myClasses.reduce((sum, c) => sum + c.studentIds.length, 0);
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = events.filter((e) => e.date >= today).slice(0, 4);
   const myReminders = reminders.filter((r) => r.target === "ALL" || r.target === "TEACHERS");
   const overdue = myReminders.filter(isOverdue).length;
 
   return (
-    <AppLayout>
-      <section className="mb-6 rounded-3xl gradient-brand p-6 text-primary-foreground shadow-elevated relative overflow-hidden">
-        <p className="text-sm opacity-90">Olá, professor(a)</p>
-        <h1 className="text-2xl font-bold mt-1">{user?.name}</h1>
-        <p className="mt-1 text-sm opacity-95">{new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</p>
+    <DashboardShell title="Painel do colaborador(a)" sidebarTitle="Colaborador(a)" sidebarItems={sidebarItems}>
+      {/* Hero */}
+      <section className="mb-6 rounded-3xl bg-gradient-to-br from-primary via-tertiary to-primary p-6 text-primary-foreground shadow-glow relative overflow-hidden">
+        <div className="absolute -top-10 -right-10 h-44 w-44 rounded-full bg-secondary/40 blur-3xl animate-blob" />
+        <p className="text-xs opacity-90">Bem-vindo(a) de volta</p>
+        <h2 className="text-2xl font-bold mt-1">{user?.name}</h2>
+        <p className="text-xs opacity-90 mt-1 capitalize">
+          {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
+        </p>
       </section>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard icon={Users} label="Alunas" value={totalStudents} tone="primary" />
-        <StatCard icon={Calendar} label="Turmas" value={myClasses.length} tone="tertiary" />
-        <StatCard icon={Bell} label="Lembretes" value={myReminders.filter(r => !r.done).length} tone="secondary" />
-        <StatCard icon={AlertTriangle} label="Atrasados" value={overdue} tone="coral" alert={overdue > 0} />
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <ColorStatCard label="Alunas" value={totalStudents} icon={Users} tone="primary" />
+        <ColorStatCard label="Turmas" value={myClasses.length} icon={GraduationCap} tone="secondary" />
+        <ColorStatCard label="Lembretes" value={myReminders.filter((r) => !r.done).length} icon={Bell} tone="tertiary" />
+        <ColorStatCard label="Atrasados" value={overdue} icon={AlertTriangle} tone="coral" />
       </div>
 
-      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Ações rápidas</h2>
-      <div className="grid grid-cols-3 gap-3 mb-8">
-        <Link to="/chamada">
-          <Card className="p-5 hover:shadow-elevated transition-smooth cursor-pointer h-full bg-card border-2 hover:border-primary/40">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/12 text-primary mb-3">
-              <ClipboardCheck className="h-6 w-6" />
-            </div>
-            <p className="font-semibold text-sm">Chamada</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Registrar presença</p>
-          </Card>
-        </Link>
-        <Link to="/comunicados/novo">
-          <Card className="p-5 hover:shadow-warm transition-smooth cursor-pointer h-full bg-card border-2 hover:border-secondary/40">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/15 text-secondary mb-3">
-              <Megaphone className="h-6 w-6" />
-            </div>
-            <p className="font-semibold text-sm">Comunicado</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Enviar aviso</p>
-          </Card>
-        </Link>
-        <Link to="/turmas">
-          <Card className="p-5 hover:shadow-soft transition-smooth cursor-pointer h-full bg-card border-2 hover:border-tertiary/40">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-tertiary/15 text-tertiary mb-3">
-              <Users className="h-6 w-6" />
-            </div>
-            <p className="font-semibold text-sm">Turmas</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Ver alunas</p>
-          </Card>
-        </Link>
-      </div>
-
-      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Minhas turmas</h2>
-      <div className="space-y-3 mb-8">
-        {myClasses.map((t) => (
-          <Card key={t.id} className="p-4 flex items-center justify-between hover:shadow-soft transition-smooth">
+      {/* Chart + Quick actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        <Card className="lg:col-span-2 p-5 rounded-2xl shadow-soft">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="font-semibold">{t.name}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{t.studentIds.length} alunos</p>
+              <p className="text-xs text-muted-foreground">Esta semana</p>
+              <h3 className="font-bold">Presenças por dia</h3>
             </div>
-            <Link to="/chamada">
-              <Button variant="ghost" size="sm">Chamada <ChevronRight className="h-4 w-4 ml-1" /></Button>
-            </Link>
-          </Card>
-        ))}
+          </div>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={attendanceData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <Tooltip
+                  contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}
+                />
+                <Bar dataKey="presentes" radius={[10, 10, 0, 0]}>
+                  {attendanceData.map((_, i) => (
+                    <Cell key={i} fill={palette[i % palette.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        <Card className="p-5 rounded-2xl shadow-soft">
+          <h3 className="font-bold mb-4">Ações rápidas</h3>
+          <div className="space-y-2">
+            {[
+              { to: "/chamada", label: "Fazer chamada", icon: ClipboardCheck, tone: "bg-primary/15 text-primary" },
+              { to: "/comunicados/novo", label: "Novo comunicado", icon: Megaphone, tone: "bg-secondary/15 text-secondary" },
+              { to: "/turmas", label: "Minhas turmas", icon: Users, tone: "bg-tertiary/15 text-tertiary" },
+              { to: "/agenda", label: "Agenda", icon: CalendarDays, tone: "bg-coral/15 text-coral" },
+            ].map((a) => {
+              const Icon = a.icon;
+              return (
+                <Link
+                  key={a.to}
+                  to={a.to}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary/40 hover:shadow-soft transition-all"
+                >
+                  <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${a.tone}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <span className="flex-1 text-sm font-medium">{a.label}</span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              );
+            })}
+          </div>
+        </Card>
       </div>
 
-      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Próximos eventos</h2>
-      <div className="space-y-2">
-        {todayEvents.map((e) => (
-          <Card key={e.id} className="p-4 flex items-center gap-3">
-            <div className="flex h-11 w-11 flex-shrink-0 flex-col items-center justify-center rounded-xl bg-accent/30 text-accent-foreground">
-              <Clock className="h-4 w-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{e.title}</p>
-              <p className="text-xs text-muted-foreground">{new Date(e.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })}</p>
-            </div>
-          </Card>
-        ))}
-      </div>
-    </AppLayout>
+      {/* Upcoming */}
+      <Card className="p-5 rounded-2xl shadow-soft">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold">Próximos eventos</h3>
+          <Link to="/agenda" className="text-xs text-primary font-medium">Ver agenda</Link>
+        </div>
+        {upcoming.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">Sem eventos próximos.</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {upcoming.map((e) => (
+              <li key={e.id} className="flex items-center gap-4 py-3">
+                <div className="flex flex-col items-center justify-center h-12 w-12 rounded-xl bg-primary/10 text-primary shrink-0">
+                  <span className="text-[10px] uppercase font-semibold">
+                    {new Date(e.date).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}
+                  </span>
+                  <span className="text-base font-bold leading-none">{new Date(e.date).getDate()}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate">{e.title}</p>
+                  <p className="text-xs text-muted-foreground truncate">{e.description}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </DashboardShell>
   );
 }

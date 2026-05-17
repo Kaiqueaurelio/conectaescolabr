@@ -1,320 +1,163 @@
-import { useState } from "react";
+import { useData } from "@/contexts/DataContext";
+import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { ColorStatCard } from "@/components/dashboard/ColorStatCard";
+import { Card } from "@/components/ui/card";
 import {
-  GlassLayout,
-  GlassContainer,
-  GlassGrid,
-  GlassSection,
-} from "@/components/GlassLayout";
-import {
-  GlassCard,
-  GlassStatCard,
-  GlassBanner,
-} from "@/components/GlassCard";
-import { Button } from "@/components/ui/button";
-import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-import {
+  LayoutDashboard,
   Users,
-  UserCheck,
-  Clock,
-  TrendingUp,
+  GraduationCap,
+  ClipboardCheck,
+  Megaphone,
+  CalendarDays,
+  Gift,
+  FileText,
   BarChart3,
-  Calendar,
-  Award,
-  ArrowRight,
+  Shield,
+  Settings,
+  HelpCircle,
+  Trophy,
+  TrendingUp,
 } from "lucide-react";
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
+  Cell,
+  PieChart,
+  Pie,
 } from "recharts";
 
-const frequencyData = [
-  { month: "Jan", frequency: 85, target: 90 },
-  { month: "Fev", frequency: 88, target: 90 },
-  { month: "Mar", frequency: 92, target: 90 },
-  { month: "Abr", frequency: 89, target: 90 },
-  { month: "Mai", frequency: 95, target: 90 },
+const sidebarItems = [
+  { label: "Painel", to: "/admin/dashboard", icon: LayoutDashboard, end: true },
+  { label: "Usuários", to: "/admin/users", icon: Users },
+  { label: "Turmas", to: "/turmas", icon: GraduationCap },
+  { label: "Presença", to: "/admin/attendance", icon: ClipboardCheck },
+  { label: "Benefícios", to: "/admin/benefits", icon: Gift },
+  { label: "Comunicados", to: "/comunicados", icon: Megaphone },
+  { label: "Calendário", to: "/admin/calendar", icon: CalendarDays },
+  { label: "Documentos", to: "/admin/scanning", icon: FileText },
+  { label: "Relatórios", to: "/admin/reports", icon: BarChart3 },
+  { label: "Segurança", to: "/admin/security", icon: Shield },
+  { label: "Configurações", to: "/configuracoes", icon: Settings },
+  { label: "Ajuda", to: "/ajuda", icon: HelpCircle },
 ];
 
-const profileData = [
-  { name: "Alunos", value: 45, color: "#158f3e" },
-  { name: "Responsáveis", value: 38, color: "#e67e22" },
-  { name: "Professores", value: 12, color: "#3498db" },
-  { name: "Administradores", value: 5, color: "#9b59b6" },
+const monthly = [
+  { mes: "Jan", presencas: 240, benef: 80 },
+  { mes: "Fev", presencas: 280, benef: 95 },
+  { mes: "Mar", presencas: 310, benef: 110 },
+  { mes: "Abr", presencas: 295, benef: 120 },
+  { mes: "Mai", presencas: 340, benef: 130 },
 ];
 
-const statusData = [
-  { status: "Ativo", count: 78, color: "#2ecc71" },
-  { status: "Inativo", count: 12, color: "#e74c3c" },
-  { status: "Pendente", count: 8, color: "#f39c12" },
-];
+const palette = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--tertiary))", "hsl(var(--coral))"];
 
 export function AdminDashboardGlassPage() {
-  const { user: currentUser } = useSupabaseAuth();
-  const [searchQuery, setSearchQuery] = useState("");
+  const { students, turmas, events, announcements } = useData();
 
-  const sidebarItems = [
-    { label: "Dashboard", href: "/admin/dashboard", icon: "📊" },
-    { label: "Usuários", href: "/admin/users", icon: "👥" },
-    { label: "Presença", href: "/admin/attendance", icon: "✓" },
-    { label: "Benefícios", href: "/admin/benefits", icon: "🎁" },
-    { label: "Comunicações", href: "/admin/communications", icon: "💬" },
-    { label: "Calendário", href: "/admin/calendar", icon: "📅" },
-    { label: "Documentos", href: "/admin/scanning", icon: "📄" },
-    { label: "Relatórios", href: "/admin/reports", icon: "📈" },
-    { divider: true },
-    { label: "Segurança", href: "/admin/security", icon: "🔒" },
+  const roleData = [
+    { name: "Alunas", value: students.length, color: "hsl(var(--primary))" },
+    { name: "Turmas", value: turmas.length, color: "hsl(var(--secondary))" },
+    { name: "Eventos", value: events.length, color: "hsl(var(--tertiary))" },
+    { name: "Avisos", value: announcements.length, color: "hsl(var(--coral))" },
   ];
 
   return (
-    <GlassLayout
-      sidebarItems={sidebarItems}
-      topBarTitle="Dashboard"
-      topBarUser={
-        currentUser
-          ? {
-              name: currentUser.full_name || "Usuário",
-              email: currentUser.email || "",
-            }
-          : undefined
-      }
-      showSearch={true}
-      onSearch={setSearchQuery}
-    >
-      <GlassContainer>
-        {/* Welcome Banner */}
-        <GlassBanner
-          title={`Bem-vindo, ${currentUser?.full_name?.split(" ")[0]}!`}
-          subtitle="Acompanhe o desempenho da ONG Camila em tempo real"
-          icon="👋"
-          className="mb-8"
-        />
+    <DashboardShell title="Painel administrativo" sidebarTitle="Administração" sidebarItems={sidebarItems}>
+      {/* Hero */}
+      <section className="mb-6 rounded-3xl bg-gradient-to-br from-primary via-tertiary to-secondary p-6 text-primary-foreground shadow-glow relative overflow-hidden">
+        <div className="absolute -top-10 -right-10 h-44 w-44 rounded-full bg-coral/30 blur-3xl animate-blob" />
+        <div className="absolute -bottom-12 -left-8 h-44 w-44 rounded-full bg-secondary/40 blur-3xl animate-blob" />
+        <p className="text-xs opacity-90">Resumo geral</p>
+        <h2 className="text-2xl font-bold mt-1">Visão da Associação Camila</h2>
+        <p className="text-xs opacity-90 mt-1">Acompanhe presença, comunicação e benefícios em tempo real.</p>
+      </section>
 
-        {/* Stats Grid */}
-        <GlassGrid cols={4} gap="medium" className="mb-8">
-          <GlassStatCard
-            label="Total de Usuários"
-            value="98"
-            icon={<Users className="w-6 h-6" />}
-            color="primary"
-            trend="up"
-            trendValue="+12%"
-          />
-          <GlassStatCard
-            label="Ativos Hoje"
-            value="78"
-            icon={<UserCheck className="w-6 h-6" />}
-            color="success"
-            trend="up"
-            trendValue="+5%"
-          />
-          <GlassStatCard
-            label="Frequência Média"
-            value="91%"
-            icon={<TrendingUp className="w-6 h-6" />}
-            color="secondary"
-            trend="up"
-            trendValue="+3%"
-          />
-          <GlassStatCard
-            label="Pendentes"
-            value="8"
-            icon={<Clock className="w-6 h-6" />}
-            color="warning"
-            trend="down"
-            trendValue="-2%"
-          />
-        </GlassGrid>
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <ColorStatCard label="Assistidas" value={students.length} icon={Users} tone="primary" trend="+12% este mês" />
+        <ColorStatCard label="Turmas ativas" value={turmas.length} icon={GraduationCap} tone="secondary" />
+        <ColorStatCard label="Eventos" value={events.length} icon={CalendarDays} tone="tertiary" />
+        <ColorStatCard label="Comunicados" value={announcements.length} icon={Megaphone} tone="coral" />
+      </div>
 
-        {/* Charts Section */}
-        <GlassGrid cols={2} gap="medium" className="mb-8">
-          {/* Frequency Chart */}
-          <GlassCard variant="gradient" className="p-6">
-            <h3 className="text-lg font-bold text-foreground mb-4">
-              Frequência Mensal
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={frequencyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
-                <XAxis stroke="rgba(0,0,0,0.5)" />
-                <YAxis stroke="rgba(0,0,0,0.5)" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "rgba(255,255,255,0.9)",
-                    border: "1px solid rgba(255,255,255,0.3)",
-                    borderRadius: "12px",
-                  }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="frequency"
-                  stroke="#158f3e"
-                  strokeWidth={2}
-                  dot={{ fill: "#158f3e", r: 4 }}
-                  name="Frequência"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="target"
-                  stroke="#e67e22"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  dot={{ fill: "#e67e22", r: 4 }}
-                  name="Meta"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </GlassCard>
-
-          {/* Status Chart */}
-          <GlassCard variant="gradient" className="p-6">
-            <h3 className="text-lg font-bold text-foreground mb-4">
-              Status dos Usuários
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={statusData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
-                <XAxis stroke="rgba(0,0,0,0.5)" dataKey="status" />
-                <YAxis stroke="rgba(0,0,0,0.5)" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "rgba(255,255,255,0.9)",
-                    border: "1px solid rgba(255,255,255,0.3)",
-                    borderRadius: "12px",
-                  }}
-                />
-                <Bar dataKey="count" fill="#158f3e" radius={[8, 8, 0, 0]} />
+      {/* Chart row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        <Card className="lg:col-span-2 p-5 rounded-2xl shadow-soft">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Últimos 5 meses</p>
+              <h3 className="font-bold">Presenças e benefícios distribuídos</h3>
+            </div>
+            <TrendingUp className="h-5 w-5 text-primary" />
+          </div>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={monthly} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="mes" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <Tooltip contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }} />
+                <Bar dataKey="presencas" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="benef" fill="hsl(var(--secondary))" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </GlassCard>
-        </GlassGrid>
+          </div>
+        </Card>
 
-        {/* Pie Chart and Quick Actions */}
-        <GlassGrid cols={2} gap="medium">
-          {/* Profile Distribution */}
-          <GlassCard variant="gradient" className="p-6">
-            <h3 className="text-lg font-bold text-foreground mb-4">
-              Distribuição de Perfis
-            </h3>
-            <ResponsiveContainer width="100%" height={300}>
+        <Card className="p-5 rounded-2xl shadow-soft">
+          <h3 className="font-bold mb-2">Distribuição</h3>
+          <p className="text-xs text-muted-foreground mb-2">Visão geral</p>
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie
-                  data={profileData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {profileData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
+                <Pie data={roleData} dataKey="value" nameKey="name" innerRadius={45} outerRadius={75} paddingAngle={3}>
+                  {roleData.map((d, i) => (<Cell key={i} fill={palette[i]} />))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "rgba(255,255,255,0.9)",
-                    border: "1px solid rgba(255,255,255,0.3)",
-                    borderRadius: "12px",
-                  }}
-                />
+                <Tooltip contentStyle={{ borderRadius: 12, border: "none" }} />
               </PieChart>
             </ResponsiveContainer>
-          </GlassCard>
-
-          {/* Quick Actions */}
-          <GlassCard variant="gradient" className="p-6 flex flex-col justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-foreground mb-6">
-                Ações Rápidas
-              </h3>
-              <div className="space-y-3">
-                {[
-                  {
-                    label: "Novo Usuário",
-                    icon: <Users className="w-4 h-4" />,
-                    href: "/admin/users/new",
-                  },
-                  {
-                    label: "Registrar Presença",
-                    icon: <UserCheck className="w-4 h-4" />,
-                    href: "/admin/attendance",
-                  },
-                  {
-                    label: "Gerar Relatório",
-                    icon: <BarChart3 className="w-4 h-4" />,
-                    href: "/admin/reports",
-                  },
-                  {
-                    label: "Agendar Evento",
-                    icon: <Calendar className="w-4 h-4" />,
-                    href: "/admin/calendar",
-                  },
-                ].map((action, idx) => (
-                  <Button
-                    key={idx}
-                    variant="outline"
-                    className="w-full justify-start gap-2 rounded-lg"
-                  >
-                    {action.icon}
-                    {action.label}
-                    <ArrowRight className="w-4 h-4 ml-auto" />
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </GlassCard>
-        </GlassGrid>
-
-        {/* Recent Activity */}
-        <GlassSection
-          title="Atividade Recente"
-          description="Últimas ações registradas no sistema"
-          className="mt-8"
-        >
-          <div className="space-y-3">
-            {[
-              {
-                action: "Novo usuário cadastrado",
-                user: "João Silva",
-                time: "há 2 horas",
-              },
-              {
-                action: "Presença registrada",
-                user: "Maria Santos",
-                time: "há 1 hora",
-              },
-              {
-                action: "Benefício distribuído",
-                user: "Pedro Costa",
-                time: "há 30 minutos",
-              },
-            ].map((activity, idx) => (
-              <GlassCard key={idx} className="p-4 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-foreground">{activity.action}</p>
-                  <p className="text-sm text-muted-foreground">{activity.user}</p>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {activity.time}
-                </span>
-              </GlassCard>
-            ))}
           </div>
-        </GlassSection>
-      </GlassContainer>
-    </GlassLayout>
+          <ul className="space-y-1.5 mt-2">
+            {roleData.map((d, i) => (
+              <li key={d.name} className="flex items-center gap-2 text-xs">
+                <span className="h-2 w-2 rounded-full" style={{ background: palette[i] }} />
+                <span className="flex-1 text-muted-foreground">{d.name}</span>
+                <span className="font-semibold">{d.value}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </div>
+
+      {/* Recent announcements */}
+      <Card className="p-5 rounded-2xl shadow-soft">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold">Comunicados recentes</h3>
+        </div>
+        {announcements.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">Nenhum comunicado.</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {announcements.slice(0, 5).map((a) => (
+              <li key={a.id} className="flex items-start gap-3 py-3">
+                <div className="h-9 w-9 rounded-xl bg-coral/15 text-coral flex items-center justify-center shrink-0">
+                  <Megaphone className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold truncate">{a.title}</p>
+                  <p className="text-xs text-muted-foreground line-clamp-1">{a.content}</p>
+                </div>
+                <Trophy className="h-4 w-4 text-secondary/50" />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </DashboardShell>
   );
 }
