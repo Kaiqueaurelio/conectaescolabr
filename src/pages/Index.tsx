@@ -586,6 +586,7 @@ export default function Landing() {
 
       {/* Contato */}
       <section id="contato" className="container mx-auto px-4 py-16 md:py-24">
+
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <div className="reveal">
             <Badge variant="secondary" className="mb-3"><Phone className="h-3 w-3 mr-1" /> Fale conosco</Badge>
