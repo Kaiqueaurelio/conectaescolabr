@@ -128,6 +128,14 @@ export default function Landing() {
             <a href="#app" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground px-3">App</a>
             <a href="#apoiar" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground px-3">Apoiar</a>
             <a href="#contato" className="hidden md:inline text-sm text-muted-foreground hover:text-foreground px-3">Contato</a>
+            <a
+              href="https://www.associacaocamila.org.br/doe-hoje-transforme-vidas-todos-os-dias/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-coral/15 text-coral hover:bg-coral/25 transition-colors"
+            >
+              <Heart className="h-3 w-3" /> Doar
+            </a>
             {user ? (
               <Button asChild size="sm" className="gradient-primary text-primary-foreground">
                 <Link to={roleHome(user.role)}>Ir para o app <ArrowRight className="h-4 w-4 ml-1" /></Link>
