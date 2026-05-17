@@ -28,6 +28,8 @@ export default function Landing() {
   const [installed, setInstalled] = useState(false);
   useReveal();
 
+  const tones = ["tone-primary", "tone-secondary", "tone-tertiary", "tone-coral"] as const;
+
   useEffect(() => {
     const onBIP = (e: Event) => { e.preventDefault(); setDeferred(e as BIPEvent); };
     const onInstalled = () => { setInstalled(true); setDeferred(null); };
