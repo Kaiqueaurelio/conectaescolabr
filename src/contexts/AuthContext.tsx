@@ -46,13 +46,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Sincronizar com Supabase
   useEffect(() => {
     if (supabaseAuth.user) {
+      const profile = supabaseAuth.user;
+      const rawRole = profile.role;
+      const role: Role = (rawRole === "VOLUNTEER" ? "STUDENT" : rawRole) as Role;
       const authUser: User = {
-        id: supabaseAuth.user.id,
-        role: (supabaseAuth.user.user_metadata?.role as Role) || "STUDENT",
-        name: supabaseAuth.user.user_metadata?.full_name || supabaseAuth.user.email || "",
-        email: supabaseAuth.user.email || "",
-        avatar_url: supabaseAuth.user.user_metadata?.avatar_url,
-        status: "APPROVED",
+        id: profile.id,
+        role,
+        name: profile.full_name || profile.email || "",
+        email: profile.email || "",
+        avatar_url: profile.avatar_url,
+        status: profile.status || "APPROVED",
       };
       setUser(authUser);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(authUser));
@@ -91,10 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!email.trim()) return { error: "O preenchimento do e-mail é obrigatório." };
       if (!password.trim()) return { error: "O preenchimento da senha é obrigatório." };
 
-      const result = await supabaseAuth.register(email, password, {
-        full_name: name,
-        role: role,
-      });
+      const result = await supabaseAuth.register(email, password, name, role);
 
       if (result.success) {
         return { success: true };
