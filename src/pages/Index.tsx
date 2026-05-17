@@ -265,7 +265,7 @@ export default function Landing() {
       </section>
 
       {/* Projetos */}
-      <section id="projetos" className="bg-muted/40 py-16 md:py-24">
+      <section id="projetos" className="bg-muted/40 py-16 md:py-24 fluid-bg">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-2xl mx-auto mb-12 reveal">
             <Badge variant="secondary" className="mb-3"><Sparkles className="h-3 w-3 mr-1" /> O que fazemos</Badge>
@@ -278,13 +278,14 @@ export default function Landing() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.map((p, i) => {
               const Icon = p.icon;
+              const tone = tones[i % tones.length];
               return (
-                <Card key={p.title} className="p-6 border-border/60 group reveal hover-lift" style={{ transitionDelay: `${i * 70}ms` }}>
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl gradient-primary text-primary-foreground mb-4 group-hover:scale-110 transition-smooth">
+                <Card key={p.title} className={`${tone} p-6 border-border/60 group reveal hover-lift tone-border-t bg-card/80 backdrop-blur`} style={{ transitionDelay: `${i * 70}ms` }}>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl tone-gradient text-white mb-4 group-hover:scale-110 transition-smooth tone-glow-shadow">
                     <Icon className="h-6 w-6" />
                   </div>
                   <h3 className="font-semibold text-lg leading-tight">{p.title}</h3>
-                  <p className="text-xs text-secondary font-medium mt-0.5">{p.subtitle}</p>
+                  <p className="text-xs tone-text font-medium mt-0.5">{p.subtitle}</p>
                   <p className="text-sm text-muted-foreground mt-3">{p.desc}</p>
                 </Card>
               );
@@ -294,7 +295,7 @@ export default function Landing() {
       </section>
 
       {/* Para quem é */}
-      <section className="container mx-auto px-4 py-16 md:py-24">
+      <section className="container mx-auto px-4 py-16 md:py-24 fluid-bg fluid-bg-tri">
         <div className="text-center max-w-2xl mx-auto mb-12 reveal">
           <Badge variant="secondary" className="mb-3"><Users className="h-3 w-3 mr-1" /> Para todos os perfis</Badge>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Um app que serve a toda a comunidade</h2>
@@ -305,9 +306,10 @@ export default function Landing() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {audiences.map((a, i) => {
             const Icon = a.icon;
+            const tone = tones[i % tones.length];
             return (
-              <Card key={a.title} className="p-6 text-center reveal hover-lift group" style={{ transitionDelay: `${i * 80}ms` }}>
-                <div className="h-14 w-14 rounded-2xl gradient-warm text-secondary-foreground flex items-center justify-center mx-auto mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+              <Card key={a.title} className={`${tone} p-6 text-center reveal hover-lift group tone-border-t bg-card/80 backdrop-blur`} style={{ transitionDelay: `${i * 80}ms` }}>
+                <div className="h-14 w-14 rounded-2xl tone-gradient text-white flex items-center justify-center mx-auto mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 tone-glow-shadow">
                   <Icon className="h-7 w-7" />
                 </div>
                 <h3 className="font-semibold">{a.title}</h3>
@@ -319,7 +321,7 @@ export default function Landing() {
       </section>
 
       {/* App features */}
-      <section id="app" className="bg-muted/40 py-16 md:py-24">
+      <section id="app" className="bg-muted/40 py-16 md:py-24 fluid-bg">
         <div className="container mx-auto px-4">
         <div className="text-center max-w-2xl mx-auto mb-12 reveal">
           <Badge variant="secondary" className="mb-3"><Smartphone className="h-3 w-3 mr-1" /> Recursos do app</Badge>
@@ -331,9 +333,10 @@ export default function Landing() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {features.map((f, i) => {
             const Icon = f.icon;
+            const tone = tones[i % tones.length];
             return (
-              <Card key={f.title} className="p-6 border-border/60 reveal hover-lift group" style={{ transitionDelay: `${i * 60}ms` }}>
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl gradient-primary text-primary-foreground mb-4 transition-transform duration-300 group-hover:scale-110">
+              <Card key={f.title} className={`${tone} p-6 border-border/60 reveal hover-lift group tone-border-t bg-card/80 backdrop-blur`} style={{ transitionDelay: `${i * 60}ms` }}>
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl tone-gradient text-white mb-4 transition-transform duration-300 group-hover:scale-110 tone-glow-shadow">
                   <Icon className="h-6 w-6" />
                 </div>
                 <h3 className="font-semibold text-lg">{f.title}</h3>
@@ -346,7 +349,7 @@ export default function Landing() {
       </section>
 
       {/* How to use */}
-      <section className="py-16 md:py-24">
+      <section className="py-16 md:py-24 fluid-bg fluid-bg-tri">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-2xl mx-auto mb-12 reveal">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Comece em 3 passos</h2>
@@ -358,8 +361,8 @@ export default function Landing() {
               { n: "2", title: "Faça login", desc: "Cada usuário acessa sua área: administração, professor, aluna ou responsável." },
               { n: "3", title: "Comunique e acompanhe", desc: "Envie avisos, registre eventos, crie lembretes e veja tudo em tempo real." },
             ].map((s, i) => (
-              <Card key={s.n} className="p-6 relative reveal hover-lift" style={{ transitionDelay: `${i * 120}ms` }}>
-                <div className="absolute -top-4 left-6 h-9 w-9 rounded-full gradient-primary text-primary-foreground flex items-center justify-center font-bold shadow-md animate-float" style={{ animationDelay: `${i * 0.4}s` }}>{s.n}</div>
+              <Card key={s.n} className={`${tones[i % tones.length]} p-6 relative reveal hover-lift tone-border-t bg-card/80 backdrop-blur`} style={{ transitionDelay: `${i * 120}ms` }}>
+                <div className="absolute -top-4 left-6 h-9 w-9 rounded-full tone-gradient text-white flex items-center justify-center font-bold shadow-md animate-float tone-glow-shadow" style={{ animationDelay: `${i * 0.4}s` }}>{s.n}</div>
                 <h3 className="font-semibold mt-3">{s.title}</h3>
                 <p className="text-sm text-muted-foreground mt-2">{s.desc}</p>
               </Card>
@@ -451,9 +454,12 @@ export default function Landing() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {supportWays.map((s, i) => {
             const Icon = s.icon;
+            const tone = tones[i % tones.length];
             return (
-              <Card key={s.title} className="p-6 border-t-4 border-t-secondary reveal hover-lift group" style={{ transitionDelay: `${i * 80}ms` }}>
-                <Icon className="h-8 w-8 text-secondary mb-3 transition-transform duration-300 group-hover:scale-125 group-hover:-rotate-6" />
+              <Card key={s.title} className={`${tone} p-6 reveal hover-lift group tone-border-t bg-card/80 backdrop-blur`} style={{ transitionDelay: `${i * 80}ms` }}>
+                <div className="h-12 w-12 rounded-2xl tone-gradient text-white flex items-center justify-center mb-3 tone-glow-shadow transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
+                  <Icon className="h-6 w-6" />
+                </div>
                 <h3 className="font-semibold">{s.title}</h3>
                 <p className="text-sm text-muted-foreground mt-2">{s.desc}</p>
               </Card>
@@ -482,8 +488,8 @@ export default function Landing() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto">
             {techs.map((t, i) => (
-              <Card key={t.name} className="p-4 text-center reveal hover-lift" style={{ transitionDelay: `${i * 50}ms` }}>
-                <p className="font-bold text-primary">{t.name}</p>
+              <Card key={t.name} className={`${tones[i % tones.length]} p-4 text-center reveal hover-lift tone-border-t bg-card/80 backdrop-blur`} style={{ transitionDelay: `${i * 50}ms` }}>
+                <p className="font-bold tone-text">{t.name}</p>
                 <p className="text-[11px] text-muted-foreground mt-1">{t.desc}</p>
               </Card>
             ))}
