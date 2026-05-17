@@ -41,8 +41,6 @@ import { ParentPortalPage } from "./pages/ParentPortal";
 import { SecurityAndLGPDPage } from "./pages/SecurityAndLGPD";
 import { ColorPalettePageGlass } from "./pages/ColorPalettePage";
 import { ImpactDashboardPage } from "./pages/ImpactDashboard";
-import { AdminDashboardSkillPathPage } from "./pages/AdminDashboardSkillPath";
-import { StudentDashboardSkillPathPage } from "./pages/StudentDashboardSkillPath";
 
 const queryClient = new QueryClient();
 
@@ -61,7 +59,6 @@ const App = () => (
                 
                 {/* Rotas Administrativas Modernas */}
                 <Route path="/admin/dashboard" element={<ProtectedRoute roles={["ADMIN"]}><AdminDashboardNewPage /></ProtectedRoute>} />
-                <Route path="/admin/dashboard-skillpath" element={<ProtectedRoute roles={["ADMIN"]}><AdminDashboardSkillPathPage /></ProtectedRoute>} />
                 <Route path="/admin/impact" element={<ProtectedRoute roles={["ADMIN"]}><ImpactDashboardPage /></ProtectedRoute>} />
                 <Route path="/admin/users" element={<ProtectedRoute roles={["ADMIN"]}><UsersListPage /></ProtectedRoute>} />
                 <Route path="/admin/users/new" element={<ProtectedRoute roles={["ADMIN"]}><UserProfilePage /></ProtectedRoute>} />
@@ -75,9 +72,6 @@ const App = () => (
                 <Route path="/admin/reports" element={<ProtectedRoute roles={["ADMIN"]}><ReportsGenerationPage /></ProtectedRoute>} />
                 <Route path="/admin/security" element={<ProtectedRoute><SecurityAndLGPDPage /></ProtectedRoute>} />
                 <Route path="/admin/colors" element={<ProtectedRoute roles={["ADMIN"]}><ColorPalettePageGlass /></ProtectedRoute>} />
-                
-                {/* Rotas de Alunos/Assistidos */}
-                <Route path="/aluno/dashboard" element={<ProtectedRoute roles={["STUDENT"]}><StudentDashboardSkillPathPage /></ProtectedRoute>} />
                 
                 {/* Portal do Responsável */}
                 <Route path="/parent/portal" element={<ProtectedRoute roles={["PARENT"]}><ParentPortalPage /></ProtectedRoute>} />
