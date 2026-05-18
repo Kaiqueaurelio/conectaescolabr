@@ -11,11 +11,7 @@ export interface User {
   status: "PENDING" | "APPROVED" | "REJECTED";
 }
 
-export const users: User[] = [
-  { id: "a1", role: "ADMIN", name: "Coordenação da ONG", email: "admin@ong.org", avatar_url: "", status: "APPROVED" },
-  { id: "a2", role: "ADMIN", name: "Administração da Associação Camila", email: "admin@associacaocamila.br", avatar_url: "", status: "APPROVED" },
-  { id: "t1", role: "TEACHER", name: "Professor(a)", email: "professor@ong.org", avatar_url: "", classIds: [], status: "APPROVED" },
-];
+export const users: User[] = [];
 
 export interface Turma {
   id: string;
@@ -36,9 +32,7 @@ export interface Announcement {
   unread?: boolean;
 }
 
-export const announcements: Announcement[] = [
-  { id: "a1", title: "Bem-vindos ao novo aplicativo!", content: "Este é o novo canal de comunicação da Associação Camila. Fiquem atentos aos comunicados e eventos.", author: "Coordenação", target: "ALL", created_at: new Date().toISOString(), unread: true },
-];
+export const announcements: Announcement[] = [];
 
 export interface EventItem {
   id: string;
@@ -60,17 +54,7 @@ export interface BlogPost {
   published_at: string;
 }
 
-export const blogPosts: BlogPost[] = [
-  {
-    id: "b1",
-    title: "Associação Camila: Transformando Vidas",
-    cover_image: "https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=800&auto=format&fit=crop",
-    excerpt: "Conheça nossa missão e como trabalhamos para fortalecer os vínculos familiares.",
-    content: "A Associação Camila atua em Osasco-SP, promovendo direitos sociais, cultura de paz e o fortalecimento de vínculos familiares. Este é o aplicativo oficial que conecta a ONG, suas crianças, famílias, educadores e voluntários em um único lugar.",
-    author: "Coordenação",
-    published_at: new Date().toISOString().split('T')[0],
-  },
-];
+export const blogPosts: BlogPost[] = [];
 
 export interface AttendanceEntry {
   student_id: string;

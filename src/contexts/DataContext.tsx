@@ -36,18 +36,7 @@ export interface ReadStateMap {
   announcements: string[]; // ids read
 }
 
-const seedReminders: Reminder[] = [
-  {
-    id: "r1",
-    title: "Entregar autorização do passeio ao museu",
-    description: "Trazer assinada até quinta-feira na secretaria.",
-    due_date: "2026-05-13",
-    priority: "HIGH",
-    target: "PARENTS",
-    done: false,
-    created_at: "2026-04-30T09:00:00",
-  },
-];
+const seedReminders: Reminder[] = [];
 
 interface DataContextValue {
   announcements: Announcement[];
@@ -107,7 +96,7 @@ interface DataContextValue {
 
 const DataContext = createContext<DataContextValue | undefined>(undefined);
 
-const KEY = "camila_data_v2";
+const KEY = "camila_data_v3_clean";
 
 interface Persisted {
   announcements: Announcement[];

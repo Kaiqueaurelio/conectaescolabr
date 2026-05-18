@@ -136,29 +136,6 @@ export default function AdminDashboard() {
         <TabsContent value="aprovacoes" className="mt-4 space-y-4"><ApprovalsTab /></TabsContent>
       </Tabs>
 
-      <div className="mt-8 flex justify-center">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="sm" className="text-muted-foreground">
-              <RotateCcw className="h-3.5 w-3.5 mr-2" /> Restaurar dados de demonstração
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Restaurar dados?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Isso apaga tudo que você criou e devolve o app ao estado inicial.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => { data.resetAll(); toast.success("Dados restaurados."); }}>
-                Restaurar
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
     </AppLayout>
   );
 }
