@@ -335,6 +335,7 @@ export function UsersListGlassPage() {
                         size="sm"
                         className="rounded-lg"
                         title="Visualizar"
+                        onClick={() => navigate(`/admin/users/${user.id}`)}
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
@@ -343,6 +344,7 @@ export function UsersListGlassPage() {
                         size="sm"
                         className="rounded-lg"
                         title="Editar"
+                        onClick={() => navigate(`/admin/users/${user.id}`)}
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -351,6 +353,8 @@ export function UsersListGlassPage() {
                         size="sm"
                         className="rounded-lg text-destructive hover:text-destructive"
                         title="Deletar"
+                        onClick={() => handleDeleteUser(user)}
+                        disabled={deletingUserId === user.id}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
