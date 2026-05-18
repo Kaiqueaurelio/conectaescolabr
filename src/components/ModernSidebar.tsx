@@ -127,7 +127,7 @@ export function ModernSidebar({ items, logo, footer, className }: ModernSidebarP
       <aside
         className={cn(
           "fixed left-0 top-0 h-screen w-64 bg-card border-r border-border overflow-y-auto transition-transform duration-300 z-40",
-          "lg:relative lg:translate-x-0",
+          "lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
           className
         )}
