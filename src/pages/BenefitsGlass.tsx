@@ -312,25 +312,19 @@ export function BenefitsGlassPage() {
                   Nenhuma movimentação cadastrada.
                 </GlassCard>
               ) : distributions.map((record) => (
-                <GlassCard key={idx} className="p-4">
+                <GlassCard key={record.id} className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-foreground">
                         {record.item}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {record.action} - {record.quantity} un
+                        Saída - {record.quantity} un
                       </p>
                     </div>
                     <div className="text-right">
-                      <span
-                        className={`text-xs px-3 py-1 rounded-full font-medium ${
-                          record.action === "Entrada"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-orange-100 text-orange-700"
-                        }`}
-                      >
-                        {record.action}
+                      <span className="text-xs px-3 py-1 rounded-full font-medium bg-destructive/10 text-destructive">
+                        Saída
                       </span>
                       <p className="text-xs text-muted-foreground mt-1">
                         {new Date(record.date).toLocaleDateString("pt-BR")}
