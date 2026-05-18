@@ -261,13 +261,17 @@ export function UsersListGlassPage() {
 
         {/* Users Grid */}
         <GlassSection title="Lista de Usuários">
-          {filteredUsers.length === 0 ? (
+          {loading ? (
+            <div className="py-12 text-center text-muted-foreground">Carregando usuários...</div>
+          ) : error ? (
+            <div className="py-12 text-center text-destructive">{error}</div>
+          ) : filteredUsers.length === 0 ? (
             <GlassEmptyState
               icon="👤"
               title="Nenhum usuário encontrado"
               description="Tente ajustar seus filtros ou criar um novo usuário"
               action={
-                <Button className="gap-2">
+                <Button className="gap-2" onClick={() => navigate("/admin/users/new")}>
                   <Plus className="w-4 h-4" />
                   Novo Usuário
                 </Button>
@@ -281,12 +285,12 @@ export function UsersListGlassPage() {
                     {/* User Info */}
                     <div className="flex items-start gap-4 flex-1">
                       <div className="w-14 h-14 rounded-lg bg-gradient-primary flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
-                        {user.name.charAt(0).toUpperCase()}
+                        {(user.full_name || user.email).charAt(0).toUpperCase()}
                       </div>
 
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold text-foreground">
-                          {user.name}
+                          {user.full_name || user.email}
                         </h3>
 
                         <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
@@ -305,24 +309,20 @@ export function UsersListGlassPage() {
                         <div className="flex items-center gap-2 mt-3">
                           <span
                             className={`text-xs px-3 py-1 rounded-full font-medium ${
-                              profileColors[user.profile]
+                              profileColors[user.role]
                             }`}
                           >
-                            {profileLabels[user.profile]}
+                            {profileLabels[user.role]}
                           </span>
                           <span
                             className={`text-xs px-3 py-1 rounded-full font-medium ${
                               statusColors[user.status]
                             }`}
                           >
-                            {user.status === "active"
-                              ? "Ativo"
-                              : user.status === "inactive"
-                                ? "Inativo"
-                                : "Pendente"}
+                            {statusLabels[user.status]}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            Desde {new Date(user.joinDate).toLocaleDateString("pt-BR")}
+                            Desde {new Date(user.created_at).toLocaleDateString("pt-BR")}
                           </span>
                         </div>
                       </div>
