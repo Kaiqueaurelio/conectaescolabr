@@ -30,7 +30,6 @@ import {
   Eye,
   Mail,
   Phone,
-  MapPin,
 } from "lucide-react";
 
 export function UsersListGlassPage() {
@@ -185,10 +184,23 @@ export function UsersListGlassPage() {
               Total: {filteredUsers.length} usuários
             </p>
           </div>
-          <Button className="gap-2 rounded-lg">
+          <div className="flex items-center gap-2">
+          {users.length > 1 && (
+            <Button
+              variant="destructive"
+              className="gap-2 rounded-lg"
+              onClick={handleClearUsers}
+              disabled={clearingUsers}
+            >
+              <Trash2 className="w-4 h-4" />
+              {clearingUsers ? "Limpando..." : "Limpar tudo"}
+            </Button>
+          )}
+          <Button className="gap-2 rounded-lg" onClick={() => navigate("/admin/users/new")}>
             <Plus className="w-4 h-4" />
             Novo Usuário
           </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -223,6 +235,7 @@ export function UsersListGlassPage() {
                   <SelectItem value="TEACHER">Professor</SelectItem>
                   <SelectItem value="STUDENT">Aluno</SelectItem>
                   <SelectItem value="PARENT">Responsável</SelectItem>
+                  <SelectItem value="VOLUNTEER">Voluntário</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -237,9 +250,9 @@ export function UsersListGlassPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="active">Ativo</SelectItem>
-                  <SelectItem value="inactive">Inativo</SelectItem>
-                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="APPROVED">Aprovado</SelectItem>
+                  <SelectItem value="PENDING">Pendente</SelectItem>
+                  <SelectItem value="REJECTED">Rejeitado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
