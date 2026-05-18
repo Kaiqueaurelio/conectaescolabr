@@ -258,6 +258,12 @@ export function CommunicationsPage() {
                   </div>
                 </DialogContent>
               </Dialog>
+              {announcements.length > 0 && (
+                <Button variant="destructive" className="mb-4 ml-2" onClick={handleClearAnnouncements}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Limpar tudo
+                </Button>
+              )}
 
               {/* Lista de Comunicados */}
               <ModernSection title="Comunicados Recentes">
