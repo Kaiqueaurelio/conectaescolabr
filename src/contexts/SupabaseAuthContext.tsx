@@ -29,53 +29,62 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
 
   // Initialize auth state
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        setSession(data.session);
+    let active = true;
 
-        if (data.session?.user) {
-          const { data: profileData, error } = await supabase
-            .from("users")
-            .select("*")
-            .eq("auth_id", data.session.user.id)
-            .single();
-
+    const loadProfile = (authId: string) => {
+      // Run in background — do NOT block the loading flag on this query.
+      supabase
+        .from("users")
+        .select("*")
+        .eq("auth_id", authId)
+        .maybeSingle()
+        .then(({ data: profileData, error }) => {
+          if (!active) return;
           if (error) {
             console.error("Error fetching user profile:", error);
           } else if (profileData) {
             setUser(profileData as UserProfile);
           }
-        }
-      } catch (error) {
-        console.error("Error initializing auth:", error);
-      } finally {
-        setLoading(false);
-      }
+        });
     };
 
-    initAuth();
-
-    // Subscribe to auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-
-      if (session?.user) {
-        const { data: profileData } = await supabase
-          .from("users")
-          .select("*")
-          .eq("auth_id", session.user.id)
-          .single();
-
-        if (profileData) {
-          setUser(profileData as UserProfile);
-        }
+    // Register listener BEFORE getSession so we never miss events.
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, newSession) => {
+      if (!active) return;
+      setSession(newSession);
+      if (newSession?.user) {
+        loadProfile(newSession.user.id);
       } else {
         setUser(null);
       }
     });
 
+    // Resolve loading as soon as we know the local session — don't wait for the
+    // profile round-trip, which can hang on slow networks or RLS issues.
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!active) return;
+        setSession(data.session);
+        if (data.session?.user) {
+          loadProfile(data.session.user.id);
+        }
+      })
+      .catch((err) => {
+        console.error("Error initializing auth:", err);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    // Safety net: never let the app stay stuck on a spinner forever.
+    const timeout = setTimeout(() => {
+      if (active) setLoading(false);
+    }, 3000);
+
     return () => {
+      active = false;
+      clearTimeout(timeout);
       authListener?.subscription.unsubscribe();
     };
   }, []);
