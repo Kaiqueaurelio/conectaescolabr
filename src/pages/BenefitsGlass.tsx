@@ -9,6 +9,14 @@ import { GlassCard, GlassStatCard } from "@/components/GlassCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import {
   Package,
@@ -44,6 +52,8 @@ export function BenefitsGlassPage() {
   const [activeTab, setActiveTab] = useState("stock");
   const [benefitItems, setBenefitItems] = useState<BenefitItem[]>([]);
   const [distributions, setDistributions] = useState<DistributionItem[]>([]);
+  const [newItemOpen, setNewItemOpen] = useState(false);
+  const [newItem, setNewItem] = useState({ name: "", quantity: 0, minStock: 0, unit: "un" });
 
   const sidebarItems = [
     { label: "Dashboard", href: "/admin/dashboard", icon: "📊" },
@@ -82,6 +92,33 @@ export function BenefitsGlassPage() {
     toast.success("Benefícios limpos");
   };
 
+  const handleAddItem = () => {
+    if (!newItem.name.trim()) {
+      toast.error("Informe o nome do item");
+      return;
+    }
+    const item: BenefitItem = {
+      id: `item-${Date.now()}`,
+      name: newItem.name.trim(),
+      quantity: Number(newItem.quantity) || 0,
+      minStock: Number(newItem.minStock) || 0,
+      unit: newItem.unit.trim() || "un",
+      lastUpdated: new Date().toISOString().split("T")[0],
+    };
+    setBenefitItems((items) => [item, ...items]);
+    setNewItem({ name: "", quantity: 0, minStock: 0, unit: "un" });
+    setNewItemOpen(false);
+    toast.success("Item adicionado");
+  };
+
+  const adjustQuantity = (id: string, delta: number) => {
+    setBenefitItems((items) =>
+      items.map((it) =>
+        it.id === id ? { ...it, quantity: Math.max(0, it.quantity + delta) } : it
+      )
+    );
+  };
+
   return (
     <GlassLayout
       sidebarItems={sidebarItems}
@@ -115,10 +152,75 @@ export function BenefitsGlassPage() {
               Limpar tudo
             </Button>
           )}
-          <Button className="gap-2 rounded-lg">
-            <Plus className="w-4 h-4" />
-            Novo Item
-          </Button>
+          <Dialog open={newItemOpen} onOpenChange={setNewItemOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 rounded-lg">
+                <Plus className="w-4 h-4" />
+                Novo Item
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Novo item de estoque</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Nome *</Label>
+                  <Input
+                    id="name"
+                    value={newItem.name}
+                    onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                    placeholder="Ex: Leite, Cesta básica..."
+                    className="mt-2"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label htmlFor="qty">Quantidade</Label>
+                    <Input
+                      id="qty"
+                      type="number"
+                      min={0}
+                      value={newItem.quantity}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, quantity: Number(e.target.value) })
+                      }
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="min">Mínimo</Label>
+                    <Input
+                      id="min"
+                      type="number"
+                      min={0}
+                      value={newItem.minStock}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, minStock: Number(e.target.value) })
+                      }
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="unit">Unidade</Label>
+                    <Input
+                      id="unit"
+                      value={newItem.unit}
+                      onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
+                      placeholder="un, kg, L"
+                      className="mt-2"
+                    />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setNewItemOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleAddItem}>Adicionar</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           </div>
         </div>
 
@@ -225,6 +327,7 @@ export function BenefitsGlassPage() {
                           variant="outline"
                           size="sm"
                           className="rounded-lg"
+                          onClick={() => adjustQuantity(item.id, +1)}
                         >
                           <Plus className="w-4 h-4" />
                         </Button>
@@ -232,6 +335,7 @@ export function BenefitsGlassPage() {
                           variant="outline"
                           size="sm"
                           className="rounded-lg"
+                          onClick={() => adjustQuantity(item.id, -1)}
                         >
                           <Minus className="w-4 h-4" />
                         </Button>
