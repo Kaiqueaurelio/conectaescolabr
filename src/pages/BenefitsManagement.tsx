@@ -32,32 +32,35 @@ export function BenefitsManagementPage() {
   const { user: currentUser } = useSupabaseAuth();
   const { users } = useUsers();
 
-  const [activeTab, setActiveTab] = useState("inventory");
-  const [inventory, setInventory] = useState<InventoryItem[]>([
-    { id: "1", item_name: "Leite", quantity: 150, unit: "litros", last_restock: "2026-05-10" },
-    { id: "2", item_name: "Cesta Básica", quantity: 45, unit: "unidades", last_restock: "2026-05-08" },
-    { id: "3", item_name: "Pão", quantity: 200, unit: "unidades", last_restock: "2026-05-14" },
-    { id: "4", item_name: "Frutas e Verduras", quantity: 80, unit: "kg", last_restock: "2026-05-12" },
-  ]);
+  const INVENTORY_KEY = "benefits_inventory_v1";
+  const DIST_KEY = "benefits_distributions_v1";
 
-  const [distributions, setDistributions] = useState<Distribution[]>([
-    {
-      id: "1",
-      item_name: "Leite",
-      user_name: "João Silva",
-      quantity: 10,
-      distribution_date: "2026-05-14",
-      notes: "Entrega regular",
-    },
-    {
-      id: "2",
-      item_name: "Cesta Básica",
-      user_name: "Maria Santos",
-      quantity: 1,
-      distribution_date: "2026-05-14",
-      notes: "Situação de vulnerabilidade",
-    },
-  ]);
+  const [activeTab, setActiveTab] = useState("inventory");
+  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
+    try {
+      const raw = localStorage.getItem(INVENTORY_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [distributions, setDistributions] = useState<Distribution[]>(() => {
+    try {
+      const raw = localStorage.getItem(DIST_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Persist
+  useMemo(() => {
+    try { localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory)); } catch { /* ignore */ }
+  }, [inventory]);
+  useMemo(() => {
+    try { localStorage.setItem(DIST_KEY, JSON.stringify(distributions)); } catch { /* ignore */ }
+  }, [distributions]);
 
   const [newItem, setNewItem] = useState({ item_name: "", quantity: 0, unit: "unidades" });
   const [newDistribution, setNewDistribution] = useState({
@@ -144,8 +147,31 @@ export function BenefitsManagementPage() {
   };
 
   const handleDeleteItem = (id: string) => {
-    setInventory(inventory.filter((item) => item.id !== id));
+    const item = inventory.find((i) => i.id === id);
+    if (!item) return;
+    if (!window.confirm(`Remover "${item.item_name}" do estoque?`)) return;
+    setInventory(inventory.filter((i) => i.id !== id));
     toast.success("Item removido do estoque");
+  };
+
+  const handleDeleteDistribution = (id: string) => {
+    if (!window.confirm("Remover esta distribuição do histórico?")) return;
+    setDistributions(distributions.filter((d) => d.id !== id));
+    toast.success("Distribuição removida");
+  };
+
+  const handleClearInventory = () => {
+    if (inventory.length === 0) return;
+    if (!window.confirm("Remover TODOS os itens do estoque? Esta ação não pode ser desfeita.")) return;
+    setInventory([]);
+    toast.success("Estoque limpo");
+  };
+
+  const handleClearDistributions = () => {
+    if (distributions.length === 0) return;
+    if (!window.confirm("Remover TODO o histórico de distribuições? Esta ação não pode ser desfeita.")) return;
+    setDistributions([]);
+    toast.success("Histórico limpo");
   };
 
   const handleRestockItem = (id: string) => {
@@ -211,10 +237,11 @@ export function BenefitsManagementPage() {
                 <StatCard label="Distribuições" value={stats.totalDistributions} color="success" />
               </ModernGrid>
 
-              {/* Adicionar Item */}
+              {/* Adicionar Item + Limpar tudo */}
+              <div className="flex gap-2 mb-4 flex-wrap">
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button className="mb-4">
+                  <Button>
                     <Plus className="w-4 h-4 mr-2" />
                     Adicionar Item
                   </Button>
@@ -265,6 +292,13 @@ export function BenefitsManagementPage() {
                   </div>
                 </DialogContent>
               </Dialog>
+                {inventory.length > 0 && (
+                  <Button variant="outline" onClick={handleClearInventory}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Limpar tudo
+                  </Button>
+                )}
+              </div>
 
               {/* Lista de Itens */}
               <ModernSection title="Itens em Estoque">
@@ -338,10 +372,11 @@ export function BenefitsManagementPage() {
           {/* Aba: Distribuições */}
           {activeTab === "distributions" && (
             <div className="space-y-6 mt-6">
-              {/* Adicionar Distribuição */}
+              {/* Adicionar Distribuição + Limpar tudo */}
+              <div className="flex gap-2 mb-4 flex-wrap">
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button className="mb-4">
+                  <Button>
                     <Plus className="w-4 h-4 mr-2" />
                     Registrar Distribuição
                   </Button>
@@ -425,6 +460,13 @@ export function BenefitsManagementPage() {
                   </div>
                 </DialogContent>
               </Dialog>
+                {distributions.length > 0 && (
+                  <Button variant="outline" onClick={handleClearDistributions}>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Limpar tudo
+                  </Button>
+                )}
+              </div>
 
               {/* Lista de Distribuições */}
               <ModernSection title="Histórico de Distribuições">
@@ -447,9 +489,19 @@ export function BenefitsManagementPage() {
                             )}
                           </div>
 
-                          <div className="text-right">
-                            <p className="text-lg font-bold text-primary">{dist.quantity}</p>
-                            <p className="text-xs text-muted-foreground">{dist.distribution_date}</p>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-primary">{dist.quantity}</p>
+                              <p className="text-xs text-muted-foreground">{dist.distribution_date}</p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteDistribution(dist.id)}
+                              aria-label="Remover distribuição"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                           </div>
                         </div>
                       </ModernCard>
