@@ -42,6 +42,8 @@ interface DistributionItem {
 export function BenefitsGlassPage() {
   const { user: currentUser } = useSupabaseAuth();
   const [activeTab, setActiveTab] = useState("stock");
+  const [benefitItems, setBenefitItems] = useState<BenefitItem[]>([]);
+  const [distributions, setDistributions] = useState<DistributionItem[]>([]);
 
   const sidebarItems = [
     { label: "Dashboard", href: "/admin/dashboard", icon: "📊" },
@@ -58,6 +60,27 @@ export function BenefitsGlassPage() {
 
   const lowStockItems = benefitItems.filter((item) => item.quantity <= item.minStock);
   const totalValue = benefitItems.reduce((sum, item) => sum + item.quantity, 0);
+  const today = new Date().toISOString().split("T")[0];
+  const distributionsToday = distributions.filter((dist) => dist.date === today).length;
+
+  const handleDeleteItem = (id: string) => {
+    if (!window.confirm("Remover este item do estoque?")) return;
+    setBenefitItems((items) => items.filter((item) => item.id !== id));
+    toast.success("Item removido");
+  };
+
+  const handleDeleteDistribution = (id: string) => {
+    if (!window.confirm("Remover esta distribuição?")) return;
+    setDistributions((items) => items.filter((item) => item.id !== id));
+    toast.success("Distribuição removida");
+  };
+
+  const handleClearAll = () => {
+    if (!window.confirm("Remover todos os itens e distribuições desta tela?")) return;
+    setBenefitItems([]);
+    setDistributions([]);
+    toast.success("Benefícios limpos");
+  };
 
   return (
     <GlassLayout
