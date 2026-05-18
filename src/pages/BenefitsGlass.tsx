@@ -174,7 +174,11 @@ export function BenefitsGlassPage() {
         {activeTab === "stock" && (
           <GlassSection title="Itens em Estoque">
             <div className="space-y-3">
-              {benefitItems.map((item) => {
+              {benefitItems.length === 0 ? (
+                <GlassCard className="p-8 text-center text-muted-foreground">
+                  Nenhum item cadastrado.
+                </GlassCard>
+              ) : benefitItems.map((item) => {
                 const isLowStock = item.quantity <= item.minStock;
                 const percentage = (item.quantity / (item.minStock * 2)) * 100;
 
@@ -242,6 +246,7 @@ export function BenefitsGlassPage() {
                           variant="outline"
                           size="sm"
                           className="rounded-lg text-destructive"
+                          onClick={() => handleDeleteItem(item.id)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -258,7 +263,11 @@ export function BenefitsGlassPage() {
         {activeTab === "distributions" && (
           <GlassSection title="Distribuições Recentes">
             <div className="space-y-3">
-              {distributions.map((dist) => (
+              {distributions.length === 0 ? (
+                <GlassCard className="p-8 text-center text-muted-foreground">
+                  Nenhuma distribuição cadastrada.
+                </GlassCard>
+              ) : distributions.map((dist) => (
                 <GlassCard key={dist.id} className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -269,10 +278,18 @@ export function BenefitsGlassPage() {
                         {dist.item} - {dist.quantity} un
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="flex items-center gap-3 text-right">
                       <p className="text-sm text-muted-foreground">
                         {new Date(dist.date).toLocaleDateString("pt-BR")}
                       </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-lg text-destructive"
+                        onClick={() => handleDeleteDistribution(dist.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 </GlassCard>
