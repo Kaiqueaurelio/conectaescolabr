@@ -20,6 +20,7 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface BenefitItem {
   id: string;
@@ -30,64 +31,13 @@ interface BenefitItem {
   lastUpdated: string;
 }
 
-const benefitItems: BenefitItem[] = [
-  {
-    id: "1",
-    name: "Leite Integral",
-    quantity: 45,
-    minStock: 20,
-    unit: "L",
-    lastUpdated: "2024-05-15",
-  },
-  {
-    id: "2",
-    name: "Cesta Básica",
-    quantity: 12,
-    minStock: 10,
-    unit: "un",
-    lastUpdated: "2024-05-14",
-  },
-  {
-    id: "3",
-    name: "Pão Integral",
-    quantity: 8,
-    minStock: 15,
-    unit: "kg",
-    lastUpdated: "2024-05-15",
-  },
-  {
-    id: "4",
-    name: "Arroz",
-    quantity: 35,
-    minStock: 20,
-    unit: "kg",
-    lastUpdated: "2024-05-13",
-  },
-];
-
-const distributions = [
-  {
-    id: "1",
-    user: "João Silva",
-    item: "Leite Integral",
-    quantity: 2,
-    date: "2024-05-15",
-  },
-  {
-    id: "2",
-    user: "Maria Santos",
-    item: "Cesta Básica",
-    quantity: 1,
-    date: "2024-05-15",
-  },
-  {
-    id: "3",
-    user: "Pedro Costa",
-    item: "Pão Integral",
-    quantity: 1,
-    date: "2024-05-14",
-  },
-];
+interface DistributionItem {
+  id: string;
+  user: string;
+  item: string;
+  quantity: number;
+  date: string;
+}
 
 export function BenefitsGlassPage() {
   const { user: currentUser } = useSupabaseAuth();
