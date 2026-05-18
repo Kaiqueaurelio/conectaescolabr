@@ -25,25 +25,7 @@ export function DocumentScanningPage() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [activeTab, setActiveTab] = useState("upload");
-  const [documents, setDocuments] = useState<ScannedDocument[]>([
-    {
-      id: "1",
-      filename: "Ficha_Cadastral_João_Silva.pdf",
-      type: "Ficha Cadastral",
-      uploaded_at: new Date().toISOString(),
-      status: "completed",
-      extracted_text:
-        "Nome: João Silva\nData de Nascimento: 15/03/2010\nCPF: 123.456.789-00\nEndereço: Rua das Flores, 123",
-    },
-    {
-      id: "2",
-      filename: "RG_Maria_Santos.jpg",
-      type: "RG",
-      uploaded_at: new Date(Date.now() - 3600000).toISOString(),
-      status: "completed",
-      extracted_text: "RG: 12.345.678-9\nOrgão Expedidor: SSP/SP\nData de Emissão: 10/05/2020",
-    },
-  ]);
+  const [documents, setDocuments] = useState<ScannedDocument[]>([]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -116,8 +98,15 @@ export function DocumentScanningPage() {
   };
 
   const handleDeleteDocument = (id: string) => {
+    if (!window.confirm("Remover este documento?")) return;
     setDocuments(documents.filter((d) => d.id !== id));
     toast.success("Documento removido");
+  };
+
+  const handleClearDocuments = () => {
+    if (!window.confirm("Remover todos os documentos digitalizados?")) return;
+    setDocuments([]);
+    toast.success("Documentos removidos");
   };
 
   const handleDownloadDocument = (doc: ScannedDocument) => {
