@@ -3,13 +3,13 @@ import { createClient } from "@supabase/supabase-js";
 // Untyped client for legacy code that references tables not yet in the typed schema.
 const url =
   import.meta.env.VITE_SUPABASE_URL ||
-  "https://placeholder.supabase.co";
+  "https://bzpxmeuygbfdagnafawe.supabase.co";
 const key =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTYwMDAwMDAwMCwiZXhwIjoxOTAwMDAwMDAwfQ.placeholder";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ6cHhtZXV5Z2JmZGFnbmFmYXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMjQ2MjMsImV4cCI6MjA5NDYwMDYyM30.xJfCNXI7PHpKursvrTtgYFMNe12tUwL5PRThNRFmwaY";
 
-export const isSupabaseConfigured = Boolean(import.meta.env.VITE_SUPABASE_URL);
+export const isSupabaseConfigured = true;
 export const supabase = createClient(url, key);
 
 // Type definitions for database schema
