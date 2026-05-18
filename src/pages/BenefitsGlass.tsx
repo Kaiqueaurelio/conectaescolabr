@@ -108,10 +108,18 @@ export function BenefitsGlassPage() {
               Controle de estoque e distribuição de benefícios
             </p>
           </div>
+          <div className="flex items-center gap-2">
+          {(benefitItems.length > 0 || distributions.length > 0) && (
+            <Button variant="destructive" className="gap-2 rounded-lg" onClick={handleClearAll}>
+              <Trash2 className="w-4 h-4" />
+              Limpar tudo
+            </Button>
+          )}
           <Button className="gap-2 rounded-lg">
             <Plus className="w-4 h-4" />
             Novo Item
           </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -138,7 +146,7 @@ export function BenefitsGlassPage() {
           />
           <GlassStatCard
             label="Distribuições Hoje"
-            value="3"
+            value={distributionsToday}
             icon={<TrendingDown className="w-6 h-6" />}
             color="success"
           />
