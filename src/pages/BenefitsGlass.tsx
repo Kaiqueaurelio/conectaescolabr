@@ -307,26 +307,11 @@ export function BenefitsGlassPage() {
         {activeTab === "history" && (
           <GlassSection title="Histórico de Movimentações">
             <div className="space-y-3">
-              {[
-                {
-                  action: "Entrada",
-                  item: "Leite Integral",
-                  quantity: 10,
-                  date: "2024-05-15",
-                },
-                {
-                  action: "Saída",
-                  item: "Cesta Básica",
-                  quantity: 2,
-                  date: "2024-05-15",
-                },
-                {
-                  action: "Entrada",
-                  item: "Pão Integral",
-                  quantity: 5,
-                  date: "2024-05-14",
-                },
-              ].map((record, idx) => (
+              {distributions.length === 0 ? (
+                <GlassCard className="p-8 text-center text-muted-foreground">
+                  Nenhuma movimentação cadastrada.
+                </GlassCard>
+              ) : distributions.map((record) => (
                 <GlassCard key={idx} className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
