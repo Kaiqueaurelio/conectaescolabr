@@ -14,13 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      users: {
+        Row: {
+          address: string | null
+          auth_id: string | null
+          avatar_url: string | null
+          benefits_received: Json | null
+          cpf: string | null
+          created_at: string
+          email: string
+          father_name: string | null
+          full_name: string
+          id: string
+          mother_name: string | null
+          phone: string | null
+          priority_public: string | null
+          rg: string | null
+          role: string
+          status: string
+          updated_at: string
+          vulnerability_situation: string | null
+        }
+        Insert: {
+          address?: string | null
+          auth_id?: string | null
+          avatar_url?: string | null
+          benefits_received?: Json | null
+          cpf?: string | null
+          created_at?: string
+          email: string
+          father_name?: string | null
+          full_name?: string
+          id?: string
+          mother_name?: string | null
+          phone?: string | null
+          priority_public?: string | null
+          rg?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+          vulnerability_situation?: string | null
+        }
+        Update: {
+          address?: string | null
+          auth_id?: string | null
+          avatar_url?: string | null
+          benefits_received?: Json | null
+          cpf?: string | null
+          created_at?: string
+          email?: string
+          father_name?: string | null
+          full_name?: string
+          id?: string
+          mother_name?: string | null
+          phone?: string | null
+          priority_public?: string | null
+          rg?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+          vulnerability_situation?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: { Args: { _auth_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
