@@ -20,6 +20,7 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface BenefitItem {
   id: string;
@@ -30,68 +31,19 @@ interface BenefitItem {
   lastUpdated: string;
 }
 
-const benefitItems: BenefitItem[] = [
-  {
-    id: "1",
-    name: "Leite Integral",
-    quantity: 45,
-    minStock: 20,
-    unit: "L",
-    lastUpdated: "2024-05-15",
-  },
-  {
-    id: "2",
-    name: "Cesta Básica",
-    quantity: 12,
-    minStock: 10,
-    unit: "un",
-    lastUpdated: "2024-05-14",
-  },
-  {
-    id: "3",
-    name: "Pão Integral",
-    quantity: 8,
-    minStock: 15,
-    unit: "kg",
-    lastUpdated: "2024-05-15",
-  },
-  {
-    id: "4",
-    name: "Arroz",
-    quantity: 35,
-    minStock: 20,
-    unit: "kg",
-    lastUpdated: "2024-05-13",
-  },
-];
-
-const distributions = [
-  {
-    id: "1",
-    user: "João Silva",
-    item: "Leite Integral",
-    quantity: 2,
-    date: "2024-05-15",
-  },
-  {
-    id: "2",
-    user: "Maria Santos",
-    item: "Cesta Básica",
-    quantity: 1,
-    date: "2024-05-15",
-  },
-  {
-    id: "3",
-    user: "Pedro Costa",
-    item: "Pão Integral",
-    quantity: 1,
-    date: "2024-05-14",
-  },
-];
+interface DistributionItem {
+  id: string;
+  user: string;
+  item: string;
+  quantity: number;
+  date: string;
+}
 
 export function BenefitsGlassPage() {
   const { user: currentUser } = useSupabaseAuth();
   const [activeTab, setActiveTab] = useState("stock");
+  const [benefitItems, setBenefitItems] = useState<BenefitItem[]>([]);
+  const [distributions, setDistributions] = useState<DistributionItem[]>([]);
 
   const sidebarItems = [
     { label: "Dashboard", href: "/admin/dashboard", icon: "📊" },
@@ -108,6 +60,27 @@ export function BenefitsGlassPage() {
 
   const lowStockItems = benefitItems.filter((item) => item.quantity <= item.minStock);
   const totalValue = benefitItems.reduce((sum, item) => sum + item.quantity, 0);
+  const today = new Date().toISOString().split("T")[0];
+  const distributionsToday = distributions.filter((dist) => dist.date === today).length;
+
+  const handleDeleteItem = (id: string) => {
+    if (!window.confirm("Remover este item do estoque?")) return;
+    setBenefitItems((items) => items.filter((item) => item.id !== id));
+    toast.success("Item removido");
+  };
+
+  const handleDeleteDistribution = (id: string) => {
+    if (!window.confirm("Remover esta distribuição?")) return;
+    setDistributions((items) => items.filter((item) => item.id !== id));
+    toast.success("Distribuição removida");
+  };
+
+  const handleClearAll = () => {
+    if (!window.confirm("Remover todos os itens e distribuições desta tela?")) return;
+    setBenefitItems([]);
+    setDistributions([]);
+    toast.success("Benefícios limpos");
+  };
 
   return (
     <GlassLayout
@@ -135,10 +108,18 @@ export function BenefitsGlassPage() {
               Controle de estoque e distribuição de benefícios
             </p>
           </div>
+          <div className="flex items-center gap-2">
+          {(benefitItems.length > 0 || distributions.length > 0) && (
+            <Button variant="destructive" className="gap-2 rounded-lg" onClick={handleClearAll}>
+              <Trash2 className="w-4 h-4" />
+              Limpar tudo
+            </Button>
+          )}
           <Button className="gap-2 rounded-lg">
             <Plus className="w-4 h-4" />
             Novo Item
           </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -165,7 +146,7 @@ export function BenefitsGlassPage() {
           />
           <GlassStatCard
             label="Distribuições Hoje"
-            value="3"
+            value={distributionsToday}
             icon={<TrendingDown className="w-6 h-6" />}
             color="success"
           />
@@ -193,7 +174,11 @@ export function BenefitsGlassPage() {
         {activeTab === "stock" && (
           <GlassSection title="Itens em Estoque">
             <div className="space-y-3">
-              {benefitItems.map((item) => {
+              {benefitItems.length === 0 ? (
+                <GlassCard className="p-8 text-center text-muted-foreground">
+                  Nenhum item cadastrado.
+                </GlassCard>
+              ) : benefitItems.map((item) => {
                 const isLowStock = item.quantity <= item.minStock;
                 const percentage = (item.quantity / (item.minStock * 2)) * 100;
 
@@ -261,6 +246,7 @@ export function BenefitsGlassPage() {
                           variant="outline"
                           size="sm"
                           className="rounded-lg text-destructive"
+                          onClick={() => handleDeleteItem(item.id)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -277,7 +263,11 @@ export function BenefitsGlassPage() {
         {activeTab === "distributions" && (
           <GlassSection title="Distribuições Recentes">
             <div className="space-y-3">
-              {distributions.map((dist) => (
+              {distributions.length === 0 ? (
+                <GlassCard className="p-8 text-center text-muted-foreground">
+                  Nenhuma distribuição cadastrada.
+                </GlassCard>
+              ) : distributions.map((dist) => (
                 <GlassCard key={dist.id} className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -288,10 +278,18 @@ export function BenefitsGlassPage() {
                         {dist.item} - {dist.quantity} un
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="flex items-center gap-3 text-right">
                       <p className="text-sm text-muted-foreground">
                         {new Date(dist.date).toLocaleDateString("pt-BR")}
                       </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-lg text-destructive"
+                        onClick={() => handleDeleteDistribution(dist.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 </GlassCard>
@@ -309,45 +307,24 @@ export function BenefitsGlassPage() {
         {activeTab === "history" && (
           <GlassSection title="Histórico de Movimentações">
             <div className="space-y-3">
-              {[
-                {
-                  action: "Entrada",
-                  item: "Leite Integral",
-                  quantity: 10,
-                  date: "2024-05-15",
-                },
-                {
-                  action: "Saída",
-                  item: "Cesta Básica",
-                  quantity: 2,
-                  date: "2024-05-15",
-                },
-                {
-                  action: "Entrada",
-                  item: "Pão Integral",
-                  quantity: 5,
-                  date: "2024-05-14",
-                },
-              ].map((record, idx) => (
-                <GlassCard key={idx} className="p-4">
+              {distributions.length === 0 ? (
+                <GlassCard className="p-8 text-center text-muted-foreground">
+                  Nenhuma movimentação cadastrada.
+                </GlassCard>
+              ) : distributions.map((record) => (
+                <GlassCard key={record.id} className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-foreground">
                         {record.item}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {record.action} - {record.quantity} un
+                        Saída - {record.quantity} un
                       </p>
                     </div>
                     <div className="text-right">
-                      <span
-                        className={`text-xs px-3 py-1 rounded-full font-medium ${
-                          record.action === "Entrada"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-orange-100 text-orange-700"
-                        }`}
-                      >
-                        {record.action}
+                      <span className="text-xs px-3 py-1 rounded-full font-medium bg-destructive/10 text-destructive">
+                        Saída
                       </span>
                       <p className="text-xs text-muted-foreground mt-1">
                         {new Date(record.date).toLocaleDateString("pt-BR")}

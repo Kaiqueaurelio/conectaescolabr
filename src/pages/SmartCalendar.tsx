@@ -28,26 +28,7 @@ export function SmartCalendarPage() {
   const { user: currentUser } = useSupabaseAuth();
 
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [events, setEvents] = useState<CalendarEvent[]>([
-    {
-      id: "1",
-      title: "Aula de Matemática",
-      description: "Aula regular de matemática",
-      date: new Date().toISOString().split("T")[0],
-      time: "09:00",
-      location: "Sala 1",
-      type: "activity",
-    },
-    {
-      id: "2",
-      title: "Reunião de Coordenação",
-      description: "Reunião mensal de coordenação",
-      date: new Date(Date.now() + 86400000).toISOString().split("T")[0],
-      time: "14:00",
-      location: "Sala de Reuniões",
-      type: "event",
-    },
-  ]);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
 
   const [newEvent, setNewEvent] = useState({
     title: "",
@@ -98,6 +79,7 @@ export function SmartCalendarPage() {
   };
 
   const handleDeleteEvent = (id: string) => {
+    if (!window.confirm("Remover este evento?")) return;
     setEvents(events.filter((e) => e.id !== id));
     toast.success("Evento removido");
   };

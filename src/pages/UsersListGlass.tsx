@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   GlassLayout,
   GlassContainer,
@@ -17,6 +18,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { useUsers } from "@/hooks/useSupabaseData";
+import { supabase, UserProfile } from "@/lib/supabase";
+import { toast } from "@/hooks/use-toast";
 import {
   Users,
   Search,
@@ -26,64 +30,17 @@ import {
   Eye,
   Mail,
   Phone,
-  MapPin,
 } from "lucide-react";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  profile: "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
-  status: "active" | "inactive" | "pending";
-  joinDate: string;
-  avatar?: string;
-}
-
-const mockUsers: User[] = [
-  {
-    id: "1",
-    name: "João Silva",
-    email: "joao@example.com",
-    phone: "(11) 98765-4321",
-    profile: "STUDENT",
-    status: "active",
-    joinDate: "2024-01-15",
-  },
-  {
-    id: "2",
-    name: "Maria Santos",
-    email: "maria@example.com",
-    phone: "(11) 98765-4322",
-    profile: "TEACHER",
-    status: "active",
-    joinDate: "2024-02-10",
-  },
-  {
-    id: "3",
-    name: "Pedro Costa",
-    email: "pedro@example.com",
-    phone: "(11) 98765-4323",
-    profile: "PARENT",
-    status: "active",
-    joinDate: "2024-03-05",
-  },
-  {
-    id: "4",
-    name: "Ana Oliveira",
-    email: "ana@example.com",
-    phone: "(11) 98765-4324",
-    profile: "ADMIN",
-    status: "active",
-    joinDate: "2024-01-01",
-  },
-];
-
 export function UsersListGlassPage() {
+  const navigate = useNavigate();
   const { user: currentUser } = useSupabaseAuth();
+  const { users, loading, error, refetch } = useUsers();
   const [searchQuery, setSearchQuery] = useState("");
   const [profileFilter, setProfileFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [clearingUsers, setClearingUsers] = useState(false);
 
   const sidebarItems = [
     { label: "Dashboard", href: "/admin/dashboard", icon: "📊" },
@@ -98,17 +55,18 @@ export function UsersListGlassPage() {
     { label: "Segurança", href: "/admin/security", icon: "🔒" },
   ];
 
-  const profileColors = {
-    ADMIN: "bg-purple-100 text-purple-700",
-    TEACHER: "bg-blue-100 text-blue-700",
-    STUDENT: "bg-green-100 text-green-700",
-    PARENT: "bg-orange-100 text-orange-700",
+  const profileColors: Record<UserProfile["role"], string> = {
+    ADMIN: "bg-primary/10 text-primary",
+    TEACHER: "bg-secondary text-secondary-foreground",
+    STUDENT: "bg-accent text-accent-foreground",
+    PARENT: "bg-muted text-muted-foreground",
+    VOLUNTEER: "bg-card text-card-foreground",
   };
 
-  const statusColors = {
-    active: "bg-green-100 text-green-700",
-    inactive: "bg-gray-100 text-gray-700",
-    pending: "bg-yellow-100 text-yellow-700",
+  const statusColors: Record<UserProfile["status"], string> = {
+    APPROVED: "bg-primary/10 text-primary",
+    PENDING: "bg-muted text-muted-foreground",
+    REJECTED: "bg-destructive/10 text-destructive",
   };
 
   const profileLabels = {
@@ -116,19 +74,88 @@ export function UsersListGlassPage() {
     TEACHER: "Professor",
     STUDENT: "Aluno",
     PARENT: "Responsável",
+    VOLUNTEER: "Voluntário",
   };
 
-  const filteredUsers = mockUsers.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+  const statusLabels: Record<UserProfile["status"], string> = {
+    APPROVED: "Aprovado",
+    PENDING: "Pendente",
+    REJECTED: "Rejeitado",
+  };
 
-    const matchesProfile =
-      profileFilter === "all" || user.profile === profileFilter;
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter;
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        user.full_name.toLowerCase().includes(query) ||
+        user.email.toLowerCase().includes(query) ||
+        (user.cpf || "").includes(searchQuery);
 
-    return matchesSearch && matchesProfile && matchesStatus;
-  });
+      const matchesProfile =
+        profileFilter === "all" || user.role === profileFilter;
+      const matchesStatus = statusFilter === "all" || user.status === statusFilter;
+
+      return matchesSearch && matchesProfile && matchesStatus;
+    });
+  }, [users, searchQuery, profileFilter, statusFilter]);
+
+  const handleDeleteUser = async (user: UserProfile) => {
+    if (user.id === currentUser?.id) {
+      toast({ title: "Não é possível excluir sua própria conta logada." });
+      return;
+    }
+
+    const confirmed = window.confirm(`Remover definitivamente ${user.full_name || user.email}?`);
+    if (!confirmed) return;
+
+    setDeletingUserId(user.id);
+    const { data, error: deleteError } = await supabase
+      .from("users")
+      .delete()
+      .eq("id", user.id)
+      .select("id")
+      .maybeSingle();
+    setDeletingUserId(null);
+
+    if (deleteError || !data) {
+      toast({
+        title: "Não foi possível remover",
+        description: deleteError?.message || "Verifique se você está logado como administrador aprovado.",
+      });
+      return;
+    }
+
+    toast({ title: "Usuário removido com sucesso." });
+    await refetch();
+  };
+
+  const handleClearUsers = async () => {
+    const removableIds = users.filter((user) => user.id !== currentUser?.id).map((user) => user.id);
+    if (removableIds.length === 0) {
+      toast({ title: "Não há outros usuários para remover." });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Remover definitivamente ${removableIds.length} usuário(s)? Sua conta logada será mantida para você não perder o acesso.`
+    );
+    if (!confirmed) return;
+
+    setClearingUsers(true);
+    const { error: clearError } = await supabase
+      .from("users")
+      .delete()
+      .in("id", removableIds);
+    setClearingUsers(false);
+
+    if (clearError) {
+      toast({ title: "Não foi possível limpar usuários", description: clearError.message });
+      return;
+    }
+
+    toast({ title: "Usuários removidos com sucesso." });
+    await refetch();
+  };
 
   return (
     <GlassLayout
@@ -157,10 +184,23 @@ export function UsersListGlassPage() {
               Total: {filteredUsers.length} usuários
             </p>
           </div>
-          <Button className="gap-2 rounded-lg">
+          <div className="flex items-center gap-2">
+          {users.length > 1 && (
+            <Button
+              variant="destructive"
+              className="gap-2 rounded-lg"
+              onClick={handleClearUsers}
+              disabled={clearingUsers}
+            >
+              <Trash2 className="w-4 h-4" />
+              {clearingUsers ? "Limpando..." : "Limpar tudo"}
+            </Button>
+          )}
+          <Button className="gap-2 rounded-lg" onClick={() => navigate("/admin/users/new")}>
             <Plus className="w-4 h-4" />
             Novo Usuário
           </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -195,6 +235,7 @@ export function UsersListGlassPage() {
                   <SelectItem value="TEACHER">Professor</SelectItem>
                   <SelectItem value="STUDENT">Aluno</SelectItem>
                   <SelectItem value="PARENT">Responsável</SelectItem>
+                  <SelectItem value="VOLUNTEER">Voluntário</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -209,9 +250,9 @@ export function UsersListGlassPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="active">Ativo</SelectItem>
-                  <SelectItem value="inactive">Inativo</SelectItem>
-                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="APPROVED">Aprovado</SelectItem>
+                  <SelectItem value="PENDING">Pendente</SelectItem>
+                  <SelectItem value="REJECTED">Rejeitado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -220,13 +261,17 @@ export function UsersListGlassPage() {
 
         {/* Users Grid */}
         <GlassSection title="Lista de Usuários">
-          {filteredUsers.length === 0 ? (
+          {loading ? (
+            <div className="py-12 text-center text-muted-foreground">Carregando usuários...</div>
+          ) : error ? (
+            <div className="py-12 text-center text-destructive">{error}</div>
+          ) : filteredUsers.length === 0 ? (
             <GlassEmptyState
               icon="👤"
               title="Nenhum usuário encontrado"
               description="Tente ajustar seus filtros ou criar um novo usuário"
               action={
-                <Button className="gap-2">
+                <Button className="gap-2" onClick={() => navigate("/admin/users/new")}>
                   <Plus className="w-4 h-4" />
                   Novo Usuário
                 </Button>
@@ -240,12 +285,12 @@ export function UsersListGlassPage() {
                     {/* User Info */}
                     <div className="flex items-start gap-4 flex-1">
                       <div className="w-14 h-14 rounded-lg bg-gradient-primary flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
-                        {user.name.charAt(0).toUpperCase()}
+                        {(user.full_name || user.email).charAt(0).toUpperCase()}
                       </div>
 
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold text-foreground">
-                          {user.name}
+                          {user.full_name || user.email}
                         </h3>
 
                         <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
@@ -264,24 +309,20 @@ export function UsersListGlassPage() {
                         <div className="flex items-center gap-2 mt-3">
                           <span
                             className={`text-xs px-3 py-1 rounded-full font-medium ${
-                              profileColors[user.profile]
+                              profileColors[user.role]
                             }`}
                           >
-                            {profileLabels[user.profile]}
+                            {profileLabels[user.role]}
                           </span>
                           <span
                             className={`text-xs px-3 py-1 rounded-full font-medium ${
                               statusColors[user.status]
                             }`}
                           >
-                            {user.status === "active"
-                              ? "Ativo"
-                              : user.status === "inactive"
-                                ? "Inativo"
-                                : "Pendente"}
+                            {statusLabels[user.status]}
                           </span>
                           <span className="text-xs text-muted-foreground">
-                            Desde {new Date(user.joinDate).toLocaleDateString("pt-BR")}
+                            Desde {new Date(user.created_at).toLocaleDateString("pt-BR")}
                           </span>
                         </div>
                       </div>
@@ -294,6 +335,7 @@ export function UsersListGlassPage() {
                         size="sm"
                         className="rounded-lg"
                         title="Visualizar"
+                        onClick={() => navigate(`/admin/users/${user.id}`)}
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
@@ -302,6 +344,7 @@ export function UsersListGlassPage() {
                         size="sm"
                         className="rounded-lg"
                         title="Editar"
+                        onClick={() => navigate(`/admin/users/${user.id}`)}
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -310,6 +353,8 @@ export function UsersListGlassPage() {
                         size="sm"
                         className="rounded-lg text-destructive hover:text-destructive"
                         title="Deletar"
+                        onClick={() => handleDeleteUser(user)}
+                        disabled={deletingUserId === user.id}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
