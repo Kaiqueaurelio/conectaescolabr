@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ModernLayout, ModernCard, ModernGrid, ModernSection, ModernEmptyState, StatCard, ModernBadge } from "@/components/ModernLayout";
 import { ModernTopBar, ModernPageHeader, ModernTabs } from "@/components/ModernTopBar";
 import { ModernSidebar } from "@/components/ModernSidebar";
@@ -55,10 +55,10 @@ export function BenefitsManagementPage() {
   });
 
   // Persist
-  useMemo(() => {
+  useEffect(() => {
     try { localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory)); } catch { /* ignore */ }
   }, [inventory]);
-  useMemo(() => {
+  useEffect(() => {
     try { localStorage.setItem(DIST_KEY, JSON.stringify(distributions)); } catch { /* ignore */ }
   }, [distributions]);
 
