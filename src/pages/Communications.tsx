@@ -36,36 +36,9 @@ export function CommunicationsPage() {
   const { user: currentUser } = useSupabaseAuth();
 
   const [activeTab, setActiveTab] = useState("announcements");
-  const [announcements, setAnnouncements] = useState<Announcement[]>([
-    {
-      id: "1",
-      title: "Bem-vindo ao novo sistema!",
-      content: "Bem-vindos ao novo aplicativo da ONG Camila. Aqui você encontrará todas as informações e comunicações importantes.",
-      author: "Coordenação",
-      target: ["ALL"],
-      created_at: new Date().toISOString(),
-      priority: "high",
-    },
-    {
-      id: "2",
-      title: "Aula de reforço amanhã",
-      content: "Lembrem-se que haverá aula de reforço amanhã às 14h. Todos os alunos devem comparecer.",
-      author: "Professor João",
-      target: ["STUDENTS", "PARENTS"],
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-      priority: "medium",
-    },
-  ]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      sender: "Coordenação",
-      content: "Olá! Bem-vindo ao sistema de mensagens.",
-      timestamp: new Date().toISOString(),
-      read: true,
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
 
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: "",
@@ -122,8 +95,15 @@ export function CommunicationsPage() {
   };
 
   const handleDeleteAnnouncement = (id: string) => {
+    if (!window.confirm("Remover este comunicado?")) return;
     setAnnouncements(announcements.filter((a) => a.id !== id));
     toast.success("Comunicado removido");
+  };
+
+  const handleClearAnnouncements = () => {
+    if (!window.confirm("Remover todos os comunicados?")) return;
+    setAnnouncements([]);
+    toast.success("Comunicados removidos");
   };
 
   const getPriorityColor = (priority: string) => {
