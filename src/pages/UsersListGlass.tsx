@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   GlassLayout,
   GlassContainer,
@@ -17,6 +18,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { useUsers } from "@/hooks/useSupabaseData";
+import { supabase, UserProfile } from "@/lib/supabase";
+import { toast } from "@/hooks/use-toast";
 import {
   Users,
   Search,
@@ -29,61 +33,15 @@ import {
   MapPin,
 } from "lucide-react";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  profile: "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
-  status: "active" | "inactive" | "pending";
-  joinDate: string;
-  avatar?: string;
-}
-
-const mockUsers: User[] = [
-  {
-    id: "1",
-    name: "João Silva",
-    email: "joao@example.com",
-    phone: "(11) 98765-4321",
-    profile: "STUDENT",
-    status: "active",
-    joinDate: "2024-01-15",
-  },
-  {
-    id: "2",
-    name: "Maria Santos",
-    email: "maria@example.com",
-    phone: "(11) 98765-4322",
-    profile: "TEACHER",
-    status: "active",
-    joinDate: "2024-02-10",
-  },
-  {
-    id: "3",
-    name: "Pedro Costa",
-    email: "pedro@example.com",
-    phone: "(11) 98765-4323",
-    profile: "PARENT",
-    status: "active",
-    joinDate: "2024-03-05",
-  },
-  {
-    id: "4",
-    name: "Ana Oliveira",
-    email: "ana@example.com",
-    phone: "(11) 98765-4324",
-    profile: "ADMIN",
-    status: "active",
-    joinDate: "2024-01-01",
-  },
-];
-
 export function UsersListGlassPage() {
+  const navigate = useNavigate();
   const { user: currentUser } = useSupabaseAuth();
+  const { users, loading, error, refetch } = useUsers();
   const [searchQuery, setSearchQuery] = useState("");
   const [profileFilter, setProfileFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [clearingUsers, setClearingUsers] = useState(false);
 
   const sidebarItems = [
     { label: "Dashboard", href: "/admin/dashboard", icon: "📊" },
@@ -98,17 +56,18 @@ export function UsersListGlassPage() {
     { label: "Segurança", href: "/admin/security", icon: "🔒" },
   ];
 
-  const profileColors = {
-    ADMIN: "bg-purple-100 text-purple-700",
-    TEACHER: "bg-blue-100 text-blue-700",
-    STUDENT: "bg-green-100 text-green-700",
-    PARENT: "bg-orange-100 text-orange-700",
+  const profileColors: Record<UserProfile["role"], string> = {
+    ADMIN: "bg-primary/10 text-primary",
+    TEACHER: "bg-secondary text-secondary-foreground",
+    STUDENT: "bg-accent text-accent-foreground",
+    PARENT: "bg-muted text-muted-foreground",
+    VOLUNTEER: "bg-card text-card-foreground",
   };
 
-  const statusColors = {
-    active: "bg-green-100 text-green-700",
-    inactive: "bg-gray-100 text-gray-700",
-    pending: "bg-yellow-100 text-yellow-700",
+  const statusColors: Record<UserProfile["status"], string> = {
+    APPROVED: "bg-primary/10 text-primary",
+    PENDING: "bg-muted text-muted-foreground",
+    REJECTED: "bg-destructive/10 text-destructive",
   };
 
   const profileLabels = {
@@ -116,19 +75,88 @@ export function UsersListGlassPage() {
     TEACHER: "Professor",
     STUDENT: "Aluno",
     PARENT: "Responsável",
+    VOLUNTEER: "Voluntário",
   };
 
-  const filteredUsers = mockUsers.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+  const statusLabels: Record<UserProfile["status"], string> = {
+    APPROVED: "Aprovado",
+    PENDING: "Pendente",
+    REJECTED: "Rejeitado",
+  };
 
-    const matchesProfile =
-      profileFilter === "all" || user.profile === profileFilter;
-    const matchesStatus = statusFilter === "all" || user.status === statusFilter;
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        user.full_name.toLowerCase().includes(query) ||
+        user.email.toLowerCase().includes(query) ||
+        (user.cpf || "").includes(searchQuery);
 
-    return matchesSearch && matchesProfile && matchesStatus;
-  });
+      const matchesProfile =
+        profileFilter === "all" || user.role === profileFilter;
+      const matchesStatus = statusFilter === "all" || user.status === statusFilter;
+
+      return matchesSearch && matchesProfile && matchesStatus;
+    });
+  }, [users, searchQuery, profileFilter, statusFilter]);
+
+  const handleDeleteUser = async (user: UserProfile) => {
+    if (user.id === currentUser?.id) {
+      toast({ title: "Não é possível excluir sua própria conta logada." });
+      return;
+    }
+
+    const confirmed = window.confirm(`Remover definitivamente ${user.full_name || user.email}?`);
+    if (!confirmed) return;
+
+    setDeletingUserId(user.id);
+    const { data, error: deleteError } = await supabase
+      .from("users")
+      .delete()
+      .eq("id", user.id)
+      .select("id")
+      .maybeSingle();
+    setDeletingUserId(null);
+
+    if (deleteError || !data) {
+      toast({
+        title: "Não foi possível remover",
+        description: deleteError?.message || "Verifique se você está logado como administrador aprovado.",
+      });
+      return;
+    }
+
+    toast({ title: "Usuário removido com sucesso." });
+    await refetch();
+  };
+
+  const handleClearUsers = async () => {
+    const removableIds = users.filter((user) => user.id !== currentUser?.id).map((user) => user.id);
+    if (removableIds.length === 0) {
+      toast({ title: "Não há outros usuários para remover." });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Remover definitivamente ${removableIds.length} usuário(s)? Sua conta logada será mantida para você não perder o acesso.`
+    );
+    if (!confirmed) return;
+
+    setClearingUsers(true);
+    const { error: clearError } = await supabase
+      .from("users")
+      .delete()
+      .in("id", removableIds);
+    setClearingUsers(false);
+
+    if (clearError) {
+      toast({ title: "Não foi possível limpar usuários", description: clearError.message });
+      return;
+    }
+
+    toast({ title: "Usuários removidos com sucesso." });
+    await refetch();
+  };
 
   return (
     <GlassLayout
