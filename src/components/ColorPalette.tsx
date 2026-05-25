@@ -10,28 +10,40 @@ interface ColorItem {
 
 const colors: ColorItem[] = [
   {
-    name: "Verde Esmeralda",
-    hex: "#01965c",
-    hsl: "162° 98% 30%",
-    description: "Cor primária - Esperança e crescimento",
+    name: "Verde Institucional",
+    hex: "#00a669",
+    hsl: "152° 100% 33%",
+    description: "PANTONE 3405 C — Cor primária da marca",
   },
   {
-    name: "Laranja Vibrante",
-    hex: "#f08900",
-    hsl: "30° 100% 47%",
-    description: "Cor secundária - Energia e entusiasmo",
+    name: "Laranja Institucional",
+    hex: "#f68a1e",
+    hsl: "30° 93% 54%",
+    description: "PANTONE 144 C — Cor secundária da marca",
   },
   {
-    name: "Azul Royal",
-    hex: "#0f71b8",
-    hsl: "213° 88% 38%",
-    description: "Cor terciária - Confiança e profissionalismo",
+    name: "Azul",
+    hex: "#00aae5",
+    hsl: "196° 100% 45%",
+    description: "PANTONE 306 C — Paleta expandida",
   },
   {
-    name: "Vermelho Coral",
-    hex: "#e53c15",
-    hsl: "11° 90% 49%",
-    description: "Cor de destaque - Ação e urgência",
+    name: "Vermelho",
+    hex: "#ef4b22",
+    hsl: "12° 86% 54%",
+    description: "PANTONE 172 C — Paleta expandida",
+  },
+  {
+    name: "Amarelo",
+    hex: "#ffdd00",
+    hsl: "52° 100% 50%",
+    description: "PANTONE Yellow C — Paleta expandida",
+  },
+  {
+    name: "Cinza",
+    hex: "#7c7c7c",
+    hsl: "0° 0% 49%",
+    description: "PANTONE Cool Gray 9 C — Texto e neutros",
   },
 ];
 
