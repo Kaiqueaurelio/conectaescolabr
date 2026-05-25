@@ -17,50 +17,53 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 200 25% 18%;
 
-    /* Associação Camila — paleta institucional extraída do logo */
-    --primary: 162 98% 30%;          /* verde esmeralda #01965c */
+    /* Associação Camila — Paleta oficial (Manual de Identidade Visual 2.0) */
+    --primary: 152 100% 33%;         /* verde institucional #00a669 (PANTONE 3405 C) */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 162 98% 45%;
+    --primary-glow: 148 100% 38%;    /* verde claro #009b4d glow */
 
-    --secondary: 30 100% 47%;        /* laranja vibrante #f08900 */
+    --secondary: 30 93% 54%;         /* laranja institucional #f68a1e (PANTONE 144 C) */
     --secondary-foreground: 0 0% 100%;
 
-    --tertiary: 213 88% 38%;         /* azul royal #0f71b8 */
+    --tertiary: 196 100% 45%;        /* azul #00aae5 (PANTONE 306 C) */
     --tertiary-foreground: 0 0% 100%;
 
-    --coral: 11 90% 49%;             /* vermelho coral #e53c15 */
+    --coral: 12 86% 54%;             /* vermelho #ef4b22 (PANTONE 172 C) */
     --coral-foreground: 0 0% 100%;
+
+    --brand-yellow: 52 100% 50%;     /* #ffdd00 (PANTONE Yellow C) */
+    --brand-gray: 0 0% 49%;          /* #7c7c7c (PANTONE Cool Gray 9 C) */
 
     --muted: 150 15% 95%;
     --muted-foreground: 200 12% 42%;
 
-    --accent: 38 95% 62%;
-    --accent-foreground: 158 60% 18%;
+    --accent: 52 100% 50%;           /* amarelo da marca */
+    --accent-foreground: 0 0% 10%;
 
-    --destructive: 5 75% 52%;
+    --destructive: 12 86% 54%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 158 75% 35%;
+    --success: 148 100% 30%;
     --success-foreground: 0 0% 100%;
-    --warning: 28 90% 55%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 35 95% 54%;           /* #f9a01b */
+    --warning-foreground: 0 0% 10%;
 
     --border: 150 15% 88%;
     --input: 150 15% 90%;
-    --ring: 158 75% 30%;
+    --ring: 152 100% 33%;
 
     --radius: 0.85rem;
 
-    --gradient-primary: linear-gradient(135deg, hsl(162 98% 30%), hsl(162 98% 45%));
-    --gradient-warm: linear-gradient(135deg, hsl(30 100% 47%), hsl(30 100% 60%));
-    --gradient-hero: linear-gradient(135deg, hsl(162 98% 30%) 0%, hsl(213 88% 38%) 50%, hsl(30 100% 47%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(162 50% 97%));
-    --gradient-brand: linear-gradient(120deg, hsl(162 98% 30%) 0%, hsl(213 88% 38%) 35%, hsl(30 100% 47%) 70%, hsl(11 90% 49%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(152 100% 33%), hsl(148 100% 38%));
+    --gradient-warm: linear-gradient(135deg, hsl(30 93% 54%), hsl(35 95% 54%));
+    --gradient-hero: linear-gradient(135deg, hsl(152 100% 33%) 0%, hsl(196 100% 45%) 50%, hsl(30 93% 54%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(152 50% 97%));
+    --gradient-brand: linear-gradient(120deg, hsl(152 100% 33%) 0%, hsl(196 100% 45%) 30%, hsl(52 100% 50%) 55%, hsl(30 93% 54%) 80%, hsl(12 86% 54%) 100%);
 
-    --shadow-sm: 0 2px 8px -2px hsl(162 98% 15% / 0.08);
-    --shadow-md: 0 8px 20px -6px hsl(162 98% 30% / 0.20);
-    --shadow-lg: 0 20px 40px -12px hsl(162 98% 30% / 0.28);
-    --shadow-warm: 0 10px 30px -8px hsl(30 100% 47% / 0.35);
+    --shadow-sm: 0 2px 8px -2px hsl(152 100% 15% / 0.10);
+    --shadow-md: 0 8px 20px -6px hsl(152 100% 33% / 0.22);
+    --shadow-lg: 0 20px 40px -12px hsl(152 100% 33% / 0.28);
+    --shadow-warm: 0 10px 30px -8px hsl(30 93% 54% / 0.35);
 
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -75,34 +78,34 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 162 98% 8%;
+    --background: 152 100% 6%;
     --foreground: 40 30% 96%;
-    --card: 162 98% 12%;
+    --card: 152 80% 10%;
     --card-foreground: 40 30% 96%;
-    --popover: 162 98% 12%;
+    --popover: 152 80% 10%;
     --popover-foreground: 40 30% 96%;
-    --primary: 162 98% 50%;
-    --primary-foreground: 162 98% 8%;
-    --primary-glow: 162 98% 60%;
-    --secondary: 30 100% 60%;
-    --secondary-foreground: 162 98% 8%;
-    --tertiary: 213 88% 55%;
+    --primary: 152 100% 45%;
+    --primary-foreground: 152 100% 8%;
+    --primary-glow: 148 100% 55%;
+    --secondary: 30 93% 60%;
+    --secondary-foreground: 152 100% 8%;
+    --tertiary: 196 100% 55%;
     --tertiary-foreground: 0 0% 100%;
-    --coral: 11 90% 58%;
+    --coral: 12 86% 60%;
     --coral-foreground: 0 0% 100%;
-    --muted: 158 25% 18%;
+    --muted: 152 25% 18%;
     --muted-foreground: 150 15% 65%;
-    --accent: 38 90% 60%;
-    --accent-foreground: 158 35% 8%;
-    --destructive: 5 70% 50%;
+    --accent: 52 100% 55%;
+    --accent-foreground: 152 35% 8%;
+    --destructive: 12 86% 55%;
     --destructive-foreground: 0 0% 100%;
-    --success: 162 98% 50%;
+    --success: 152 100% 45%;
     --success-foreground: 0 0% 100%;
-    --warning: 28 90% 55%;
-    --warning-foreground: 158 35% 8%;
-    --border: 162 98% 22%;
-    --input: 162 98% 22%;
-    --ring: 162 98% 50%;
+    --warning: 35 95% 55%;
+    --warning-foreground: 152 35% 8%;
+    --border: 152 80% 20%;
+    --input: 152 80% 20%;
+    --ring: 152 100% 45%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -122,6 +125,12 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "cv11", "ss01";
+    font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Barlow Condensed', 'Montserrat', sans-serif;
+    letter-spacing: -0.01em;
   }
 
   html {
@@ -139,6 +148,10 @@ All colors MUST be HSL.
   .text-tertiary { color: hsl(var(--tertiary)); }
   .bg-coral { background-color: hsl(var(--coral)); }
   .text-coral { color: hsl(var(--coral)); }
+  .bg-brand-yellow { background-color: hsl(var(--brand-yellow)); }
+  .text-brand-yellow { color: hsl(var(--brand-yellow)); }
+  .bg-brand-gray { background-color: hsl(var(--brand-gray)); }
+  .text-brand-gray { color: hsl(var(--brand-gray)); }
   .shadow-soft { box-shadow: var(--shadow-sm); }
   .shadow-elevated { box-shadow: var(--shadow-md); }
   .shadow-floating { box-shadow: var(--shadow-lg); }
