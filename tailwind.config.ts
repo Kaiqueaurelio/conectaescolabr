@@ -64,6 +64,8 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        "brand-yellow": "hsl(var(--brand-yellow))",
+        "brand-gray": "hsl(var(--brand-gray))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -100,7 +102,13 @@ export default {
       backgroundImage: {
         "gradient-primary": "linear-gradient(135deg, hsl(var(--primary)) 0%, #2ecc71 100%)",
         "gradient-secondary": "linear-gradient(135deg, hsl(var(--secondary)) 0%, #f39c12 100%)",
-        "gradient-soft": "linear-gradient(135deg, rgba(22, 143, 62, 0.1) 0%, rgba(230, 126, 34, 0.1) 100%)",
+        "gradient-soft": "linear-gradient(135deg, rgba(0, 166, 105, 0.1) 0%, rgba(246, 138, 30, 0.1) 100%)",
+        "gradient-brand": "var(--gradient-brand)",
+        "gradient-hero": "var(--gradient-hero)",
+      },
+      fontFamily: {
+        sans: ['Montserrat', 'system-ui', 'sans-serif'],
+        display: ['Barlow Condensed', 'Montserrat', 'sans-serif'],
       },
       keyframes: {
         "accordion-down": {
