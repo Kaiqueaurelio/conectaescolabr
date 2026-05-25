@@ -1,4 +1,4 @@
-import logoSrc from "@/assets/new-logo.jpg";
+import logoSrc from "@/assets/logo-camila.png";
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
