@@ -10,69 +10,93 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
       users: {
         Row: {
           address: string | null
+          address_enc: string | null
           auth_id: string | null
           avatar_url: string | null
           benefits_received: Json | null
           cpf: string | null
+          cpf_enc: string | null
           created_at: string
           email: string
+          encrypted_at: string | null
           father_name: string | null
+          father_name_enc: string | null
           full_name: string
           id: string
           mother_name: string | null
+          mother_name_enc: string | null
           phone: string | null
+          phone_enc: string | null
           priority_public: string | null
           rg: string | null
+          rg_enc: string | null
           role: string
           status: string
           updated_at: string
+          vulnerability_enc: string | null
           vulnerability_situation: string | null
         }
         Insert: {
           address?: string | null
+          address_enc?: string | null
           auth_id?: string | null
           avatar_url?: string | null
           benefits_received?: Json | null
           cpf?: string | null
+          cpf_enc?: string | null
           created_at?: string
           email: string
+          encrypted_at?: string | null
           father_name?: string | null
+          father_name_enc?: string | null
           full_name?: string
           id?: string
           mother_name?: string | null
+          mother_name_enc?: string | null
           phone?: string | null
+          phone_enc?: string | null
           priority_public?: string | null
           rg?: string | null
+          rg_enc?: string | null
           role?: string
           status?: string
           updated_at?: string
+          vulnerability_enc?: string | null
           vulnerability_situation?: string | null
         }
         Update: {
           address?: string | null
+          address_enc?: string | null
           auth_id?: string | null
           avatar_url?: string | null
           benefits_received?: Json | null
           cpf?: string | null
+          cpf_enc?: string | null
           created_at?: string
           email?: string
+          encrypted_at?: string | null
           father_name?: string | null
+          father_name_enc?: string | null
           full_name?: string
           id?: string
           mother_name?: string | null
+          mother_name_enc?: string | null
           phone?: string | null
+          phone_enc?: string | null
           priority_public?: string | null
           rg?: string | null
+          rg_enc?: string | null
           role?: string
           status?: string
           updated_at?: string
+          vulnerability_enc?: string | null
           vulnerability_situation?: string | null
         }
         Relationships: []

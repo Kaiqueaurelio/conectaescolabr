@@ -12,8 +12,17 @@ import { useUser, useUpdateUser } from "@/hooks/useSupabaseData";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { getRoleLabel, getStatusLabel } from "@/lib/permissions";
 import { UserProfile } from "@/lib/supabase";
-import { User, Mail, Phone, MapPin, Users, AlertCircle, CheckCircle } from "lucide-react";
+import {
+  readSecureProfile,
+  saveSecureProfile,
+  maskSensitive,
+  SENSITIVE_FIELDS,
+  type SensitiveField,
+  type SensitiveValues,
+} from "@/lib/secureProfile";
+import { User, Mail, Phone, MapPin, Users, AlertCircle, CheckCircle, Lock } from "lucide-react";
 import { toast } from "sonner";
+
 
 export function UserProfilePage() {
   const { userId } = useParams<{ userId: string }>();
@@ -24,12 +33,25 @@ export function UserProfilePage() {
 
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
   const [isEditing, setIsEditing] = useState(false);
+  const [secureLoading, setSecureLoading] = useState(false);
+
+  const isOwner = !!user && !!currentUser && user.id === currentUser.id;
 
   useEffect(() => {
-    if (user) {
-      setFormData(user);
-    }
-  }, [user]);
+    if (!user) return;
+    setFormData(user);
+    if (!isOwner) return;
+    setSecureLoading(true);
+    readSecureProfile(user.id)
+      .then(({ data, error: secureError }) => {
+        if (secureError) {
+          console.error("Erro ao abrir dados protegidos:", secureError);
+          return;
+        }
+        if (data) setFormData((prev) => ({ ...prev, ...data }));
+      })
+      .finally(() => setSecureLoading(false));
+  }, [user, isOwner]);
 
   const handleInputChange = (field: keyof UserProfile, value: unknown) => {
     setFormData((prev) => ({
@@ -38,18 +60,43 @@ export function UserProfilePage() {
     }));
   };
 
+  const sensitiveValue = (field: SensitiveField) => {
+    const value = (formData as Record<string, unknown>)[field] as string | undefined;
+    if (isOwner) return value || "";
+    return maskSensitive(value);
+  };
+
   const handleSave = async () => {
     if (!user) return;
 
-    const result = await updateUser(user.id, formData);
-    if (result.success) {
-      toast.success("Perfil atualizado com sucesso!");
-      setIsEditing(false);
-      refetch();
-    } else {
-      toast.error(result.error || "Erro ao atualizar perfil");
+    const plainData: Partial<UserProfile> = { ...formData };
+    const secureData: SensitiveValues = {};
+    for (const field of SENSITIVE_FIELDS) {
+      if (isOwner) {
+        secureData[field] = ((formData as Record<string, unknown>)[field] as string) ?? null;
+      }
+      delete (plainData as Record<string, unknown>)[field];
     }
+
+    const result = await updateUser(user.id, plainData);
+    if (!result.success) {
+      toast.error(result.error || "Erro ao atualizar perfil");
+      return;
+    }
+
+    if (isOwner) {
+      const secureResult = await saveSecureProfile(user.id, secureData);
+      if (!secureResult.success) {
+        toast.error(secureResult.error || "Erro ao salvar dados protegidos");
+        return;
+      }
+    }
+
+    toast.success("Perfil atualizado com sucesso!");
+    setIsEditing(false);
+    refetch();
   };
+
 
   if (loading) {
     return (
@@ -156,9 +203,22 @@ export function UserProfilePage() {
             )}
           </div>
 
+          {/* Aviso de criptografia */}
+          <div className="mb-6 flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+            <Lock className="mt-0.5 h-5 w-5 text-primary" />
+            <p className="text-sm text-foreground/80">
+              {isOwner
+                ? secureLoading
+                  ? "Abrindo seus dados protegidos..."
+                  : "CPF, RG, endereço, telefone, filiação e situação social são guardados criptografados. Só você consegue vê-los."
+                : "CPF, RG, endereço, telefone, filiação e situação social estão criptografados e só podem ser lidos pela própria pessoa."}
+            </p>
+          </div>
+
           {/* Informações Pessoais */}
           <ModernSection title="Informações Pessoais" subtitle="Dados básicos do usuário">
             <ModernCard className="p-6 space-y-6">
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label htmlFor="full_name">Nome Completo *</Label>
@@ -187,9 +247,9 @@ export function UserProfilePage() {
                   <Label htmlFor="cpf">CPF</Label>
                   <Input
                     id="cpf"
-                    value={formData.cpf || ""}
+                    value={sensitiveValue("cpf")}
                     onChange={(e) => handleInputChange("cpf", e.target.value)}
-                    disabled={!isEditing}
+                    disabled={!isEditing || !isOwner}
                     placeholder="000.000.000-00"
                     className="mt-2"
                   />
@@ -199,9 +259,9 @@ export function UserProfilePage() {
                   <Label htmlFor="rg">RG</Label>
                   <Input
                     id="rg"
-                    value={formData.rg || ""}
+                    value={sensitiveValue("rg")}
                     onChange={(e) => handleInputChange("rg", e.target.value)}
-                    disabled={!isEditing}
+                    disabled={!isEditing || !isOwner}
                     className="mt-2"
                   />
                 </div>
@@ -210,13 +270,14 @@ export function UserProfilePage() {
                   <Label htmlFor="phone">Telefone</Label>
                   <Input
                     id="phone"
-                    value={formData.phone || ""}
+                    value={sensitiveValue("phone")}
                     onChange={(e) => handleInputChange("phone", e.target.value)}
-                    disabled={!isEditing}
+                    disabled={!isEditing || !isOwner}
                     placeholder="(11) 99999-9999"
                     className="mt-2"
                   />
                 </div>
+
 
                 <div>
                   <Label htmlFor="role">Perfil *</Label>
@@ -245,9 +306,10 @@ export function UserProfilePage() {
                 <Label htmlFor="address">Endereço</Label>
                 <Input
                   id="address"
-                  value={formData.address || ""}
+                  value={sensitiveValue("address")}
                   onChange={(e) => handleInputChange("address", e.target.value)}
-                  disabled={!isEditing}
+                  disabled={!isEditing || !isOwner}
+
                   placeholder="Rua, número, complemento"
                   className="mt-2"
                 />
@@ -263,9 +325,10 @@ export function UserProfilePage() {
                   <Label htmlFor="mother_name">Nome da Mãe</Label>
                   <Input
                     id="mother_name"
-                    value={formData.mother_name || ""}
+                    value={sensitiveValue("mother_name")}
                     onChange={(e) => handleInputChange("mother_name", e.target.value)}
-                    disabled={!isEditing}
+                    disabled={!isEditing || !isOwner}
+
                     className="mt-2"
                   />
                 </div>
@@ -274,9 +337,10 @@ export function UserProfilePage() {
                   <Label htmlFor="father_name">Nome do Pai</Label>
                   <Input
                     id="father_name"
-                    value={formData.father_name || ""}
+                    value={sensitiveValue("father_name")}
                     onChange={(e) => handleInputChange("father_name", e.target.value)}
-                    disabled={!isEditing}
+                    disabled={!isEditing || !isOwner}
+
                     className="mt-2"
                   />
                 </div>
@@ -291,9 +355,10 @@ export function UserProfilePage() {
                 <Label htmlFor="vulnerability_situation">Situação de Vulnerabilidade</Label>
                 <Textarea
                   id="vulnerability_situation"
-                  value={formData.vulnerability_situation || ""}
+                  value={sensitiveValue("vulnerability_situation")}
                   onChange={(e) => handleInputChange("vulnerability_situation", e.target.value)}
-                  disabled={!isEditing}
+                  disabled={!isEditing || !isOwner}
+
                   placeholder="Descreva a situação de vulnerabilidade, se aplicável"
                   className="mt-2"
                   rows={4}
