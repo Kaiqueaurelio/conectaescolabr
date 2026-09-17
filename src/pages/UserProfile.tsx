@@ -306,9 +306,10 @@ export function UserProfilePage() {
                 <Label htmlFor="address">Endereço</Label>
                 <Input
                   id="address"
-                  value={formData.address || ""}
+                  value={sensitiveValue("address")}
                   onChange={(e) => handleInputChange("address", e.target.value)}
-                  disabled={!isEditing}
+                  disabled={!isEditing || !isOwner}
+
                   placeholder="Rua, número, complemento"
                   className="mt-2"
                 />
@@ -324,9 +325,10 @@ export function UserProfilePage() {
                   <Label htmlFor="mother_name">Nome da Mãe</Label>
                   <Input
                     id="mother_name"
-                    value={formData.mother_name || ""}
+                    value={sensitiveValue("mother_name")}
                     onChange={(e) => handleInputChange("mother_name", e.target.value)}
-                    disabled={!isEditing}
+                    disabled={!isEditing || !isOwner}
+
                     className="mt-2"
                   />
                 </div>
@@ -335,9 +337,10 @@ export function UserProfilePage() {
                   <Label htmlFor="father_name">Nome do Pai</Label>
                   <Input
                     id="father_name"
-                    value={formData.father_name || ""}
+                    value={sensitiveValue("father_name")}
                     onChange={(e) => handleInputChange("father_name", e.target.value)}
-                    disabled={!isEditing}
+                    disabled={!isEditing || !isOwner}
+
                     className="mt-2"
                   />
                 </div>
@@ -352,9 +355,10 @@ export function UserProfilePage() {
                 <Label htmlFor="vulnerability_situation">Situação de Vulnerabilidade</Label>
                 <Textarea
                   id="vulnerability_situation"
-                  value={formData.vulnerability_situation || ""}
+                  value={sensitiveValue("vulnerability_situation")}
                   onChange={(e) => handleInputChange("vulnerability_situation", e.target.value)}
-                  disabled={!isEditing}
+                  disabled={!isEditing || !isOwner}
+
                   placeholder="Descreva a situação de vulnerabilidade, se aplicável"
                   className="mt-2"
                   rows={4}
