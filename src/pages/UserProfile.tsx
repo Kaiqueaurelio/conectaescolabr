@@ -33,12 +33,25 @@ export function UserProfilePage() {
 
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
   const [isEditing, setIsEditing] = useState(false);
+  const [secureLoading, setSecureLoading] = useState(false);
+
+  const isOwner = !!user && !!currentUser && user.id === currentUser.id;
 
   useEffect(() => {
-    if (user) {
-      setFormData(user);
-    }
-  }, [user]);
+    if (!user) return;
+    setFormData(user);
+    if (!isOwner) return;
+    setSecureLoading(true);
+    readSecureProfile(user.id)
+      .then(({ data, error: secureError }) => {
+        if (secureError) {
+          console.error("Erro ao abrir dados protegidos:", secureError);
+          return;
+        }
+        if (data) setFormData((prev) => ({ ...prev, ...data }));
+      })
+      .finally(() => setSecureLoading(false));
+  }, [user, isOwner]);
 
   const handleInputChange = (field: keyof UserProfile, value: unknown) => {
     setFormData((prev) => ({
@@ -47,18 +60,43 @@ export function UserProfilePage() {
     }));
   };
 
+  const sensitiveValue = (field: SensitiveField) => {
+    const value = (formData as Record<string, unknown>)[field] as string | undefined;
+    if (isOwner) return value || "";
+    return maskSensitive(value);
+  };
+
   const handleSave = async () => {
     if (!user) return;
 
-    const result = await updateUser(user.id, formData);
-    if (result.success) {
-      toast.success("Perfil atualizado com sucesso!");
-      setIsEditing(false);
-      refetch();
-    } else {
-      toast.error(result.error || "Erro ao atualizar perfil");
+    const plainData: Partial<UserProfile> = { ...formData };
+    const secureData: SensitiveValues = {};
+    for (const field of SENSITIVE_FIELDS) {
+      if (isOwner) {
+        secureData[field] = ((formData as Record<string, unknown>)[field] as string) ?? null;
+      }
+      delete (plainData as Record<string, unknown>)[field];
     }
+
+    const result = await updateUser(user.id, plainData);
+    if (!result.success) {
+      toast.error(result.error || "Erro ao atualizar perfil");
+      return;
+    }
+
+    if (isOwner) {
+      const secureResult = await saveSecureProfile(user.id, secureData);
+      if (!secureResult.success) {
+        toast.error(secureResult.error || "Erro ao salvar dados protegidos");
+        return;
+      }
+    }
+
+    toast.success("Perfil atualizado com sucesso!");
+    setIsEditing(false);
+    refetch();
   };
+
 
   if (loading) {
     return (
