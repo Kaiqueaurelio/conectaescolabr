@@ -247,9 +247,9 @@ export function UserProfilePage() {
                   <Label htmlFor="cpf">CPF</Label>
                   <Input
                     id="cpf"
-                    value={formData.cpf || ""}
+                    value={sensitiveValue("cpf")}
                     onChange={(e) => handleInputChange("cpf", e.target.value)}
-                    disabled={!isEditing}
+                    disabled={!isEditing || !isOwner}
                     placeholder="000.000.000-00"
                     className="mt-2"
                   />
@@ -259,9 +259,9 @@ export function UserProfilePage() {
                   <Label htmlFor="rg">RG</Label>
                   <Input
                     id="rg"
-                    value={formData.rg || ""}
+                    value={sensitiveValue("rg")}
                     onChange={(e) => handleInputChange("rg", e.target.value)}
-                    disabled={!isEditing}
+                    disabled={!isEditing || !isOwner}
                     className="mt-2"
                   />
                 </div>
@@ -270,13 +270,14 @@ export function UserProfilePage() {
                   <Label htmlFor="phone">Telefone</Label>
                   <Input
                     id="phone"
-                    value={formData.phone || ""}
+                    value={sensitiveValue("phone")}
                     onChange={(e) => handleInputChange("phone", e.target.value)}
-                    disabled={!isEditing}
+                    disabled={!isEditing || !isOwner}
                     placeholder="(11) 99999-9999"
                     className="mt-2"
                   />
                 </div>
+
 
                 <div>
                   <Label htmlFor="role">Perfil *</Label>
