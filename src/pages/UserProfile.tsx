@@ -12,8 +12,17 @@ import { useUser, useUpdateUser } from "@/hooks/useSupabaseData";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { getRoleLabel, getStatusLabel } from "@/lib/permissions";
 import { UserProfile } from "@/lib/supabase";
-import { User, Mail, Phone, MapPin, Users, AlertCircle, CheckCircle } from "lucide-react";
+import {
+  readSecureProfile,
+  saveSecureProfile,
+  maskSensitive,
+  SENSITIVE_FIELDS,
+  type SensitiveField,
+  type SensitiveValues,
+} from "@/lib/secureProfile";
+import { User, Mail, Phone, MapPin, Users, AlertCircle, CheckCircle, Lock } from "lucide-react";
 import { toast } from "sonner";
+
 
 export function UserProfilePage() {
   const { userId } = useParams<{ userId: string }>();
