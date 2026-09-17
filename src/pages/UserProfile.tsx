@@ -203,9 +203,22 @@ export function UserProfilePage() {
             )}
           </div>
 
+          {/* Aviso de criptografia */}
+          <div className="mb-6 flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+            <Lock className="mt-0.5 h-5 w-5 text-primary" />
+            <p className="text-sm text-foreground/80">
+              {isOwner
+                ? secureLoading
+                  ? "Abrindo seus dados protegidos..."
+                  : "CPF, RG, endereço, telefone, filiação e situação social são guardados criptografados. Só você consegue vê-los."
+                : "CPF, RG, endereço, telefone, filiação e situação social estão criptografados e só podem ser lidos pela própria pessoa."}
+            </p>
+          </div>
+
           {/* Informações Pessoais */}
           <ModernSection title="Informações Pessoais" subtitle="Dados básicos do usuário">
             <ModernCard className="p-6 space-y-6">
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label htmlFor="full_name">Nome Completo *</Label>
