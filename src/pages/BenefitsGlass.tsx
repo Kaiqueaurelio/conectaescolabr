@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   GlassLayout,
   GlassContainer,
@@ -33,10 +34,8 @@ import { toast } from "sonner";
 interface BenefitItem {
   id: string;
   name: string;
-  quantity: number;
-  minStock: number;
   unit: string;
-  lastUpdated: string;
+  low: boolean;
 }
 
 interface DistributionItem {
@@ -47,6 +46,13 @@ interface DistributionItem {
   date: string;
 }
 
+async function callBenefits(body: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke("secure-benefits", { body });
+  if (error) throw new Error(error.message);
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+
 export function BenefitsGlassPage() {
   const { user: currentUser } = useSupabaseAuth();
   const [activeTab, setActiveTab] = useState("stock");
@@ -54,6 +60,18 @@ export function BenefitsGlassPage() {
   const [distributions, setDistributions] = useState<DistributionItem[]>([]);
   const [newItemOpen, setNewItemOpen] = useState(false);
   const [newItem, setNewItem] = useState({ name: "", quantity: 0, minStock: 0, unit: "un" });
+
+  const load = async () => {
+    try {
+      const data = await callBenefits({ action: "list" });
+      setBenefitItems(data?.items ?? []);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+  useEffect(() => {
+    load();
+  }, []);
 
   const sidebarItems = [
     { label: "Dashboard", href: "/admin/dashboard", icon: "📊" },
@@ -68,15 +86,24 @@ export function BenefitsGlassPage() {
     { label: "Segurança", href: "/admin/security", icon: "🔒" },
   ];
 
-  const lowStockItems = benefitItems.filter((item) => item.quantity <= item.minStock);
-  const totalValue = benefitItems.reduce((sum, item) => sum + item.quantity, 0);
+  const lowStockItems = benefitItems.filter((item) => item.low);
+  const totalValue = "••••";
   const today = new Date().toISOString().split("T")[0];
   const distributionsToday = distributions.filter((dist) => dist.date === today).length;
 
+  const run = async (body: Record<string, unknown>, msg: string) => {
+    try {
+      await callBenefits(body);
+      toast.success(msg);
+      await load();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
   const handleDeleteItem = (id: string) => {
     if (!window.confirm("Remover este item do estoque?")) return;
-    setBenefitItems((items) => items.filter((item) => item.id !== id));
-    toast.success("Item removido");
+    run({ action: "delete", id }, "Item removido");
   };
 
   const handleDeleteDistribution = (id: string) => {
@@ -87,36 +114,31 @@ export function BenefitsGlassPage() {
 
   const handleClearAll = () => {
     if (!window.confirm("Remover todos os itens e distribuições desta tela?")) return;
-    setBenefitItems([]);
     setDistributions([]);
-    toast.success("Benefícios limpos");
+    run({ action: "clear" }, "Benefícios limpos");
   };
 
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (!newItem.name.trim()) {
       toast.error("Informe o nome do item");
       return;
     }
-    const item: BenefitItem = {
-      id: `item-${Date.now()}`,
-      name: newItem.name.trim(),
-      quantity: Number(newItem.quantity) || 0,
-      minStock: Number(newItem.minStock) || 0,
-      unit: newItem.unit.trim() || "un",
-      lastUpdated: new Date().toISOString().split("T")[0],
-    };
-    setBenefitItems((items) => [item, ...items]);
+    await run(
+      {
+        action: "create",
+        name: newItem.name.trim(),
+        unit: newItem.unit.trim() || "un",
+        quantity: Number(newItem.quantity) || 0,
+        minStock: Number(newItem.minStock) || 0,
+      },
+      "Item adicionado (números criptografados)"
+    );
     setNewItem({ name: "", quantity: 0, minStock: 0, unit: "un" });
     setNewItemOpen(false);
-    toast.success("Item adicionado");
   };
 
   const adjustQuantity = (id: string, delta: number) => {
-    setBenefitItems((items) =>
-      items.map((it) =>
-        it.id === id ? { ...it, quantity: Math.max(0, it.quantity + delta) } : it
-      )
-    );
+    run({ action: "adjust", id, delta }, delta > 0 ? "Entrada registrada" : "Saída registrada");
   };
 
   return (
@@ -281,8 +303,7 @@ export function BenefitsGlassPage() {
                   Nenhum item cadastrado.
                 </GlassCard>
               ) : benefitItems.map((item) => {
-                const isLowStock = item.quantity <= item.minStock;
-                const percentage = (item.quantity / (item.minStock * 2)) * 100;
+                const isLowStock = item.low;
 
                 return (
                   <GlassCard key={item.id} className="p-6">
@@ -292,27 +313,11 @@ export function BenefitsGlassPage() {
                           {item.name}
                         </h3>
 
-                        <div className="mt-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-muted-foreground">
-                              Quantidade: {item.quantity} {item.unit}
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                              Mínimo: {item.minStock} {item.unit}
-                            </span>
-                          </div>
-
-                          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className={`h-full transition-all ${
-                                isLowStock
-                                  ? "bg-destructive"
-                                  : "bg-gradient-primary"
-                              }`}
-                              style={{ width: `${Math.min(percentage, 100)}%` }}
-                            />
-                          </div>
+                        <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+                          <span>Quantidade: •••• {item.unit} (criptografado)</span>
+                          <span>Mínimo: •••• {item.unit}</span>
                         </div>
+
 
                         {isLowStock && (
                           <div className="mt-3 flex items-center gap-2 text-sm text-warning">

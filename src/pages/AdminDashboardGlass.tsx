@@ -46,18 +46,23 @@ const sidebarItems = [
   { label: "Ajuda", to: "/ajuda", icon: HelpCircle },
 ];
 
-const monthly = [
-  { mes: "Jan", presencas: 240, benef: 80 },
-  { mes: "Fev", presencas: 280, benef: 95 },
-  { mes: "Mar", presencas: 310, benef: 110 },
-  { mes: "Abr", presencas: 295, benef: 120 },
-  { mes: "Mai", presencas: 340, benef: 130 },
-];
-
 const palette = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--tertiary))", "hsl(var(--coral))"];
+
+const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 export function AdminDashboardGlassPage() {
   const { students, turmas, events, announcements } = useData();
+
+  const now = new Date();
+  const monthly = Array.from({ length: 5 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 4 + i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    return {
+      mes: MONTHS[d.getMonth()],
+      presencas: events.filter((e) => String(e.date ?? "").startsWith(key)).length,
+      benef: announcements.filter((a) => String(a.created_at ?? "").startsWith(key)).length,
+    };
+  });
 
   const roleData = [
     { name: "Alunas", value: students.length, color: "hsl(var(--primary))" },
