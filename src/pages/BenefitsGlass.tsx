@@ -281,8 +281,7 @@ export function BenefitsGlassPage() {
                   Nenhum item cadastrado.
                 </GlassCard>
               ) : benefitItems.map((item) => {
-                const isLowStock = item.quantity <= item.minStock;
-                const percentage = (item.quantity / (item.minStock * 2)) * 100;
+                const isLowStock = item.low;
 
                 return (
                   <GlassCard key={item.id} className="p-6">
@@ -292,27 +291,11 @@ export function BenefitsGlassPage() {
                           {item.name}
                         </h3>
 
-                        <div className="mt-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-muted-foreground">
-                              Quantidade: {item.quantity} {item.unit}
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                              Mínimo: {item.minStock} {item.unit}
-                            </span>
-                          </div>
-
-                          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className={`h-full transition-all ${
-                                isLowStock
-                                  ? "bg-destructive"
-                                  : "bg-gradient-primary"
-                              }`}
-                              style={{ width: `${Math.min(percentage, 100)}%` }}
-                            />
-                          </div>
+                        <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+                          <span>Quantidade: •••• {item.unit} (criptografado)</span>
+                          <span>Mínimo: •••• {item.unit}</span>
                         </div>
+
 
                         {isLowStock && (
                           <div className="mt-3 flex items-center gap-2 text-sm text-warning">
