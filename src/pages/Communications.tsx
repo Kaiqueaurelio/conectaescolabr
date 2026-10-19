@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { useUsers } from "@/hooks/useSupabaseData";
 import { Bell, Send, MessageSquare, Users, Clock, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -34,6 +35,7 @@ interface Message {
 
 export function CommunicationsPage() {
   const { user: currentUser } = useSupabaseAuth();
+  const { users: realUsers } = useUsers();
 
   const [activeTab, setActiveTab] = useState("announcements");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -365,12 +367,12 @@ export function CommunicationsPage() {
                 <h3 className="font-semibold text-foreground mb-4">Grupos Internos</h3>
                 <div className="space-y-3">
                   {[
-                    { name: "Coordenação", members: 5 },
-                    { name: "Professores", members: 12 },
-                    { name: "Alunos", members: 145 },
-                    { name: "Responsáveis", members: 89 },
-                    { name: "Voluntários", members: 23 },
-                  ].map((group, index) => (
+                    { name: "Coordenação", role: "ADMIN" },
+                    { name: "Professores / Colaboradores", role: "TEACHER" },
+                    { name: "Alunos", role: "STUDENT" },
+                    { name: "Responsáveis", role: "PARENT" },
+                    { name: "Voluntários", role: "VOLUNTEER" },
+                  ].map((g) => ({ ...g, members: realUsers.filter((u) => u.role === g.role).length })).map((group, index) => (
                     <ModernCard key={index} className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
