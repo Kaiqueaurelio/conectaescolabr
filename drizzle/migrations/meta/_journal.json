@@ -8,6 +8,13 @@
       "when": 1789671632638,
       "tag": "0000_add_encrypted_sensitive_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792453935629,
+      "tag": "0001_benefit_items_encrypted",
+      "breakpoints": true
     }
   ]
 }

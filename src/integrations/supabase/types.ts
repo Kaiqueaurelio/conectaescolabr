@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      benefit_items: {
+        Row: {
+          created_at: string
+          id: string
+          min_enc: string | null
+          name: string
+          quantity_enc: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          min_enc?: string | null
+          name: string
+          quantity_enc?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          min_enc?: string | null
+          name?: string
+          quantity_enc?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           address: string | null
