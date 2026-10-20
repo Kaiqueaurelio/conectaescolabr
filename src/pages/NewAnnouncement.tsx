@@ -11,22 +11,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Loader2, Send } from "lucide-react";
 import { z } from "zod";
-import { useData } from "@/contexts/DataContext";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 
 const schema = z.object({
   title: z.string().trim().min(3, "Título deve ter ao menos 3 caracteres").max(100, "Título muito longo"),
   content: z.string().trim().min(10, "Conteúdo deve ter ao menos 10 caracteres").max(1000, "Conteúdo muito longo"),
-  target: z.enum(["ALL", "TEACHERS", "PARENTS", "STUDENTS"]),
+  target: z.enum(["ALL", "TEACHERS", "PARENTS", "STUDENTS", "VOLUNTEERS"]),
 });
 
 export default function NewAnnouncement() {
   const navigate = useNavigate();
-  const { addAnnouncement } = useData();
   const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [target, setTarget] = useState<"ALL" | "TEACHERS" | "PARENTS" | "STUDENTS">("ALL");
+  const [target, setTarget] = useState<"ALL" | "TEACHERS" | "PARENTS" | "STUDENTS" | "VOLUNTEERS">("ALL");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -40,11 +39,28 @@ export default function NewAnnouncement() {
       return;
     }
     setErrors({});
+    if (!user?.id) {
+      toast.error("Sua sessão não foi identificada. Entre novamente.");
+      return;
+    }
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 500));
-    addAnnouncement({ title: title.trim(), content: content.trim(), target, author: user?.name || "Equipe" });
+    const { data, error } = await supabase
+      .from("announcements")
+      .insert({
+        title: result.data.title,
+        content: result.data.content,
+        author_id: user.id,
+        target_roles: [result.data.target],
+      })
+      .select("id")
+      .maybeSingle();
     setSubmitting(false);
-    toast.success("Comunicado publicado com sucesso!");
+    if (error || !data) {
+      console.error("Erro ao publicar comunicado:", error);
+      toast.error("O comunicado não foi salvo. Verifique as permissões do banco.");
+      return;
+    }
+    toast.success("Comunicado salvo no banco de dados!");
     navigate("/comunicados");
   };
 
@@ -67,6 +83,7 @@ export default function NewAnnouncement() {
                 <SelectItem value="PARENTS">Responsáveis</SelectItem>
                 <SelectItem value="STUDENTS">Alunos</SelectItem>
                 <SelectItem value="TEACHERS">Professores</SelectItem>
+                <SelectItem value="VOLUNTEERS">Voluntários</SelectItem>
               </SelectContent>
             </Select>
           </div>
