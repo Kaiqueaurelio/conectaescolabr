@@ -110,8 +110,8 @@ export function AdminDashboardGlassPage() {
         const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
         return {
           mes: MONTHS[date.getMonth()],
-          presencas: attendance.filter((row) => String(row.date).slice(0, 7) === key && row.status === "PRESENT").length,
-          benef: benefits.filter((row) => String(row.distribution_date).slice(0, 7) === key)
+          presencas: attendanceRows.error ? null : attendance.filter((row) => String(row.date).slice(0, 7) === key && row.status === "PRESENT").length,
+          benef: benefitRows.error ? null : benefits.filter((row) => String(row.distribution_date).slice(0, 7) === key)
             .reduce((sum, row) => sum + Number(row.quantity ?? 0), 0),
         };
       }));
