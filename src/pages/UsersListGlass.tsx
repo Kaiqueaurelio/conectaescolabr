@@ -236,7 +236,7 @@ export function UsersListGlassPage() {
             <GlassEmptyState
               icon="👤"
               title="Nenhum usuário encontrado"
-              description="Tente ajustar seus filtros ou criar um novo usuário"
+              description="Quando houver usuários cadastrados, eles aparecerão aqui. Novos acessos devem ser solicitados pelo cadastro público."
               action={
                 <Button className="gap-2" onClick={() => toast({
                   title: "Cadastro de novas contas",
