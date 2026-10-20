@@ -7,7 +7,6 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Login from "./pages/Login.tsx";
 import TeacherDashboard from "./pages/TeacherDashboard.tsx";
-import Attendance from "./pages/Attendance.tsx";
 import Announcements from "./pages/Announcements.tsx";
 import NewAnnouncement from "./pages/NewAnnouncement.tsx";
 import Blog from "./pages/Blog.tsx";
@@ -89,7 +88,7 @@ const App = () => (
                 <Route path="/professor" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><TeacherDashboard /></ProtectedRoute>} />
                 <Route path="/aluno" element={<ProtectedRoute roles={["STUDENT"]}><Navigate to="/aluno/dashboard" replace /></ProtectedRoute>} />
                 <Route path="/responsavel" element={<ProtectedRoute roles={["PARENT"]}><Navigate to="/parent/portal" replace /></ProtectedRoute>} />
-                <Route path="/chamada" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><Attendance /></ProtectedRoute>} />
+                <Route path="/chamada" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><Navigate to="/admin/attendance" replace /></ProtectedRoute>} />
                 <Route path="/agenda" element={<ProtectedRoute><SmartCalendarPage readOnly /></ProtectedRoute>} />
                 <Route path="/cadastro" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><CadastroGeral /></ProtectedRoute>} />
                 <Route path="/comunicados" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
