@@ -80,7 +80,7 @@ export function ImpactDashboardPage() {
 
       setMetrics([
         {
-          label: "Famílias cadastradas",
+          label: "Responsáveis cadastrados",
           value: familiesCount.error ? null : (familiesCount.count ?? 0),
           change: null,
           icon: <Users className="w-6 h-6" />,
