@@ -110,9 +110,15 @@ export function UserProfilePage() {
     }
 
     if (isOwner && secureProfileReady) {
-      const secureResult = await saveSecureProfile(user.id, secureData);
-      if (!secureResult.success) {
-        toast.error("Os campos básicos foram salvos, mas os dados protegidos não foram atualizados. " + (secureResult.error || ""));
+      try {
+        const secureResult = await saveSecureProfile(user.id, secureData);
+        if (!secureResult.success) {
+          toast.error("Os campos básicos foram salvos, mas os dados protegidos não foram atualizados. " + (secureResult.error || ""));
+          return;
+        }
+      } catch (error) {
+        console.error("Falha inesperada ao salvar dados protegidos:", error);
+        toast.error("Os campos básicos foram salvos, mas os dados protegidos não foram atualizados.");
         return;
       }
     }
