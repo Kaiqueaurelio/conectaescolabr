@@ -50,7 +50,14 @@ export default function Reminders() {
 
   return (
     <AppLayout>
-      <PageHeader title="Lembretes" subtitle="Tarefas e prazos importantes" />
+      <PageHeader title="Lembretes" subtitle="Tarefas e prazos salvos neste navegador" />
+
+      <Card className="mb-4 flex items-start gap-3 border-amber-500/30 bg-amber-500/5 p-4">
+        <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
+        <p className="text-sm text-muted-foreground">
+          Os lembretes desta tela ainda são armazenados localmente e não sincronizam com o servidor ou com outros dispositivos. Não há cadastro de novos lembretes conectado ao backend.
+        </p>
+      </Card>
 
       {overdue.length > 0 && (
         <Card className="p-3 mb-4 border-coral/40 bg-coral/5 flex items-center gap-3 animate-fade-in">
