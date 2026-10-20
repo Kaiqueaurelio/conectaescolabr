@@ -14,6 +14,85 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance_records: {
+        Row: {
+          attended_on: string
+          created_at: string
+          id: string
+          participant_id: string
+          present: boolean
+          program: string | null
+        }
+        Insert: {
+          attended_on?: string
+          created_at?: string
+          id?: string
+          participant_id: string
+          present?: boolean
+          program?: string | null
+        }
+        Update: {
+          attended_on?: string
+          created_at?: string
+          id?: string
+          participant_id?: string
+          present?: boolean
+          program?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      benefit_grants: {
+        Row: {
+          benefit: string
+          created_at: string
+          delivered_by: string | null
+          granted_on: string
+          id: string
+          notes: string | null
+          participant_id: string
+          quantity: number
+          unit: string
+        }
+        Insert: {
+          benefit: string
+          created_at?: string
+          delivered_by?: string | null
+          granted_on?: string
+          id?: string
+          notes?: string | null
+          participant_id: string
+          quantity?: number
+          unit?: string
+        }
+        Update: {
+          benefit?: string
+          created_at?: string
+          delivered_by?: string | null
+          granted_on?: string
+          id?: string
+          notes?: string | null
+          participant_id?: string
+          quantity?: number
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "benefit_grants_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       benefit_items: {
         Row: {
           created_at: string
@@ -44,6 +123,117 @@ export type Database = {
         }
         Relationships: []
       }
+      participant_guardians: {
+        Row: {
+          can_pick_up: boolean
+          created_at: string
+          id: string
+          is_emergency: boolean
+          name: string
+          participant_id: string
+          phone: string | null
+          relationship: string
+        }
+        Insert: {
+          can_pick_up?: boolean
+          created_at?: string
+          id?: string
+          is_emergency?: boolean
+          name: string
+          participant_id: string
+          phone?: string | null
+          relationship?: string
+        }
+        Update: {
+          can_pick_up?: boolean
+          created_at?: string
+          id?: string
+          is_emergency?: boolean
+          name?: string
+          participant_id?: string
+          phone?: string | null
+          relationship?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_guardians_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      participant_notes: {
+        Row: {
+          author: string | null
+          created_at: string
+          id: string
+          note: string
+          participant_id: string
+        }
+        Insert: {
+          author?: string | null
+          created_at?: string
+          id?: string
+          note: string
+          participant_id: string
+        }
+        Update: {
+          author?: string | null
+          created_at?: string
+          id?: string
+          note?: string
+          participant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_notes_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      program_enrollments: {
+        Row: {
+          class_group: string | null
+          created_at: string
+          id: string
+          participant_id: string
+          program: string
+          started_on: string
+          status: string
+        }
+        Insert: {
+          class_group?: string | null
+          created_at?: string
+          id?: string
+          participant_id: string
+          program: string
+          started_on?: string
+          status?: string
+        }
+        Update: {
+          class_group?: string | null
+          created_at?: string
+          id?: string
+          participant_id?: string
+          program?: string
+          started_on?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "program_enrollments_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           address: string | null
@@ -51,6 +241,7 @@ export type Database = {
           auth_id: string | null
           avatar_url: string | null
           benefits_received: Json | null
+          birth_date: string | null
           cpf: string | null
           cpf_enc: string | null
           created_at: string
@@ -62,12 +253,14 @@ export type Database = {
           id: string
           mother_name: string | null
           mother_name_enc: string | null
+          nis: string | null
           phone: string | null
           phone_enc: string | null
           priority_public: string | null
           rg: string | null
           rg_enc: string | null
           role: string
+          school: string | null
           status: string
           updated_at: string
           vulnerability_enc: string | null
@@ -79,6 +272,7 @@ export type Database = {
           auth_id?: string | null
           avatar_url?: string | null
           benefits_received?: Json | null
+          birth_date?: string | null
           cpf?: string | null
           cpf_enc?: string | null
           created_at?: string
@@ -90,12 +284,14 @@ export type Database = {
           id?: string
           mother_name?: string | null
           mother_name_enc?: string | null
+          nis?: string | null
           phone?: string | null
           phone_enc?: string | null
           priority_public?: string | null
           rg?: string | null
           rg_enc?: string | null
           role?: string
+          school?: string | null
           status?: string
           updated_at?: string
           vulnerability_enc?: string | null
@@ -107,6 +303,7 @@ export type Database = {
           auth_id?: string | null
           avatar_url?: string | null
           benefits_received?: Json | null
+          birth_date?: string | null
           cpf?: string | null
           cpf_enc?: string | null
           created_at?: string
@@ -118,12 +315,14 @@ export type Database = {
           id?: string
           mother_name?: string | null
           mother_name_enc?: string | null
+          nis?: string | null
           phone?: string | null
           phone_enc?: string | null
           priority_public?: string | null
           rg?: string | null
           rg_enc?: string | null
           role?: string
+          school?: string | null
           status?: string
           updated_at?: string
           vulnerability_enc?: string | null

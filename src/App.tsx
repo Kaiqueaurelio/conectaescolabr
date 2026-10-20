@@ -44,6 +44,7 @@ import { ColorPalettePageGlass } from "./pages/ColorPalettePage";
 import { ImpactDashboardPage } from "./pages/ImpactDashboard";
 import { AdminDashboardSkillPathPage } from "./pages/AdminDashboardSkillPath";
 import { StudentDashboardSkillPathPage } from "./pages/StudentDashboardSkillPath";
+import ParticipantFile from "./pages/ParticipantFile";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,7 @@ const App = () => (
                 <Route path="/admin/users/new" element={<ProtectedRoute roles={["ADMIN"]}><UserProfilePage /></ProtectedRoute>} />
                 <Route path="/admin/users/:userId" element={<ProtectedRoute roles={["ADMIN"]}><UserProfilePage /></ProtectedRoute>} />
                 <Route path="/admin/users/:userId/record" element={<ProtectedRoute roles={["ADMIN", "TEACHER"]}><SocialRecordPage /></ProtectedRoute>} />
+                <Route path="/admin/users/:userId/ficha" element={<ProtectedRoute roles={["ADMIN"]}><ParticipantFile /></ProtectedRoute>} />
                 <Route path="/admin/attendance" element={<ProtectedRoute roles={["ADMIN", "TEACHER"]}><AttendanceAdvancedPage /></ProtectedRoute>} />
                 <Route path="/admin/benefits" element={<ProtectedRoute roles={["ADMIN"]}><BenefitsManagementPage /></ProtectedRoute>} />
                 <Route path="/admin/communications" element={<ProtectedRoute roles={["ADMIN", "TEACHER"]}><CommunicationsPage /></ProtectedRoute>} />
