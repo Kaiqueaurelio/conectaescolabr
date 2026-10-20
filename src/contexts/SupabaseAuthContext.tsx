@@ -29,6 +29,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const profileRequestId = useRef(0);
   const registrationInProgress = useRef(false);
+  const loginInProgress = useRef(false);
 
   // A profile must be loaded from the server for every authenticated session.
   // Never restore application permissions from localStorage.
@@ -39,6 +40,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     const loadProfile = async (authId: string) => {
       const requestId = ++profileRequestId.current;
       const wasRegistering = registrationInProgress.current;
+      const wasLoggingIn = loginInProgress.current;
       setUser(null);
       try {
         const { data, error } = await supabase
@@ -55,7 +57,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           // During public signup the profile is inserted immediately after the
           // auth identity. Do not race that insert by signing out prematurely.
-          if (!wasRegistering) {
+          if (!wasRegistering && !wasLoggingIn) {
             void supabase.auth.signOut();
             setSession(null);
           }
@@ -130,25 +132,57 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     email: string,
     password: string
   ): Promise<{ success: boolean; error?: string }> => {
+    loginInProgress.current = true;
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
       if (error) return { success: false, error: error.message };
       if (!data.session?.user) return { success: false, error: "Não foi possível iniciar a sessão." };
 
+      const authUser = data.session.user;
       const { data: profileData, error: profileError } = await supabase
         .from("users")
         .select("*")
-        .eq("auth_id", data.session.user.id)
+        .eq("auth_id", authUser.id)
         .maybeSingle();
 
-      if (profileError || !profileData) {
+      if (profileError) {
         await supabase.auth.signOut();
         setSession(null);
         setUser(null);
-        return {
-          success: false,
-          error: profileError ? "Não foi possível validar seu perfil." : "Seu perfil não está cadastrado. Entre em contato com a administração.",
-        };
+        return { success: false, error: "Não foi possível validar seu perfil. Verifique as permissões ou contate a administração." };
+      }
+
+      if (!profileData) {
+        const metadata = authUser.user_metadata ?? {};
+        const fullName = typeof metadata.full_name === "string" ? metadata.full_name.trim() : "";
+        const role = metadata.role;
+        const emailAddress = authUser.email?.trim().toLowerCase() || email.trim().toLowerCase();
+
+        if (fullName && ["TEACHER", "STUDENT", "PARENT"].includes(role)) {
+          const { error: createError } = await supabase.from("users").insert({
+            auth_id: authUser.id,
+            email: emailAddress,
+            full_name: fullName,
+            role,
+            status: "PENDING",
+          });
+          await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+          if (!createError) {
+            return { success: false, error: "Seu cadastro foi finalizado e enviado para aprovação. Aguarde a liberação de um administrador antes de entrar." };
+          }
+          console.error("Falha ao criar perfil após confirmação de e-mail:", createError);
+          return { success: false, error: "Sua conta de autenticação existe, mas o perfil não pôde ser criado. Entre em contato com a administração." };
+        }
+
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        return { success: false, error: "Perfil não encontrado. Solicite ajuda à administração para concluir o cadastro." };
       }
 
       const profile = profileData as UserProfile;
@@ -176,6 +210,8 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) };
+    } finally {
+      loginInProgress.current = false;
     }
   };
 
@@ -198,9 +234,18 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
+        options: {
+          data: {
+            full_name: fullName.trim(),
+            role,
+          },
+        },
       });
       if (authError) return { success: false, error: authError.message };
       if (!authData.user) return { success: false, error: "Erro ao criar usuário." };
+      // If email confirmation is required, finish creating the PENDING profile
+      // after the user confirms and signs in. No unauthenticated profile insert.
+      if (!authData.session) return { success: true };
 
       const { error: profileError } = await supabase.from("users").insert({
         auth_id: authData.user.id,
