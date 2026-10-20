@@ -1,10 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useData } from "@/contexts/DataContext";
-import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/lib/supabase";
 import { Megaphone, Plus, RefreshCw, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,31 +12,81 @@ import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
 import SearchBar from "@/components/admin/SearchBar";
 
+interface AnnouncementItem {
+  id: string;
+  title: string;
+  content: string;
+  author: string;
+  target_roles: string[];
+  created_at: string;
+}
+
 export default function Announcements() {
   const { user } = useAuth();
-  const { announcements } = useData();
+  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [q, setQ] = useState("");
 
-  const audience = announcements.filter((a) => {
-    if (a.target === "ALL") return true;
-    if (user?.role === "TEACHER" || user?.role === "ADMIN") return a.target === "TEACHERS";
-    if (user?.role === "PARENT") return a.target === "PARENTS";
-    if (user?.role === "STUDENT") return a.target === "STUDENTS";
+  const loadAnnouncements = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("announcements")
+      .select("id,title,content,author_id,target_roles,created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Erro ao carregar comunicados:", error);
+      setAnnouncements([]);
+      setLoadError(true);
+      setLoading(false);
+      return false;
+    }
+
+    const authorIds = [...new Set((data ?? []).map((item) => item.author_id).filter(Boolean))];
+    let authors = new Map<string, string>();
+    if (authorIds.length > 0) {
+      const result = await supabase.from("users").select("id,full_name").in("id", authorIds);
+      if (!result.error) authors = new Map((result.data ?? []).map((author) => [author.id, author.full_name]));
+    }
+
+    setAnnouncements((data ?? []).map((item) => ({
+      id: item.id,
+      title: item.title,
+      content: item.content,
+      author: authors.get(item.author_id) || "Equipe",
+      target_roles: item.target_roles ?? [],
+      created_at: item.created_at,
+    })));
+    setLoadError(false);
+    setLoading(false);
     return true;
+  }, []);
+
+  useEffect(() => {
+    void loadAnnouncements();
+  }, [loadAnnouncements]);
+
+  const audience = announcements.filter((announcement) => {
+    const targets = announcement.target_roles;
+    if (targets.includes("ALL")) return true;
+    if (user?.role === "TEACHER" || user?.role === "ADMIN") return targets.includes("TEACHERS");
+    if (user?.role === "PARENT") return targets.includes("PARENTS");
+    if (user?.role === "STUDENT") return targets.includes("STUDENTS");
+    if (user?.role === "VOLUNTEER") return targets.includes("VOLUNTEERS");
+    return false;
   });
-  const visible = useMemo(() => audience.filter((a) =>
-    !q || `${a.title} ${a.content}`.toLowerCase().includes(q.toLowerCase())
-  ), [audience, q]);
+  const visible = useMemo(() => audience.filter((announcement) =>
+    !q || `${announcement.title} ${announcement.content}`.toLowerCase().includes(q.toLowerCase())
+  ), [announcements, q, user?.role]);
 
   const refresh = async () => {
     setRefreshing(true);
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
+    const success = await loadAnnouncements();
     setRefreshing(false);
-    setLoading(false);
-    toast.success("Comunicados atualizados!");
+    if (success) toast.success("Comunicados atualizados a partir do banco.");
+    else toast.error("Não foi possível atualizar os comunicados.");
   };
 
   return (
@@ -63,7 +112,9 @@ export default function Announcements() {
         <SearchBar value={q} onChange={setQ} placeholder="Buscar comunicados..." total={audience.length} filtered={visible.length} onClear={() => setQ("")} />
       </div>
 
-      {loading ? (
+      {loadError ? (
+        <EmptyState icon={Megaphone} title="Comunicados indisponíveis" description="Não foi possível consultar os comunicados no banco. Tente atualizar novamente." />
+      ) : loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="p-4 space-y-2">
@@ -86,7 +137,6 @@ export default function Announcements() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-semibold text-sm leading-tight">{a.title}</h3>
-                    {a.unread && <Badge className="bg-secondary text-secondary-foreground hover:bg-secondary text-[10px] h-5">Novo</Badge>}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{a.content}</p>
                   <div className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground">
