@@ -172,24 +172,6 @@ export function CommunicationsPage() {
     toast.success("Comunicado removido do banco de dados.");
   };
 
-  const handleClearAnnouncements = async () => {
-    if (!window.confirm("Remover todos os comunicados exibidos? Esta ação é permanente.")) return;
-    const ids = announcements.map((announcement) => announcement.id);
-    if (ids.length === 0) return;
-    const { data, error } = await supabase
-      .from("announcements")
-      .delete()
-      .in("id", ids)
-      .select("id");
-    if (error || !data || data.length !== ids.length) {
-      console.error("Erro ao limpar comunicados:", error);
-      toast.error("Nem todos os comunicados foram removidos. Verifique as permissões; a lista será recarregada.");
-      await loadAnnouncements();
-      return;
-    }
-    setAnnouncements([]);
-    toast.success("Comunicados removidos do banco de dados.");
-  };
 
   const sidebarItems = [
     { label: "Dashboard", href: "/admin", icon: "📊" },
@@ -296,10 +278,7 @@ export function CommunicationsPage() {
                 </DialogContent>
               </Dialog>
               {announcements.length > 0 && (
-                <Button variant="destructive" className="mb-4 ml-2" onClick={handleClearAnnouncements}>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Limpar tudo
-                </Button>
+
               )}
 
               {/* Lista de Comunicados */}
