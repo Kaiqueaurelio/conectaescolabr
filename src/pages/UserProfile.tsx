@@ -83,6 +83,10 @@ export function UserProfilePage() {
     }
 
     const plainData: Partial<UserProfile> = { ...formData };
+    delete plainData.id;
+    delete plainData.auth_id;
+    delete plainData.created_at;
+    delete plainData.updated_at;
     const secureData: SensitiveValues = {};
     for (const field of SENSITIVE_FIELDS) {
       if (isOwner && secureProfileReady) {
