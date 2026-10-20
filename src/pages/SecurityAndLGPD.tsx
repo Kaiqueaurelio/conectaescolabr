@@ -103,26 +103,32 @@ export function SecurityAndLGPDPage() {
     }
 
     setChangingPassword(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    setChangingPassword(false);
-    if (error) {
-      toast.error(`Não foi possível alterar a senha: ${error.message}`);
-      return;
-    }
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        toast.error(`Não foi possível alterar a senha: ${error.message}`);
+        return;
+      }
 
-    const createdAt = new Date().toISOString();
-    const { error: auditError } = await supabase.from("user_activity_logs").insert({
-      user_id: currentUser?.id,
-      action: "PASSWORD_CHANGED",
-      details: { changed_at: createdAt },
-    });
-    setNewPassword("");
-    setConfirmPassword("");
-    if (auditError) {
-      console.error("Senha alterada, mas a auditoria não foi gravada:", auditError);
-      toast.warning("Senha alterada, mas não foi possível registrar o evento de auditoria.");
-    } else {
-      toast.success("Senha alterada com sucesso.");
+      const createdAt = new Date().toISOString();
+      const { error: auditError } = await supabase.from("user_activity_logs").insert({
+        user_id: currentUser?.id,
+        action: "PASSWORD_CHANGED",
+        details: { changed_at: createdAt },
+      });
+      setNewPassword("");
+      setConfirmPassword("");
+      if (auditError) {
+        console.error("Senha alterada, mas a auditoria não foi gravada:", auditError);
+        toast.warning("Senha alterada, mas não foi possível registrar o evento de auditoria.");
+      } else {
+        toast.success("Senha alterada com sucesso.");
+      }
+    } catch (error) {
+      console.error("Falha inesperada ao alterar senha:", error);
+      toast.error("Ocorreu um erro inesperado ao alterar a senha.");
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -133,63 +139,70 @@ export function SecurityAndLGPDPage() {
     }
 
     setExporting(true);
-    const [profile, socialRecords, attendanceRecords, benefits] = await Promise.all([
-      supabase.from("users").select("*").eq("id", currentUser.id).single(),
-      supabase.from("social_records").select("*").eq("user_id", currentUser.id),
-      supabase.from("attendance_records").select("*").eq("user_id", currentUser.id),
-      supabase.from("benefit_distributions").select("*").eq("user_id", currentUser.id),
-    ]);
-    setExporting(false);
+    try {
+      const [profile, socialRecords, attendanceRecords, benefits] = await Promise.all([
+        supabase.from("users").select("*").eq("id", currentUser.id).single(),
+        supabase.from("social_records").select("*").eq("user_id", currentUser.id),
+        supabase.from("attendance_records").select("*").eq("user_id", currentUser.id),
+        supabase.from("benefit_distributions").select("*").eq("user_id", currentUser.id),
+      ]);
 
-    const queryError = profile.error || socialRecords.error || attendanceRecords.error || benefits.error;
-    if (queryError || !profile.data) {
-      console.error("Erro ao exportar dados pessoais:", queryError);
-      toast.error("Não foi possível consultar todos os seus dados. Nenhum arquivo foi criado.");
-      return;
-    }
+      const queryError = profile.error || socialRecords.error || attendanceRecords.error || benefits.error;
+      if (queryError || !profile.data) {
+        console.error("Erro ao exportar dados pessoais:", queryError);
+        toast.error("Não foi possível consultar todos os seus dados. Nenhum arquivo foi criado.");
+        return;
+      }
 
-    const requestedAt = new Date().toISOString();
-    const payload = {
-      exportado_em: requestedAt,
-      observacao: "Exportação dos dados pessoais disponíveis nas tabelas consultadas. Registros de outras tabelas ou vínculos não configurados podem não estar incluídos.",
-      perfil: profile.data,
-      prontuario_social: socialRecords.data ?? [],
-      frequencia: attendanceRecords.data ?? [],
-      beneficios_recebidos: benefits.data ?? [],
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `meus-dados-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const requestedAt = new Date().toISOString();
+      const payload = {
+        exportado_em: requestedAt,
+        observacao: "Exportação dos dados pessoais disponíveis nas tabelas consultadas. Registros de outras tabelas ou vínculos não configurados podem não estar incluídos.",
+        perfil: profile.data,
+        prontuario_social: socialRecords.data ?? [],
+        frequencia: attendanceRecords.data ?? [],
+        beneficios_recebidos: benefits.data ?? [],
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `meus-dados-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-    const { data: auditRecord, error: auditError } = await supabase
-      .from("user_activity_logs")
-      .insert({
-        user_id: currentUser.id,
-        action: "LGPD_DATA_EXPORT",
-        details: { type: "export", status: "completed", requested_at: requestedAt, completed_at: new Date().toISOString() },
-      })
-      .select("id,action,details,created_at")
-      .single();
+      const completedAt = new Date().toISOString();
+      const { data: auditRecord, error: auditError } = await supabase
+        .from("user_activity_logs")
+        .insert({
+          user_id: currentUser.id,
+          action: "LGPD_DATA_EXPORT",
+          details: { type: "export", status: "completed", requested_at: requestedAt, completed_at: completedAt },
+        })
+        .select("id,action,details,created_at")
+        .single();
 
-    if (auditRecord && !auditError) {
-      setAuditLogs((previous) => [auditRecord as AuditLog, ...previous]);
-      setDataRequests((previous) => [{
-        id: auditRecord.id,
-        type: "export",
-        status: "completed",
-        requested_at: requestedAt,
-        completed_at: new Date().toISOString(),
-      }, ...previous]);
-      toast.success("Arquivo JSON com os dados consultados foi baixado.");
-    } else {
-      console.error("Exportação concluída, mas a auditoria falhou:", auditError);
-      toast.warning("Arquivo baixado, mas não foi possível registrar a exportação no histórico do servidor.");
+      if (auditRecord && !auditError) {
+        setAuditLogs((previous) => [auditRecord as AuditLog, ...previous]);
+        setDataRequests((previous) => [{
+          id: auditRecord.id,
+          type: "export",
+          status: "completed",
+          requested_at: requestedAt,
+          completed_at: completedAt,
+        }, ...previous]);
+        toast.success("Arquivo JSON com os dados consultados foi baixado.");
+      } else {
+        console.error("Exportação concluída, mas a auditoria falhou:", auditError);
+        toast.warning("Arquivo baixado, mas não foi possível registrar a exportação no histórico do servidor.");
+      }
+    } catch (error) {
+      console.error("Falha inesperada ao exportar dados pessoais:", error);
+      toast.error("Ocorreu um erro inesperado. Nenhum resultado foi confirmado.");
+    } finally {
+      setExporting(false);
     }
   };
 
