@@ -2,16 +2,16 @@ import { createClient } from "@supabase/supabase-js";
 import { brokeredPreviewStorage } from "@/integrations/supabase/previewAuthStorage";
 
 // Untyped client for legacy code that references tables not yet in the typed schema.
-const url =
+export const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL ||
   "https://bzpxmeuygbfdagnafawe.supabase.co";
-const key =
+export const SUPABASE_PUBLISHABLE_KEY =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ6cHhtZXV5Z2JmZGFnbmFmYXdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMjQ2MjMsImV4cCI6MjA5NDYwMDYyM30.xJfCNXI7PHpKursvrTtgYFMNe12tUwL5PRThNRFmwaY";
 
 export const isSupabaseConfigured = true;
-export const supabase = createClient(url, key, {
+export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: brokeredPreviewStorage(),
     persistSession: true,
