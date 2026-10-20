@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,8 +7,6 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Login from "./pages/Login.tsx";
 import TeacherDashboard from "./pages/TeacherDashboard.tsx";
-import StudentDashboard from "./pages/StudentDashboard.tsx";
-import ParentDashboard from "./pages/ParentDashboard.tsx";
 import Attendance from "./pages/Attendance.tsx";
 import Agenda from "./pages/Agenda.tsx";
 import Announcements from "./pages/Announcements.tsx";
@@ -88,8 +86,8 @@ const App = () => (
                 {/* Rotas Legadas/Existentes */}
                 <Route path="/admin" element={<ProtectedRoute roles={["ADMIN"]}><AdminDashboard /></ProtectedRoute>} />
                 <Route path="/professor" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><TeacherDashboard /></ProtectedRoute>} />
-                <Route path="/aluno" element={<ProtectedRoute roles={["STUDENT"]}><StudentDashboard /></ProtectedRoute>} />
-                <Route path="/responsavel" element={<ProtectedRoute roles={["PARENT"]}><ParentDashboard /></ProtectedRoute>} />
+                <Route path="/aluno" element={<ProtectedRoute roles={["STUDENT"]}><Navigate to="/aluno/dashboard" replace /></ProtectedRoute>} />
+                <Route path="/responsavel" element={<ProtectedRoute roles={["PARENT"]}><Navigate to="/parent/portal" replace /></ProtectedRoute>} />
                 <Route path="/chamada" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><Attendance /></ProtectedRoute>} />
                 <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
                 <Route path="/cadastro" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><CadastroGeral /></ProtectedRoute>} />
