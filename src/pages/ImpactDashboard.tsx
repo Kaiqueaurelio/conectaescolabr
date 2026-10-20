@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import { GlassLayout, GlassContainer } from "@/components/GlassLayout";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -6,8 +7,8 @@ import { TrendingUp, Users, Heart, Zap, AlertCircle } from "lucide-react";
 
 interface ImpactMetric {
   label: string;
-  value: number;
-  change: number;
+  value: number | null;
+  change: number | null;
   icon: React.ReactNode;
   color: string;
 }
@@ -16,7 +17,7 @@ interface TrendData {
   month: string;
   families: number;
   baskets: number;
-  attendance: number;
+  attendance: number | null;
 }
 
 export function ImpactDashboardPage() {
@@ -26,51 +27,120 @@ export function ImpactDashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simular carregamento de dados reais do Supabase
-    // Em produção, isso viria de queries ao banco de dados
-    setTimeout(() => {
+    let active = true;
+
+    const loadDashboard = async () => {
+      setLoading(true);
+      const start = new Date();
+      start.setDate(1);
+      start.setMonth(start.getMonth() - 5);
+      const startIso = start.toISOString();
+
+      const [
+        familiesCount,
+        benefitsCount,
+        attendanceTotal,
+        attendancePresent,
+        volunteersCount,
+        familiesByMonth,
+        benefitsByMonth,
+        attendanceByMonth,
+      ] = await Promise.all([
+        supabase.from("users").select("id", { count: "exact", head: true }).eq("role", "PARENT").eq("status", "APPROVED"),
+        supabase.from("benefit_distributions").select("id", { count: "exact", head: true }),
+        supabase.from("attendance_records").select("id", { count: "exact", head: true }),
+        supabase.from("attendance_records").select("id", { count: "exact", head: true }).eq("status", "PRESENT"),
+        supabase.from("users").select("id", { count: "exact", head: true }).eq("role", "VOLUNTEER").eq("status", "APPROVED"),
+        supabase.from("users").select("created_at").eq("role", "PARENT").eq("status", "APPROVED").gte("created_at", startIso),
+        supabase.from("benefit_distributions").select("distribution_date,quantity").gte("distribution_date", startIso.slice(0, 10)),
+        supabase.from("attendance_records").select("date,status").gte("date", startIso.slice(0, 10)),
+      ]);
+
+      if (!active) return;
+
+      const hasErrors = [
+        familiesCount.error, benefitsCount.error, attendanceTotal.error,
+        attendancePresent.error, volunteersCount.error, familiesByMonth.error,
+        benefitsByMonth.error, attendanceByMonth.error,
+      ].some(Boolean);
+      if (hasErrors) {
+        console.error("Falha ao carregar dados do painel de impacto", {
+          families: familiesCount.error, benefits: benefitsCount.error,
+          attendance: attendanceTotal.error, volunteers: volunteersCount.error,
+          familiesByMonth: familiesByMonth.error, benefitsByMonth: benefitsByMonth.error,
+          attendanceByMonth: attendanceByMonth.error,
+        });
+      }
+
+      const totalAttendance = attendanceTotal.error ? null : (attendanceTotal.count ?? 0);
+      const presentAttendance = attendancePresent.error ? null : (attendancePresent.count ?? 0);
+      const attendanceRate = totalAttendance === null || presentAttendance === null
+        ? null
+        : totalAttendance > 0 ? Math.round((presentAttendance / totalAttendance) * 100) : null;
+
       setMetrics([
         {
-          label: "Famílias Atendidas",
-          value: 247,
-          change: 12,
+          label: "Famílias cadastradas",
+          value: familiesCount.error ? null : (familiesCount.count ?? 0),
+          change: null,
           icon: <Users className="w-6 h-6" />,
           color: "from-green-500 to-emerald-600",
         },
         {
-          label: "Cestas Distribuídas",
-          value: 1243,
-          change: 28,
+          label: "Distribuições de benefícios",
+          value: benefitsCount.error ? null : (benefitsCount.count ?? 0),
+          change: null,
           icon: <Heart className="w-6 h-6" />,
           color: "from-orange-500 to-red-600",
         },
         {
-          label: "Frequência Média",
-          value: 87,
-          change: 5,
+          label: "Presenças registradas",
+          value: attendanceRate,
+          change: null,
           icon: <TrendingUp className="w-6 h-6" />,
           color: "from-blue-500 to-cyan-600",
         },
         {
-          label: "Voluntários Ativos",
-          value: 34,
-          change: 8,
+          label: "Voluntários aprovados",
+          value: volunteersCount.error ? null : (volunteersCount.count ?? 0),
+          change: null,
           icon: <Zap className="w-6 h-6" />,
           color: "from-purple-500 to-pink-600",
         },
       ]);
 
-      setTrendData([
-        { month: "Jan", families: 180, baskets: 850, attendance: 82 },
-        { month: "Fev", families: 195, baskets: 920, attendance: 84 },
-        { month: "Mar", families: 210, baskets: 1050, attendance: 85 },
-        { month: "Abr", families: 225, baskets: 1100, attendance: 86 },
-        { month: "Mai", families: 235, baskets: 1150, attendance: 87 },
-        { month: "Jun", families: 247, baskets: 1243, attendance: 87 },
-      ]);
+      const familyRows = familiesByMonth.data ?? [];
+      const benefitRows = benefitsByMonth.data ?? [];
+      const attendanceRows = attendanceByMonth.data ?? [];
+      const months = Array.from({ length: 6 }, (_, index) => {
+        const date = new Date(start.getFullYear(), start.getMonth() + index, 1);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        const families = familyRows.filter((row) => row.created_at?.slice(0, 7) === monthKey).length;
+        const baskets = benefitRows
+          .filter((row) => String(row.distribution_date).slice(0, 7) === monthKey)
+          .reduce((sum, row) => sum + Number(row.quantity ?? 0), 0);
+        const monthAttendance = attendanceRows.filter((row) => String(row.date).slice(0, 7) === monthKey);
+        const present = monthAttendance.filter((row) => row.status === "PRESENT").length;
+        return {
+          month: date.toLocaleDateString("pt-BR", { month: "short" }),
+          families,
+          baskets,
+          attendance: monthAttendance.length > 0 ? Math.round((present / monthAttendance.length) * 100) : null,
+        };
+      });
 
+      setTrendData(months);
       setLoading(false);
-    }, 500);
+    };
+
+    void loadDashboard().catch((error) => {
+      console.error("Erro inesperado ao carregar painel:", error);
+      if (active) setLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const sidebarItems = [
@@ -109,12 +179,12 @@ export function ImpactDashboardPage() {
                 </div>
                 <div className="flex items-center gap-1 bg-white/20 px-2 py-1 rounded-full text-sm">
                   <TrendingUp className="w-3 h-3" />
-                  <span>+{metric.change}%</span>
+                  {metric.change !== null && <span>+{metric.change}%</span>}
                 </div>
               </div>
               <h3 className="text-sm font-medium text-white/90 mb-1">{metric.label}</h3>
-              <p className="text-3xl font-bold">{metric.value.toLocaleString()}</p>
-              <p className="text-xs text-white/75 mt-2">vs. mês anterior</p>
+              <p className="text-3xl font-bold">{loading ? "…" : metric.value === null ? "—" : metric.label === "Presenças registradas" ? `${metric.value}%` : metric.value.toLocaleString()}</p>
+              <p className="text-xs text-white/75 mt-2">{metric.change === null ? "Dados do banco de dados" : "vs. mês anterior"}</p>
             </div>
           ))}
         </div>
@@ -179,28 +249,15 @@ export function ImpactDashboardPage() {
           </div>
         </div>
 
-        {/* Alertas e Avisos */}
+        {/* Alertas fictícios removidos: exibir somente alertas derivados de regras e dados reais. */}
         <div className="bg-card rounded-2xl p-6 shadow-soft-lg">
-          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-coral" />
-            Alertas Importantes
+          <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-muted-foreground" />
+            Integridade dos dados
           </h3>
-          <div className="space-y-3">
-            <div className="flex items-start gap-3 p-4 bg-coral/10 rounded-lg border border-coral/20">
-              <div className="w-2 h-2 rounded-full bg-coral mt-1.5" />
-              <div>
-                <p className="font-medium text-foreground">Estoque Baixo</p>
-                <p className="text-sm text-muted-foreground">Leite em pó: apenas 15 unidades restantes</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 p-4 bg-tertiary/10 rounded-lg border border-tertiary/20">
-              <div className="w-2 h-2 rounded-full bg-tertiary mt-1.5" />
-              <div>
-                <p className="font-medium text-foreground">Frequência Crítica</p>
-                <p className="text-sm text-muted-foreground">3 alunos com mais de 5 faltas consecutivas</p>
-              </div>
-            </div>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Os indicadores acima são consultados no banco de dados. Um traço (—) indica que a consulta falhou ou que não há registros suficientes para calcular a métrica; os números de demonstração foram removidos.
+          </p>
         </div>
       </GlassContainer>
     </GlassLayout>
