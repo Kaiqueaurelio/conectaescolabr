@@ -77,8 +77,8 @@ export default function Settings() {
       <Card className="p-5 mb-4">
         <h2 className="text-sm font-semibold flex items-center gap-2 mb-4"><Bell className="h-4 w-4 text-secondary" /> Notificações</h2>
         <div className="space-y-4">
-          <Row label="Notificações no app" desc="Receber alertas de comunicados e lembretes." checked={prefs.notifications} onChange={(v) => setPrefs((p) => ({ ...p, notifications: v }))} />
-          <Row label="Resumo por e-mail" desc="Enviar resumo semanal das atividades." checked={prefs.emailDigest} onChange={(v) => setPrefs((p) => ({ ...p, emailDigest: v }))} />
+          <Row label="Preferência de notificações" desc="Salva neste navegador; alertas em tempo real ainda não estão conectados." checked={prefs.notifications} onChange={(v) => setPrefs((p) => ({ ...p, notifications: v }))} />
+          <Row label="Resumo por e-mail (indisponível)" desc="O envio automático de e-mails ainda não está configurado." checked={false} disabled onChange={() => undefined} />
         </div>
       </Card>
 
@@ -110,14 +110,14 @@ export default function Settings() {
   );
 }
 
-function Row({ label, desc, checked, onChange }: { label: string; desc: string; checked: boolean; onChange: (v: boolean) => void }) {
+function Row({ label, desc, checked, onChange, disabled = false }: { label: string; desc: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (
     <div className="flex items-start justify-between gap-3">
       <div>
         <p className="text-sm font-medium">{label}</p>
         <p className="text-xs text-muted-foreground">{desc}</p>
       </div>
-      <Switch checked={checked} onCheckedChange={onChange} />
+      <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
     </div>
   );
 }
