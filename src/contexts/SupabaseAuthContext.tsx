@@ -49,8 +49,13 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         if (error) {
           console.error("Erro ao carregar perfil:", error);
           setUser(null);
-        } else if (!data || !["APPROVED"].includes(data.status)) {
+        } else if (!data || data.status !== "APPROVED" ||
+          !["ADMIN", "TEACHER", "STUDENT", "PARENT", "VOLUNTEER"].includes(data.role)) {
           setUser(null);
+          // Missing, pending, rejected, or unsupported profiles must not keep
+          // an authenticated session that cannot be authorized by the app.
+          void supabase.auth.signOut();
+          setSession(null);
         } else {
           setUser(data as UserProfile);
         }
@@ -148,6 +153,12 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
             ? "Sua conta está aguardando aprovação."
             : "Sua conta não possui autorização para acessar o sistema.",
         };
+      }
+      if (!["ADMIN", "TEACHER", "STUDENT", "PARENT"].includes(profile.role)) {
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        return { success: false, error: "Esse perfil ainda não possui uma área de acesso configurada." };
       }
 
       setSession(data.session);
