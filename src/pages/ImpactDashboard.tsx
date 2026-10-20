@@ -187,7 +187,7 @@ export function ImpactDashboardPage() {
                 )}
               </div>
               <h3 className="text-sm font-medium text-white/90 mb-1">{metric.label}</h3>
-              <p className="text-3xl font-bold">{loading ? "…" : metric.value === null ? "—" : metric.label === "Presenças registradas" ? `${metric.value}%` : metric.value.toLocaleString()}</p>
+              <p className="text-3xl font-bold">{loading ? "…" : metric.value === null ? "—" : metric.label === "Taxa de presença" ? `${metric.value}%` : metric.value.toLocaleString()}</p>
               <p className="text-xs text-white/75 mt-2">{metric.change === null ? "Dados do banco de dados" : "vs. mês anterior"}</p>
             </div>
           ))}
