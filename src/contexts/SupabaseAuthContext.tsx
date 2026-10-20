@@ -124,15 +124,15 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         }
 
         const profile = profileData as UserProfile;
-        if (profile.status === "PENDING" || profile.status === "REJECTED") {
+        if (profile.status !== "APPROVED") {
           await supabase.auth.signOut();
           setSession(null);
           setUser(null);
           return {
             success: false,
-            error: profile.status === "PENDING"
-              ? "Sua conta está aguardando aprovação"
-              : "Sua conta foi rejeitada",
+            error: profile.status === "REJECTED"
+              ? "Sua conta foi rejeitada"
+              : "Sua conta está aguardando aprovação",
           };
         }
         setUser(profile);
@@ -203,16 +203,36 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: "Usuário não autenticado" };
       }
 
-      const { error } = await supabase
+      // Nunca permita que um formulário de perfil altere role, status, auth_id
+      // ou outros campos de controle. A atualização do e-mail exige um fluxo
+      // próprio de autenticação e confirmação.
+      const editableFields = ["full_name", "avatar_url", "phone", "address"] as const;
+      const safeUpdates: Partial<Pick<UserProfile, (typeof editableFields)[number]>> = {};
+      for (const field of editableFields) {
+        if (Object.prototype.hasOwnProperty.call(updates, field)) {
+          safeUpdates[field] = updates[field] as never;
+        }
+      }
+
+      if (Object.keys(safeUpdates).length === 0) {
+        return { success: false, error: "Nenhum campo de perfil permitido foi informado. O e-mail deve ser alterado pelo fluxo de autenticação." };
+      }
+
+      const { data, error } = await supabase
         .from("users")
-        .update(updates)
-        .eq("id", user.id);
+        .update(safeUpdates)
+        .eq("id", user.id)
+        .select("id")
+        .maybeSingle();
 
       if (error) {
         return { success: false, error: error.message };
       }
+      if (!data) {
+        return { success: false, error: "O perfil não foi atualizado. Verifique suas permissões e tente novamente." };
+      }
 
-      setUser({ ...user, ...updates });
+      setUser({ ...user, ...safeUpdates });
       return { success: true };
     } catch (error) {
       return { success: false, error: String(error) };
