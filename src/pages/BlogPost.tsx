@@ -30,6 +30,7 @@ export default function BlogPost() {
         .from("blog_posts")
         .select("id,title,cover_image_url,content,author_id,published_at")
         .eq("id", id)
+        .lte("published_at", new Date().toISOString())
         .maybeSingle();
       if (!active) return;
       if (queryError) {
