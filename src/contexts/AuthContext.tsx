@@ -158,8 +158,8 @@ export function roleHome(role: Role): string {
   const homes: Record<Role, string> = {
     ADMIN: "/admin/dashboard",
     TEACHER: "/professor",
-    STUDENT: "/aluno",
-    PARENT: "/responsavel",
+    STUDENT: "/aluno/dashboard",
+    PARENT: "/parent/portal",
   };
   return homes[role] || "/";
 }
