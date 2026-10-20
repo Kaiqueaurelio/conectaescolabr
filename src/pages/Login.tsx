@@ -45,7 +45,7 @@ export default function Login() {
     if (!name.trim()) return toast.error("Informe seu nome completo.");
     if (!email.trim()) return toast.error("Informe seu e-mail.");
     if (!password.trim()) return toast.error("Informe uma senha.");
-    if (password.length < 6) return toast.error("A senha deve ter pelo menos 6 caracteres.");
+    if (password.length < 8) return toast.error("A senha deve ter pelo menos 8 caracteres.");
     
     setSubmitting(true);
     const { error, success } = await register(name.trim(), email.trim(), password, role);
@@ -185,7 +185,6 @@ export default function Login() {
                     <SelectItem value="STUDENT">Aluno(a)</SelectItem>
                     <SelectItem value="PARENT">Responsável</SelectItem>
                     <SelectItem value="TEACHER">Professor(a)</SelectItem>
-                    <SelectItem value="VOLUNTEER">Voluntário(a)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
