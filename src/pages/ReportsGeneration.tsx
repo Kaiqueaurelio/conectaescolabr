@@ -261,9 +261,7 @@ export function ReportsGenerationPage() {
                   </div>
 
                   <div className="flex items-end">
-                    <Button className="w-full" variant="outline" onClick={() => toast.info("Os filtros serão aplicados ao gerar um dos modelos abaixo.")}>
-                      Aplicar Filtros
-                    </Button>
+                    <p className="text-xs text-muted-foreground">O período selecionado será aplicado ao gerar o relatório.</p>
                   </div>
                 </div>
               </ModernCard>
@@ -272,7 +270,7 @@ export function ReportsGenerationPage() {
               <ModernSection title="Modelos Disponíveis">
                 <ModernGrid cols={2}>
                   {reportTemplates.map((template) => (
-                    <ModernCard key={template.id} className="p-6 hover-lift cursor-pointer">
+                    <ModernCard key={template.id} className="p-6 hover-lift">
                       <div className="flex items-start gap-4 mb-4">
                         <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
                           {template.icon}
