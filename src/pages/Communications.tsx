@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ModernLayout, ModernCard, ModernSection, ModernEmptyState, ModernBadge } from "@/components/ModernLayout";
 import { ModernTopBar, ModernPageHeader, ModernTabs } from "@/components/ModernTopBar";
 import { ModernSidebar } from "@/components/ModernSidebar";
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { supabase } from "@/lib/supabase";
 import { useUsers } from "@/hooks/useSupabaseData";
 import { Bell, Send, MessageSquare, Users, Clock, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -39,8 +40,53 @@ export function CommunicationsPage() {
 
   const [activeTab, setActiveTab] = useState("announcements");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
+  const [savingAnnouncement, setSavingAnnouncement] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+
+  const loadAnnouncements = async () => {
+    setLoadingAnnouncements(true);
+    const { data, error } = await supabase
+      .from("announcements")
+      .select("id,title,content,author_id,target_roles,created_at")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Erro ao carregar comunicados:", error);
+      toast.error("Não foi possível carregar comunicados do banco. Verifique as permissões.");
+      setLoadingAnnouncements(false);
+      return;
+    }
+
+    const authorIds = [...new Set((data ?? []).map((row) => row.author_id).filter(Boolean))];
+    let authorNames = new Map<string, string>();
+    if (authorIds.length > 0) {
+      const { data: authors, error: authorsError } = await supabase
+        .from("users")
+        .select("id,full_name")
+        .in("id", authorIds);
+      if (!authorsError) {
+        authorNames = new Map((authors ?? []).map((author) => [author.id, author.full_name]));
+      }
+    }
+
+    setAnnouncements((data ?? []).map((row) => ({
+      id: row.id,
+      title: row.title,
+      content: row.content,
+      author: authorNames.get(row.author_id) || "Equipe",
+      target: row.target_roles ?? [],
+      created_at: row.created_at,
+      // A tabela atual não possui uma coluna de prioridade; não inventamos
+      // esse valor como se estivesse persistido.
+      priority: "medium",
+    })));
+    setLoadingAnnouncements(false);
+  };
+
+  useEffect(() => {
+    void loadAnnouncements();
+  }, []);
 
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: "",
@@ -51,30 +97,51 @@ export function CommunicationsPage() {
 
   const [newMessage, setNewMessage] = useState("");
 
-  const handleAddAnnouncement = () => {
+  const handleAddAnnouncement = async () => {
     if (!newAnnouncement.title.trim() || !newAnnouncement.content.trim()) {
       toast.error("Título e conteúdo são obrigatórios");
       return;
     }
-
     if (newAnnouncement.target.length === 0) {
       toast.error("Selecione pelo menos um público-alvo");
       return;
     }
+    if (!currentUser?.id) {
+      toast.error("Sua sessão não foi identificada. Entre novamente.");
+      return;
+    }
+
+    setSavingAnnouncement(true);
+    const { data, error } = await supabase
+      .from("announcements")
+      .insert({
+        title: newAnnouncement.title.trim(),
+        content: newAnnouncement.content.trim(),
+        author_id: currentUser.id,
+        target_roles: newAnnouncement.target,
+      })
+      .select("id,title,content,author_id,target_roles,created_at")
+      .single();
+    setSavingAnnouncement(false);
+
+    if (error || !data) {
+      console.error("Erro ao publicar comunicado:", error);
+      toast.error("O comunicado não foi salvo. Verifique as permissões e a estrutura da tabela announcements.");
+      return;
+    }
 
     const announcement: Announcement = {
-      id: `ann-${Date.now()}`,
-      title: newAnnouncement.title,
-      content: newAnnouncement.content,
-      author: currentUser?.full_name || "Anônimo",
-      target: newAnnouncement.target,
-      created_at: new Date().toISOString(),
-      priority: newAnnouncement.priority,
+      id: data.id,
+      title: data.title,
+      content: data.content,
+      author: currentUser.full_name || "Equipe",
+      target: data.target_roles ?? [],
+      created_at: data.created_at,
+      priority: "medium",
     };
-
-    setAnnouncements([announcement, ...announcements]);
+    setAnnouncements((previous) => [announcement, ...previous]);
     setNewAnnouncement({ title: "", content: "", target: [], priority: "medium" });
-    toast.success("Comunicado publicado com sucesso!");
+    toast.success("Comunicado salvo no banco de dados.");
   };
 
   const handleSendMessage = () => {
@@ -96,16 +163,40 @@ export function CommunicationsPage() {
     toast.success("Mensagem enviada!");
   };
 
-  const handleDeleteAnnouncement = (id: string) => {
+  const handleDeleteAnnouncement = async (id: string) => {
     if (!window.confirm("Remover este comunicado?")) return;
-    setAnnouncements(announcements.filter((a) => a.id !== id));
-    toast.success("Comunicado removido");
+    const { data, error } = await supabase
+      .from("announcements")
+      .delete()
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
+    if (error || !data) {
+      console.error("Erro ao remover comunicado:", error);
+      toast.error("Não foi possível remover o comunicado. Verifique suas permissões.");
+      return;
+    }
+    setAnnouncements((previous) => previous.filter((announcement) => announcement.id !== id));
+    toast.success("Comunicado removido do banco de dados.");
   };
 
-  const handleClearAnnouncements = () => {
-    if (!window.confirm("Remover todos os comunicados?")) return;
+  const handleClearAnnouncements = async () => {
+    if (!window.confirm("Remover todos os comunicados exibidos? Esta ação é permanente.")) return;
+    const ids = announcements.map((announcement) => announcement.id);
+    if (ids.length === 0) return;
+    const { data, error } = await supabase
+      .from("announcements")
+      .delete()
+      .in("id", ids)
+      .select("id");
+    if (error || !data || data.length !== ids.length) {
+      console.error("Erro ao limpar comunicados:", error);
+      toast.error("Nem todos os comunicados foram removidos. Verifique as permissões; a lista será recarregada.");
+      await loadAnnouncements();
+      return;
+    }
     setAnnouncements([]);
-    toast.success("Comunicados removidos");
+    toast.success("Comunicados removidos do banco de dados.");
   };
 
   const getPriorityColor = (priority: string) => {
@@ -255,7 +346,7 @@ export function CommunicationsPage() {
 
                     <div className="flex gap-3 justify-end">
                       <Button variant="outline">Cancelar</Button>
-                      <Button onClick={handleAddAnnouncement}>Publicar</Button>
+                      <Button onClick={handleAddAnnouncement} disabled={savingAnnouncement}>{savingAnnouncement ? "Publicando..." : "Publicar"}</Button>
                     </div>
                   </div>
                 </DialogContent>
@@ -269,7 +360,9 @@ export function CommunicationsPage() {
 
               {/* Lista de Comunicados */}
               <ModernSection title="Comunicados Recentes">
-                {announcements.length === 0 ? (
+                {loadingAnnouncements ? (
+                  <p className="text-sm text-muted-foreground">Carregando comunicados salvos...</p>
+                ) : announcements.length === 0 ? (
                   <ModernEmptyState
                     icon={<Bell />}
                     title="Nenhum comunicado"
