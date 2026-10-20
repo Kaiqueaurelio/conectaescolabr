@@ -1,4 +1,5 @@
-import { useData } from "@/contexts/DataContext";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { ColorStatCard } from "@/components/dashboard/ColorStatCard";
 import { Card } from "@/components/ui/card";
@@ -50,25 +51,87 @@ const palette = ["hsl(var(--primary))", "hsl(var(--secondary))", "hsl(var(--tert
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
-export function AdminDashboardGlassPage() {
-  const { students, turmas, events, announcements } = useData();
+interface DashboardAnnouncement {
+  id: string;
+  title: string;
+  content: string;
+  created_at: string;
+}
 
-  const now = new Date();
-  const monthly = Array.from({ length: 5 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - 4 + i, 1);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    return {
-      mes: MONTHS[d.getMonth()],
-      presencas: events.filter((e) => String(e.date ?? "").startsWith(key)).length,
-      benef: announcements.filter((a) => String(a.created_at ?? "").startsWith(key)).length,
-    };
+export function AdminDashboardGlassPage() {
+  const [counts, setCounts] = useState<{ students: number | null; activities: number | null; events: number | null; announcements: number | null; benefits: number | null }>({
+    students: null, activities: null, events: null, announcements: null, benefits: null,
   });
+  const [monthly, setMonthly] = useState<Array<{ mes: string; presencas: number; benef: number }>>([]);
+  const [announcements, setAnnouncements] = useState<DashboardAnnouncement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [queryFailed, setQueryFailed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const loadDashboard = async () => {
+      const now = new Date();
+      const firstMonth = new Date(now.getFullYear(), now.getMonth() - 4, 1);
+      const startDate = firstMonth.toISOString().slice(0, 10);
+      const [
+        studentsCount, activitiesCount, eventsCount, announcementsCount, benefitsCount,
+        attendanceRows, benefitRows, announcementRows,
+      ] = await Promise.all([
+        supabase.from("users").select("id", { count: "exact", head: true }).eq("role", "STUDENT").eq("status", "APPROVED"),
+        supabase.from("activities").select("id", { count: "exact", head: true }),
+        supabase.from("events").select("id", { count: "exact", head: true }),
+        supabase.from("announcements").select("id", { count: "exact", head: true }),
+        supabase.from("benefit_distributions").select("id", { count: "exact", head: true }),
+        supabase.from("attendance_records").select("date,status").gte("date", startDate),
+        supabase.from("benefit_distributions").select("distribution_date,quantity").gte("distribution_date", startDate),
+        supabase.from("announcements").select("id,title,content,created_at").order("created_at", { ascending: false }).limit(5),
+      ]);
+
+      if (!active) return;
+      const errors = [studentsCount.error, activitiesCount.error, eventsCount.error, announcementsCount.error,
+        benefitsCount.error, attendanceRows.error, benefitRows.error, announcementRows.error];
+      const failed = errors.some(Boolean);
+      setQueryFailed(failed);
+      if (failed) console.error("Algumas consultas do painel administrativo falharam:", errors);
+
+      setCounts({
+        students: studentsCount.error ? null : studentsCount.count ?? 0,
+        activities: activitiesCount.error ? null : activitiesCount.count ?? 0,
+        events: eventsCount.error ? null : eventsCount.count ?? 0,
+        announcements: announcementsCount.error ? null : announcementsCount.count ?? 0,
+        benefits: benefitsCount.error ? null : benefitsCount.count ?? 0,
+      });
+      setAnnouncements(announcementRows.error ? [] : (announcementRows.data ?? []) as DashboardAnnouncement[]);
+
+      const attendance = attendanceRows.data ?? [];
+      const benefits = benefitRows.data ?? [];
+      setMonthly(Array.from({ length: 5 }, (_, index) => {
+        const date = new Date(firstMonth.getFullYear(), firstMonth.getMonth() + index, 1);
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        return {
+          mes: MONTHS[date.getMonth()],
+          presencas: attendance.filter((row) => String(row.date).slice(0, 7) === key && row.status === "PRESENT").length,
+          benef: benefits.filter((row) => String(row.distribution_date).slice(0, 7) === key)
+            .reduce((sum, row) => sum + Number(row.quantity ?? 0), 0),
+        };
+      }));
+      setLoading(false);
+    };
+    void loadDashboard().catch((error) => {
+      console.error("Erro inesperado no painel administrativo:", error);
+      if (active) {
+        setQueryFailed(true);
+        setLoading(false);
+      }
+    });
+    return () => { active = false; };
+  }, []);
 
   const roleData = [
-    { name: "Alunas", value: students.length, color: "hsl(var(--primary))" },
-    { name: "Turmas", value: turmas.length, color: "hsl(var(--secondary))" },
-    { name: "Eventos", value: events.length, color: "hsl(var(--tertiary))" },
-    { name: "Avisos", value: announcements.length, color: "hsl(var(--coral))" },
+    { name: "Alunas aprovadas", value: counts.students, color: "hsl(var(--primary))" },
+    { name: "Atividades", value: counts.activities, color: "hsl(var(--secondary))" },
+    { name: "Eventos", value: counts.events, color: "hsl(var(--tertiary))" },
+    { name: "Comunicados", value: counts.announcements, color: "hsl(var(--coral))" },
   ];
 
   return (
@@ -79,15 +142,15 @@ export function AdminDashboardGlassPage() {
         <div className="absolute -bottom-12 -left-8 h-44 w-44 rounded-full bg-secondary/40 blur-3xl animate-blob" />
         <p className="text-xs opacity-90">Resumo geral</p>
         <h2 className="text-2xl font-bold mt-1">Visão da Associação Camila</h2>
-        <p className="text-xs opacity-90 mt-1">Acompanhe presença, comunicação e benefícios em tempo real.</p>
+        <p className="text-xs opacity-90 mt-1">Indicadores consultados diretamente no banco de dados.</p>
       </section>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <ColorStatCard label="Assistidas" value={students.length} icon={Users} tone="primary" trend="+12% este mês" />
-        <ColorStatCard label="Turmas ativas" value={turmas.length} icon={GraduationCap} tone="secondary" />
-        <ColorStatCard label="Eventos" value={events.length} icon={CalendarDays} tone="tertiary" />
-        <ColorStatCard label="Comunicados" value={announcements.length} icon={Megaphone} tone="coral" />
+        <ColorStatCard label="Alunas aprovadas" value={loading ? "…" : counts.students ?? "—"} icon={Users} tone="primary" />
+        <ColorStatCard label="Atividades cadastradas" value={loading ? "…" : counts.activities ?? "—"} icon={GraduationCap} tone="secondary" />
+        <ColorStatCard label="Eventos" value={loading ? "…" : counts.events ?? "—"} icon={CalendarDays} tone="tertiary" />
+        <ColorStatCard label="Comunicados" value={loading ? "…" : counts.announcements ?? "—"} icon={Megaphone} tone="coral" />
       </div>
 
       {/* Chart row */}
@@ -96,7 +159,7 @@ export function AdminDashboardGlassPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-xs text-muted-foreground">Últimos 5 meses</p>
-              <h3 className="font-bold">Presenças e benefícios distribuídos</h3>
+              <h3 className="font-bold">Presenças registradas e quantidades distribuídas</h3>
             </div>
             <TrendingUp className="h-5 w-5 text-primary" />
           </div>
@@ -116,7 +179,7 @@ export function AdminDashboardGlassPage() {
 
         <Card className="p-5 rounded-2xl shadow-soft">
           <h3 className="font-bold mb-2">Distribuição</h3>
-          <p className="text-xs text-muted-foreground mb-2">Visão geral</p>
+          <p className="text-xs text-muted-foreground mb-2">Distribuições registradas: {loading ? "…" : counts.benefits ?? "—"}</p>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -132,12 +195,18 @@ export function AdminDashboardGlassPage() {
               <li key={d.name} className="flex items-center gap-2 text-xs">
                 <span className="h-2 w-2 rounded-full" style={{ background: palette[i] }} />
                 <span className="flex-1 text-muted-foreground">{d.name}</span>
-                <span className="font-semibold">{d.value}</span>
+                <span className="font-semibold">{d.value === null ? "—" : d.value}</span>
               </li>
             ))}
           </ul>
         </Card>
       </div>
+
+      {queryFailed && (
+        <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-muted-foreground">
+          Algumas consultas falharam. Os indicadores indisponíveis aparecem como traço (—), sem valores de demonstração.
+        </div>
+      )}
 
       {/* Recent announcements */}
       <Card className="p-5 rounded-2xl shadow-soft">
