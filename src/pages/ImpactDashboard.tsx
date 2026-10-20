@@ -177,10 +177,12 @@ export function ImpactDashboardPage() {
                 <div className="p-3 bg-white/20 rounded-lg backdrop-blur">
                   {metric.icon}
                 </div>
-                <div className="flex items-center gap-1 bg-white/20 px-2 py-1 rounded-full text-sm">
-                  <TrendingUp className="w-3 h-3" />
-                  {metric.change !== null && <span>+{metric.change}%</span>}
-                </div>
+                {metric.change !== null && (
+                  <div className="flex items-center gap-1 bg-white/20 px-2 py-1 rounded-full text-sm">
+                    <TrendingUp className="w-3 h-3" />
+                    <span>+{metric.change}%</span>
+                  </div>
+                )}
               </div>
               <h3 className="text-sm font-medium text-white/90 mb-1">{metric.label}</h3>
               <p className="text-3xl font-bold">{loading ? "…" : metric.value === null ? "—" : metric.label === "Presenças registradas" ? `${metric.value}%` : metric.value.toLocaleString()}</p>
