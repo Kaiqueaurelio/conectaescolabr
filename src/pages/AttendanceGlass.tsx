@@ -14,12 +14,6 @@ interface StudentRow { id: string; full_name: string; email: string; }
 interface ActivityRow { id: string; name: string; }
 interface SavedAttendance { id: string; user_id: string; status: AttendanceStatus; }
 
-const statusLabels: Record<AttendanceStatus, string> = {
-  PRESENT: "Presente",
-  ABSENT: "Ausente",
-  EXCUSED: "Justificado",
-};
-
 export function AttendanceGlassPage() {
   const { user: currentUser } = useSupabaseAuth();
   const [students, setStudents] = useState<StudentRow[]>([]);
@@ -86,6 +80,7 @@ export function AttendanceGlassPage() {
         if (["PRESENT", "ABSENT", "EXCUSED"].includes(row.status)) next[row.user_id] = row.status;
       }
       setAttendance(next);
+      setLoadError(false);
     };
     void loadRecords().catch((error) => {
       console.error("Falha inesperada ao carregar chamada salva:", error);
