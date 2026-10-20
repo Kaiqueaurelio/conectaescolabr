@@ -28,6 +28,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const profileRequestId = useRef(0);
+  const registrationInProgress = useRef(false);
 
   // A profile must be loaded from the server for every authenticated session.
   // Never restore application permissions from localStorage.
@@ -37,6 +38,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
 
     const loadProfile = async (authId: string) => {
       const requestId = ++profileRequestId.current;
+      const wasRegistering = registrationInProgress.current;
       setUser(null);
       try {
         const { data, error } = await supabase
@@ -49,11 +51,18 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         if (error) {
           console.error("Erro ao carregar perfil:", error);
           setUser(null);
-        } else if (!data || data.status !== "APPROVED" ||
+        } else if (!data) {
+          setUser(null);
+          // During public signup the profile is inserted immediately after the
+          // auth identity. Do not race that insert by signing out prematurely.
+          if (!wasRegistering) {
+            void supabase.auth.signOut();
+            setSession(null);
+          }
+        } else if (data.status !== "APPROVED" ||
           !["ADMIN", "TEACHER", "STUDENT", "PARENT", "VOLUNTEER"].includes(data.role)) {
           setUser(null);
-          // Missing, pending, rejected, or unsupported profiles must not keep
-          // an authenticated session that cannot be authorized by the app.
+          // Pending, rejected, or unsupported profiles cannot access the app.
           void supabase.auth.signOut();
           setSession(null);
         } else {
@@ -176,6 +185,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     fullName: string,
     role: UserProfile["role"]
   ): Promise<{ success: boolean; error?: string }> => {
+    registrationInProgress.current = true;
     try {
       if (!fullName.trim() || !email.trim() || !password) {
         return { success: false, error: "Preencha nome, e-mail e senha." };
@@ -213,6 +223,8 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) };
+    } finally {
+      registrationInProgress.current = false;
     }
   };
 
