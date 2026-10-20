@@ -244,7 +244,7 @@ export function useUpdateUser() {
  * Hook para criar novo usuário
  */
 export function useCreateUser() {
-  const [loading, setLoading] = useState(false);
+  const loading = false;
   const [error, setError] = useState<string | null>(null);
 
   // Criar apenas a linha de perfil não cria uma conta em auth.users. Até haver
