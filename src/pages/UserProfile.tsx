@@ -77,6 +77,10 @@ export function UserProfilePage() {
 
   const handleSave = async () => {
     if (!user) return;
+    if (formData.role === "VOLUNTEER" && formData.status === "APPROVED") {
+      toast.error("O perfil de voluntário ainda não possui uma área de acesso configurada. Não é possível aprová-lo até essa área ser implementada.");
+      return;
+    }
     if (isOwner && secureLoading) {
       toast.error("Aguarde o carregamento dos dados protegidos antes de salvar.");
       return;
