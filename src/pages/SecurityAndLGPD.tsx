@@ -1,13 +1,13 @@
-import { useState } from "react";
-import { ModernLayout, ModernCard, ModernSection } from "@/components/ModernLayout";
+import { useState, useEffect } from "react";
+import { ModernLayout, ModernCard, ModernSection, ModernEmptyState } from "@/components/ModernLayout";
 import { ModernTopBar, ModernPageHeader, ModernTabs } from "@/components/ModernTopBar";
 import { ModernSidebar } from "@/components/ModernSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-import { Shield, Lock, Eye, EyeOff, Download, Trash2, AlertTriangle, CheckCircle } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { Shield, Lock, Eye, EyeOff, Download, Trash2, AlertTriangle, CheckCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 interface DataRequest {
@@ -18,6 +18,13 @@ interface DataRequest {
   completed_at?: string;
 }
 
+interface AuditLog {
+  id: string;
+  action: string;
+  details?: Record<string, unknown> | null;
+  created_at: string;
+}
+
 export function SecurityAndLGPDPage() {
   const { user: currentUser } = useSupabaseAuth();
 
@@ -25,99 +32,229 @@ export function SecurityAndLGPDPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [dataRequests, setDataRequests] = useState<DataRequest[]>([
-    {
-      id: "1",
-      type: "export",
-      status: "completed",
-      requested_at: new Date(Date.now() - 7 * 86400000).toISOString(),
-      completed_at: new Date(Date.now() - 6 * 86400000).toISOString(),
-    },
-  ]);
+  const [dataRequests, setDataRequests] = useState<DataRequest[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [loadingAuditLogs, setLoadingAuditLogs] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
-  const handleChangePassword = () => {
+  useEffect(() => {
+    if (!currentUser?.id) {
+      setDataRequests([]);
+      setAuditLogs([]);
+      setLoadingAuditLogs(false);
+      return;
+    }
+
+    let active = true;
+    const loadAuditLogs = async () => {
+      setLoadingAuditLogs(true);
+      const { data, error } = await supabase
+        .from("user_activity_logs")
+        .select("id,action,details,created_at")
+        .eq("user_id", currentUser.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (!active) return;
+      if (error) {
+        console.error("Erro ao carregar auditoria:", error);
+        setAuditLogs([]);
+        setDataRequests([]);
+        setLoadingAuditLogs(false);
+        return;
+      }
+
+      const logs = (data ?? []) as AuditLog[];
+      setAuditLogs(logs);
+      setDataRequests(logs.flatMap((log) => {
+        if (log.action !== "LGPD_DATA_EXPORT" && log.action !== "LGPD_DATA_DELETION_REQUEST") return [];
+        const details = log.details ?? {};
+        return [{
+          id: log.id,
+          type: details.type === "deletion" ? "deletion" as const : "export" as const,
+          status: details.status === "completed" ? "completed" as const : "pending" as const,
+          requested_at: typeof details.requested_at === "string" ? details.requested_at : log.created_at,
+          ...(typeof details.completed_at === "string" ? { completed_at: details.completed_at } : {}),
+        }];
+      }));
+      setLoadingAuditLogs(false);
+    };
+
+    void loadAuditLogs().catch((error) => {
+      console.error("Erro inesperado ao carregar auditoria:", error);
+      if (active) setLoadingAuditLogs(false);
+    });
+    return () => { active = false; };
+  }, [currentUser?.id]);
+
+  const handleChangePassword = async () => {
     if (!newPassword || !confirmPassword) {
       toast.error("Preencha todos os campos");
       return;
     }
-
     if (newPassword !== confirmPassword) {
       toast.error("As senhas não coincidem");
       return;
     }
-
-    if (newPassword.length < 8) {
-      toast.error("A senha deve ter no mínimo 8 caracteres");
+    if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      toast.error("Use pelo menos 8 caracteres, com letras maiúsculas, minúsculas e números.");
       return;
     }
 
-    toast.success("Senha alterada com sucesso!");
+    setChangingPassword(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setChangingPassword(false);
+    if (error) {
+      toast.error(`Não foi possível alterar a senha: ${error.message}`);
+      return;
+    }
+
+    const createdAt = new Date().toISOString();
+    const { error: auditError } = await supabase.from("user_activity_logs").insert({
+      user_id: currentUser?.id,
+      action: "PASSWORD_CHANGED",
+      details: { changed_at: createdAt },
+    });
     setNewPassword("");
     setConfirmPassword("");
+    if (auditError) {
+      console.error("Senha alterada, mas a auditoria não foi gravada:", auditError);
+      toast.warning("Senha alterada, mas não foi possível registrar o evento de auditoria.");
+    } else {
+      toast.success("Senha alterada com sucesso.");
+    }
   };
 
-  const handleExportData = () => {
-    const newRequest: DataRequest = {
-      id: `req-${Date.now()}`,
-      type: "export",
-      status: "processing",
-      requested_at: new Date().toISOString(),
+  const handleExportData = async () => {
+    if (!currentUser?.id) {
+      toast.error("Sua sessão não foi identificada. Entre novamente.");
+      return;
+    }
+
+    setExporting(true);
+    const [profile, socialRecords, attendanceRecords, benefits] = await Promise.all([
+      supabase.from("users").select("*").eq("id", currentUser.id).single(),
+      supabase.from("social_records").select("*").eq("user_id", currentUser.id),
+      supabase.from("attendance_records").select("*").eq("user_id", currentUser.id),
+      supabase.from("benefit_distributions").select("*").eq("user_id", currentUser.id),
+    ]);
+    setExporting(false);
+
+    const queryError = profile.error || socialRecords.error || attendanceRecords.error || benefits.error;
+    if (queryError || !profile.data) {
+      console.error("Erro ao exportar dados pessoais:", queryError);
+      toast.error("Não foi possível consultar todos os seus dados. Nenhum arquivo foi criado.");
+      return;
+    }
+
+    const requestedAt = new Date().toISOString();
+    const payload = {
+      exportado_em: requestedAt,
+      observacao: "Exportação dos dados pessoais disponíveis nas tabelas consultadas. Registros de outras tabelas ou vínculos não configurados podem não estar incluídos.",
+      perfil: profile.data,
+      prontuario_social: socialRecords.data ?? [],
+      frequencia: attendanceRecords.data ?? [],
+      beneficios_recebidos: benefits.data ?? [],
     };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `meus-dados-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-    setDataRequests([...dataRequests, newRequest]);
-    toast.success("Solicitação de exportação criada. Você receberá um e-mail em breve.");
+    const { data: auditRecord, error: auditError } = await supabase
+      .from("user_activity_logs")
+      .insert({
+        user_id: currentUser.id,
+        action: "LGPD_DATA_EXPORT",
+        details: { type: "export", status: "completed", requested_at: requestedAt, completed_at: new Date().toISOString() },
+      })
+      .select("id,action,details,created_at")
+      .single();
 
-    // Simular conclusão
-    setTimeout(() => {
-      setDataRequests((prev) =>
-        prev.map((r) =>
-          r.id === newRequest.id
-            ? {
-                ...r,
-                status: "completed",
-                completed_at: new Date().toISOString(),
-              }
-            : r
-        )
-      );
-      toast.success("Seus dados estão prontos para download!");
-    }, 3000);
+    if (auditRecord && !auditError) {
+      setAuditLogs((previous) => [auditRecord as AuditLog, ...previous]);
+      setDataRequests((previous) => [{
+        id: auditRecord.id,
+        type: "export",
+        status: "completed",
+        requested_at: requestedAt,
+        completed_at: new Date().toISOString(),
+      }, ...previous]);
+      toast.success("Arquivo JSON com os dados consultados foi baixado.");
+    } else {
+      console.error("Exportação concluída, mas a auditoria falhou:", auditError);
+      toast.warning("Arquivo baixado, mas não foi possível registrar a exportação no histórico do servidor.");
+    }
   };
 
-  const handleRequestDeletion = () => {
-    const newRequest: DataRequest = {
-      id: `req-${Date.now()}`,
+  const handleRequestDeletion = async () => {
+    if (!currentUser?.id) {
+      toast.error("Sua sessão não foi identificada. Entre novamente.");
+      return;
+    }
+    const requestedAt = new Date().toISOString();
+    const { data, error } = await supabase
+      .from("user_activity_logs")
+      .insert({
+        user_id: currentUser.id,
+        action: "LGPD_DATA_DELETION_REQUEST",
+        details: { type: "deletion", status: "pending", requested_at: requestedAt },
+      })
+      .select("id,action,details,created_at")
+      .single();
+
+    if (error || !data) {
+      console.error("Erro ao registrar solicitação de exclusão:", error);
+      toast.error("A solicitação não foi registrada. Entre em contato com a coordenação.");
+      return;
+    }
+
+    setAuditLogs((previous) => [data as AuditLog, ...previous]);
+    setDataRequests((previous) => [{
+      id: data.id,
       type: "deletion",
       status: "pending",
-      requested_at: new Date().toISOString(),
-    };
-
-    setDataRequests([...dataRequests, newRequest]);
-    toast.success("Solicitação de exclusão de dados criada. A coordenação será notificada.");
+      requested_at: requestedAt,
+    }, ...previous]);
+    toast.info("Solicitação registrada no log do servidor. A coordenação ainda precisa consultá-la; nenhum aviso automático foi enviado e os dados não foram apagados.");
   };
 
-  const handleDownloadData = (id: string) => {
-    const element = document.createElement("a");
-    const file = new Blob(
-      [
-        `Dados Pessoais Exportados\nData: ${new Date().toLocaleString("pt-BR")}\n\nNome: ${currentUser?.full_name}\nE-mail: ${currentUser?.email}`,
-      ],
-      { type: "text/plain" }
-    );
-    element.href = URL.createObjectURL(file);
-    element.download = `dados-pessoais-${new Date().toISOString().split("T")[0]}.txt`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    toast.success("Arquivo baixado com sucesso!");
+  const handleDownloadPrivacyDraft = () => {
+    const draft = "RASCUNHO — POLÍTICA DE PRIVACIDADE\n\nEste texto é provisório e precisa ser revisado pela organização antes de ser publicado como política oficial.\n\nA organização deve informar a identidade do controlador, finalidades, bases legais, compartilhamentos, prazos de retenção, direitos dos titulares e canal de contato.\n";
+    const url = URL.createObjectURL(new Blob([draft], { type: "text/plain;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "rascunho-politica-de-privacidade.txt";
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
-  const sidebarItems = [
-    { label: "Dashboard", href: "/admin", icon: "📊" },
-    { label: "Usuários", href: "/admin/users", icon: "👥" },
-    { label: "Presença", href: "/admin/attendance", icon: "✓" },
-    { label: "Benefícios", href: "/admin/benefits", icon: "🎁" },
-  ];
+  const homeByRole: Record<string, string> = {
+    ADMIN: "/admin/dashboard",
+    TEACHER: "/professor",
+    STUDENT: "/aluno/dashboard",
+    PARENT: "/parent/portal",
+    VOLUNTEER: "/voluntario",
+  };
+  const sidebarItems = currentUser?.role === "ADMIN"
+    ? [
+        { label: "Dashboard", href: "/admin/dashboard", icon: "📊" },
+        { label: "Usuários", href: "/admin/users", icon: "👥" },
+        { label: "Presença", href: "/admin/attendance", icon: "✓" },
+        { label: "Benefícios", href: "/admin/benefits", icon: "🎁" },
+        { label: "Segurança e LGPD", href: "/admin/security", icon: "🔒" },
+      ]
+    : [
+        { label: "Meu painel", href: homeByRole[currentUser?.role ?? ""] || "/", icon: "🏠" },
+        { label: "Segurança e LGPD", href: "/admin/security", icon: "🔒" },
+        { label: "Ajuda", href: "/ajuda", icon: "❔" },
+      ];
 
   const tabs = [
     { label: "Segurança", value: "security", icon: <Lock className="w-4 h-4" /> },
@@ -191,28 +328,26 @@ export function SecurityAndLGPDPage() {
                     </p>
                   </div>
 
-                  <Button onClick={handleChangePassword} className="w-full">
+                  <Button onClick={handleChangePassword} disabled={changingPassword} className="w-full">
                     <Lock className="w-4 h-4 mr-2" />
-                    Alterar Senha
+                    {changingPassword ? "Alterando..." : "Alterar Senha"}
                   </Button>
                 </div>
               </ModernCard>
 
-              {/* Sessões Ativas */}
+              {/* Sessão atual */}
               <ModernCard className="p-6">
-                <h3 className="font-semibold text-foreground mb-4">Sessões Ativas</h3>
-                <div className="space-y-3">
-                  <div className="p-4 border border-border rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-medium text-foreground">Navegador Atual</p>
-                        <p className="text-sm text-muted-foreground">Chrome - Windows 10</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Última atividade: agora
-                        </p>
-                      </div>
-                      <CheckCircle className="w-5 h-5 text-success" />
-                    </div>
+                <h3 className="font-semibold text-foreground mb-4">Sessão atual</h3>
+                <div className="flex items-start gap-3 rounded-lg border border-border p-4">
+                  <CheckCircle className="w-5 h-5 text-success" />
+                  <div>
+                    <p className="font-medium text-foreground">Autenticação ativa</p>
+                    <p className="text-sm text-muted-foreground">
+                      {currentUser?.email || "Conta autenticada"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      A aplicação não possui permissão para listar todos os dispositivos ou sessões da conta.
+                    </p>
                   </div>
                 </div>
               </ModernCard>
@@ -237,19 +372,20 @@ export function SecurityAndLGPDPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <Button
-                    onClick={handleExportData}
+                    onClick={() => void handleExportData()}
+                    disabled={exporting}
                     variant="outline"
                     className="h-auto py-4 flex flex-col items-center justify-center"
                   >
                     <Download className="w-6 h-6 mb-2" />
-                    <span>Exportar Meus Dados</span>
+                    <span>{exporting ? "Preparando exportação..." : "Exportar Meus Dados"}</span>
                     <span className="text-xs text-muted-foreground mt-1">
-                      Receba uma cópia de todos os seus dados
+                      Baixe os dados pessoais disponíveis nas tabelas consultadas
                     </span>
                   </Button>
 
                   <Button
-                    onClick={handleRequestDeletion}
+                    onClick={() => void handleRequestDeletion()}
                     variant="outline"
                     className="h-auto py-4 flex flex-col items-center justify-center"
                   >
@@ -304,13 +440,7 @@ export function SecurityAndLGPDPage() {
                             </span>
 
                             {req.status === "completed" && req.type === "export" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleDownloadData(req.id)}
-                              >
-                                <Download className="w-4 h-4" />
-                              </Button>
+                              <span className="text-xs text-muted-foreground">Arquivo já baixado</span>
                             )}
                           </div>
                         </div>
@@ -320,18 +450,15 @@ export function SecurityAndLGPDPage() {
                 </div>
               </ModernCard>
 
-              {/* Política de Privacidade */}
+              {/* Rascunho da política */}
               <ModernCard className="p-6">
-                <h3 className="font-semibold text-foreground mb-4">Política de Privacidade</h3>
-                <Textarea
-                  value="Política de Privacidade da ONG Camila\n\nNós respeitamos sua privacidade e nos comprometemos a proteger seus dados pessoais. Esta política descreve como coletamos, usamos e protegemos suas informações...\n\nPara mais informações, entre em contato com nossa coordenação."
-                  readOnly
-                  rows={6}
-                  className="mb-4"
-                />
-                <Button variant="outline" className="w-full">
+                <h3 className="font-semibold text-foreground mb-2">Política de Privacidade</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Ainda não há uma política oficial aprovada pela organização. Não apresentaremos um texto genérico como política completa.
+                </p>
+                <Button variant="outline" className="w-full" onClick={handleDownloadPrivacyDraft}>
                   <Download className="w-4 h-4 mr-2" />
-                  Baixar Política Completa
+                  Baixar rascunho para revisão
                 </Button>
               </ModernCard>
             </div>
@@ -341,39 +468,38 @@ export function SecurityAndLGPDPage() {
           {activeTab === "audit" && (
             <div className="space-y-6 mt-6">
               <ModernSection title="Log de Atividades">
-                <div className="space-y-2">
-                  {[
-                    {
-                      action: "Login realizado",
-                      timestamp: new Date().toISOString(),
-                      ip: "192.168.1.100",
-                    },
-                    {
-                      action: "Perfil atualizado",
-                      timestamp: new Date(Date.now() - 3600000).toISOString(),
-                      ip: "192.168.1.100",
-                    },
-                    {
-                      action: "Senha alterada",
-                      timestamp: new Date(Date.now() - 86400000).toISOString(),
-                      ip: "192.168.1.100",
-                    },
-                  ].map((log, index) => (
-                    <ModernCard key={index} className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-medium text-foreground">{log.action}</p>
+                {loadingAuditLogs ? (
+                  <p className="text-sm text-muted-foreground">Carregando registros de auditoria...</p>
+                ) : auditLogs.length === 0 ? (
+                  <ModernEmptyState
+                    icon={<AlertCircle />}
+                    title="Nenhum registro de auditoria disponível"
+                    description="Os registros reais aparecerão aqui quando estiverem acessíveis no banco. Endereços IP e atividades não são inventados."
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {auditLogs.map((log) => (
+                      <ModernCard key={log.id} className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-medium text-foreground">
+                              {log.action === "PASSWORD_CHANGED" ? "Senha alterada" :
+                               log.action === "LGPD_DATA_EXPORT" ? "Exportação de dados" :
+                               log.action === "LGPD_DATA_DELETION_REQUEST" ? "Solicitação de exclusão" :
+                               log.action.replace(/_/g, " ").toLowerCase()}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {log.details?.status === "pending" ? "Status: pendente de análise" : "Evento registrado no servidor"}
+                            </p>
+                          </div>
                           <p className="text-xs text-muted-foreground">
-                            IP: {log.ip}
+                            {new Date(log.created_at).toLocaleString("pt-BR")}
                           </p>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(log.timestamp).toLocaleString("pt-BR")}
-                        </p>
-                      </div>
-                    </ModernCard>
-                  ))}
-                </div>
+                      </ModernCard>
+                    ))}
+                  </div>
+                )}
               </ModernSection>
             </div>
           )}
