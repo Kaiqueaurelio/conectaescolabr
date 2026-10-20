@@ -81,6 +81,10 @@ export function UserProfilePage() {
       toast.error("O perfil de voluntário ainda não possui uma área de acesso configurada. Não é possível aprová-lo até essa área ser implementada.");
       return;
     }
+    if (user.role !== "ADMIN" && formData.role === "ADMIN" &&
+      !window.confirm("Você está concedendo privilégios administrativos a esta conta. Deseja continuar?")) {
+      return;
+    }
     if (isOwner && secureLoading) {
       toast.error("Aguarde o carregamento dos dados protegidos antes de salvar.");
       return;
