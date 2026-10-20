@@ -59,6 +59,8 @@ export function useUser(userId: string | null, options: UseSupabaseDataOptions =
 
     try {
       setLoading(true);
+      setUser(null);
+      setError(null);
       const { data, error: err } = await supabase
         .from("users")
         .select("*")
@@ -103,6 +105,8 @@ export function useSocialRecords(userId: string | null, options: UseSupabaseData
 
     try {
       setLoading(true);
+      setRecords([]);
+      setError(null);
       const { data, error: err } = await supabase
         .from("social_records")
         .select("*")
@@ -167,6 +171,8 @@ export function useAttendance(userId: string | null, options: UseSupabaseDataOpt
 
     try {
       setLoading(true);
+      setAttendance([]);
+      setError(null);
       const { data, error: err } = await supabase
         .from("attendance_records")
         .select("*")
