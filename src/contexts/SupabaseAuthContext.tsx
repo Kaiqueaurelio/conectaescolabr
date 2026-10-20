@@ -173,8 +173,9 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       // A role privilegiada nunca pode ser concedida pelo formulário público.
-      if (role === "ADMIN" as UserProfile["role"]) {
-        return { success: false, error: "Não é permitido criar uma conta administrativa pelo cadastro público." };
+      const selfSignupRoles: UserProfile["role"][] = ["TEACHER", "STUDENT", "PARENT", "VOLUNTEER"];
+      if (!selfSignupRoles.includes(role)) {
+        return { success: false, error: "Este perfil não pode ser criado pelo cadastro público." };
       }
 
       // Create auth user
