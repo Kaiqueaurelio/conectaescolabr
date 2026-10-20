@@ -335,7 +335,7 @@ export function UsersListGlassPage() {
                         size="sm"
                         className="rounded-lg"
                         title="Visualizar"
-                        onClick={() => navigate(`/admin/users/${user.id}`)}
+                        onClick={() => navigate(`/admin/users/${user.id}/ficha`)}
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
