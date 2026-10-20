@@ -201,6 +201,11 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (profileError) {
+        // A criação do perfil falhou; encerre a sessão para não deixar uma
+        // conta autenticada sem o registro de autorização correspondente.
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
         return { success: false, error: profileError.message };
       }
 
