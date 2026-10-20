@@ -104,7 +104,7 @@ export function StudentDashboardSkillPathPage() {
   }, [currentUser?.id]);
 
   const attendanceRate = attendance.length > 0
-    ? Math.round((attendance.filter((row) => row.status === "PRESENT" || row.status === "EXCUSED").length / attendance.length) * 100)
+    ? Math.round((attendance.filter((row) => row.status === "PRESENT").length / attendance.length) * 100)
     : null;
 
   const weeklyFrequency = useMemo(() => {
