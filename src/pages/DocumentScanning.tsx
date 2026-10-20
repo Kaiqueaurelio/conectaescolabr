@@ -56,6 +56,11 @@ export function DocumentScanningPage() {
   const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("A captura precisa ser uma imagem válida.");
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
+      return;
+    }
     if (file.size > 10 * 1024 * 1024) {
       toast.error("A imagem excede o limite de 10 MB.");
       if (cameraInputRef.current) cameraInputRef.current.value = "";
@@ -91,7 +96,7 @@ export function DocumentScanningPage() {
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const sidebarItems = [
