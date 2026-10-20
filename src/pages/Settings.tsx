@@ -58,6 +58,7 @@ export default function Settings() {
     resetAll();
     localStorage.removeItem("camila_data_v2");
     localStorage.removeItem("camila_data_v3_clean");
+    localStorage.removeItem("conectaescola_local_state_v1");
     toast.success("Dados locais deste navegador foram limpos. Os dados salvos no servidor não foram alterados.");
   };
 
