@@ -68,18 +68,17 @@ export default function Announcements() {
     void loadAnnouncements();
   }, [loadAnnouncements]);
 
-  const audience = announcements.filter((announcement) => {
+  const audience = useMemo(() => announcements.filter((announcement) => {
     const targets = announcement.target_roles;
     if (targets.includes("ALL")) return true;
     if (user?.role === "TEACHER" || user?.role === "ADMIN") return targets.includes("TEACHERS");
     if (user?.role === "PARENT") return targets.includes("PARENTS");
     if (user?.role === "STUDENT") return targets.includes("STUDENTS");
-    if (user?.role === "VOLUNTEER") return targets.includes("VOLUNTEERS");
     return false;
-  });
+  }), [announcements, user?.role]);
   const visible = useMemo(() => audience.filter((announcement) =>
     !q || `${announcement.title} ${announcement.content}`.toLowerCase().includes(q.toLowerCase())
-  ), [announcements, q, user?.role]);
+  ), [audience, q]);
 
   const refresh = async () => {
     setRefreshing(true);
