@@ -15,6 +15,13 @@
       "when": 1792453935629,
       "tag": "0001_benefit_items_encrypted",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792456430228,
+      "tag": "0002_participant_records",
+      "breakpoints": true
     }
   ]
 }
