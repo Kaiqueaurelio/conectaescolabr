@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { useUsers } from "@/hooks/useSupabaseData";
-import { supabase, UserProfile } from "@/lib/supabase";
+import { UserProfile } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
 import {
   Users,
@@ -29,12 +29,32 @@ import {
   Eye,
   Mail,
   AlertTriangle,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 
 export function UsersListGlassPage() {
   const navigate = useNavigate();
-  const { user: currentUser } = useSupabaseAuth();
+  const { user: currentUser, setUserStatus } = useSupabaseAuth();
   const { users, loading, error, refetch } = useUsers();
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+
+  const changeUserStatus = async (target: UserProfile, status: UserProfile["status"]) => {
+    if (target.id === currentUser?.id) {
+      toast({ title: "Não altere o status da própria conta por esta tela." });
+      return;
+    }
+    if (status === "REJECTED" && !window.confirm(`Rejeitar o cadastro de ${target.full_name || target.email}?`)) return;
+    setUpdatingStatusId(target.id);
+    const result = await setUserStatus(target.id, status);
+    setUpdatingStatusId(null);
+    if (!result.success) {
+      toast({ title: "Não foi possível alterar o status", description: result.error || "Verifique as permissões do banco." });
+      return;
+    }
+    toast({ title: status === "APPROVED" ? "Cadastro aprovado" : "Cadastro rejeitado" });
+    await refetch();
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [profileFilter, setProfileFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -255,6 +275,30 @@ export function UsersListGlassPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      {user.status === "PENDING" && user.id !== currentUser?.id && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-lg"
+                            title="Aprovar cadastro"
+                            disabled={updatingStatusId === user.id}
+                            onClick={() => void changeUserStatus(user, "APPROVED")}
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-1" /> Aprovar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-lg"
+                            title="Rejeitar cadastro"
+                            disabled={updatingStatusId === user.id}
+                            onClick={() => void changeUserStatus(user, "REJECTED")}
+                          >
+                            <XCircle className="w-4 h-4 mr-1" /> Rejeitar
+                          </Button>
+                        </>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
