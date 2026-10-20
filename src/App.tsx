@@ -15,7 +15,6 @@ import Menu from "./pages/Menu.tsx";
 import { AuthProvider } from "./contexts/AuthContext"; // Usando a versão limpa
 import { SupabaseAuthProvider } from "./contexts/SupabaseAuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import AdminDashboard from "./pages/AdminDashboard.tsx";
 import Reminders from "./pages/Reminders.tsx";
 import Turmas from "./pages/Turmas.tsx";
 import Settings from "./pages/Settings.tsx";
@@ -84,7 +83,7 @@ const App = () => (
                 <Route path="/voluntario" element={<ProtectedRoute roles={["VOLUNTEER"]}><VolunteerDashboardPage /></ProtectedRoute>} />
 
                 {/* Rotas Legadas/Existentes */}
-                <Route path="/admin" element={<ProtectedRoute roles={["ADMIN"]}><AdminDashboard /></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute roles={["ADMIN"]}><Navigate to="/admin/dashboard" replace /></ProtectedRoute>} />
                 <Route path="/professor" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><TeacherDashboard /></ProtectedRoute>} />
                 <Route path="/aluno" element={<ProtectedRoute roles={["STUDENT"]}><Navigate to="/aluno/dashboard" replace /></ProtectedRoute>} />
                 <Route path="/responsavel" element={<ProtectedRoute roles={["PARENT"]}><Navigate to="/parent/portal" replace /></ProtectedRoute>} />
