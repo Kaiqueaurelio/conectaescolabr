@@ -34,12 +34,14 @@ export function UserProfilePage() {
   const [formData, setFormData] = useState<Partial<UserProfile>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [secureLoading, setSecureLoading] = useState(false);
+  const [secureProfileReady, setSecureProfileReady] = useState(false);
 
   const isOwner = !!user && !!currentUser && user.id === currentUser.id;
 
   useEffect(() => {
     if (!user) return;
     setFormData(user);
+    setSecureProfileReady(false);
     if (!isOwner) return;
     setSecureLoading(true);
     readSecureProfile(user.id)
@@ -48,7 +50,10 @@ export function UserProfilePage() {
           console.error("Erro ao abrir dados protegidos:", secureError);
           return;
         }
-        if (data) setFormData((prev) => ({ ...prev, ...data }));
+        if (data) {
+          setFormData((prev) => ({ ...prev, ...data }));
+          setSecureProfileReady(true);
+        }
       })
       .catch((error) => {
         console.error("Falha inesperada ao abrir dados protegidos:", error);
@@ -72,11 +77,15 @@ export function UserProfilePage() {
 
   const handleSave = async () => {
     if (!user) return;
+    if (isOwner && secureLoading) {
+      toast.error("Aguarde o carregamento dos dados protegidos antes de salvar.");
+      return;
+    }
 
     const plainData: Partial<UserProfile> = { ...formData };
     const secureData: SensitiveValues = {};
     for (const field of SENSITIVE_FIELDS) {
-      if (isOwner) {
+      if (isOwner && secureProfileReady) {
         secureData[field] = ((formData as Record<string, unknown>)[field] as string) ?? null;
       }
       delete (plainData as Record<string, unknown>)[field];
@@ -88,7 +97,7 @@ export function UserProfilePage() {
       return;
     }
 
-    if (isOwner) {
+    if (isOwner && secureProfileReady) {
       const secureResult = await saveSecureProfile(user.id, secureData);
       if (!secureResult.success) {
         toast.error("Os campos básicos foram salvos, mas os dados protegidos não foram atualizados. " + (secureResult.error || ""));
@@ -96,7 +105,11 @@ export function UserProfilePage() {
       }
     }
 
-    toast.success("Perfil atualizado com sucesso!");
+    if (isOwner && !secureProfileReady) {
+      toast.warning("Campos básicos salvos. Os dados protegidos foram preservados, mas não foram alterados porque não puderam ser carregados.");
+    } else {
+      toast.success("Perfil atualizado com sucesso!");
+    }
     setIsEditing(false);
     refetch();
   };
