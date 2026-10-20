@@ -31,7 +31,6 @@ import {
   CheckCircle,
   Eye,
   Mail,
-  Phone,
 } from "lucide-react";
 
 export function UsersListGlassPage() {
@@ -111,9 +110,8 @@ export function UsersListGlassPage() {
     return users.filter((user) => {
       const query = searchQuery.toLowerCase();
       const matchesSearch =
-        user.full_name.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query) ||
-        (user.cpf || "").includes(searchQuery);
+        (user.full_name || "").toLowerCase().includes(query) ||
+        user.email.toLowerCase().includes(query);
 
       const matchesProfile =
         profileFilter === "all" || user.role === profileFilter;
@@ -293,12 +291,7 @@ export function UsersListGlassPage() {
                             <Mail className="w-4 h-4" />
                             {user.email}
                           </div>
-                          {user.phone && (
-                            <div className="flex items-center gap-1">
-                              <Phone className="w-4 h-4" />
-                              {user.phone}
-                            </div>
-                          )}
+
                         </div>
 
                         <div className="flex items-center gap-2 mt-3">
