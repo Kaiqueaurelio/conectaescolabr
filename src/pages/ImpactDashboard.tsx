@@ -94,7 +94,7 @@ export function ImpactDashboardPage() {
           color: "from-orange-500 to-red-600",
         },
         {
-          label: "Presenças registradas",
+          label: "Taxa de presença",
           value: attendanceRate,
           change: null,
           icon: <TrendingUp className="w-6 h-6" />,
