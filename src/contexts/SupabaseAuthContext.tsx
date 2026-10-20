@@ -15,6 +15,7 @@ interface AuthContextValue {
   ) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
+  setUserStatus: (userId: string, status: "APPROVED" | "REJECTED") => Promise<{ success: boolean; error?: string }>;
   switchChild: (childId: string) => void;
   selectedChildId: string | null;
 }
@@ -110,20 +111,26 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
           .eq("auth_id", data.session.user.id)
           .single();
 
-        if (profileError) {
-          return { success: false, error: "Erro ao carregar perfil do usuário" };
+        if (profileError || !profileData) {
+          await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+          return { success: false, error: "Não foi possível carregar seu perfil. Verifique se seu cadastro está completo ou contate a coordenação." };
         }
 
-        if (profileData) {
-          const profile = profileData as UserProfile;
-          if (profile.status === "PENDING") {
-            return { success: false, error: "Sua conta está aguardando aprovação" };
-          }
-          if (profile.status === "REJECTED") {
-            return { success: false, error: "Sua conta foi rejeitada" };
-          }
-          setUser(profile);
+        const profile = profileData as UserProfile;
+        if (profile.status === "PENDING" || profile.status === "REJECTED") {
+          await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+          return {
+            success: false,
+            error: profile.status === "PENDING"
+              ? "Sua conta está aguardando aprovação"
+              : "Sua conta foi rejeitada",
+          };
         }
+        setUser(profile);
       }
 
       return { success: true };
@@ -139,6 +146,11 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     role: UserProfile["role"]
   ): Promise<{ success: boolean; error?: string }> => {
     try {
+      // A role privilegiada nunca pode ser concedida pelo formulário público.
+      if (role === "ADMIN" as UserProfile["role"]) {
+        return { success: false, error: "Não é permitido criar uma conta administrativa pelo cadastro público." };
+      }
+
       // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -202,6 +214,25 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const setUserStatus = async (
+    userId: string,
+    status: "APPROVED" | "REJECTED"
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      if (!user || user.role !== "ADMIN") {
+        return { success: false, error: "Somente um administrador pode alterar o status de cadastro." };
+      }
+      const { error } = await supabase
+        .from("users")
+        .update({ status })
+        .eq("id", userId);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  };
+
   const switchChild = (childId: string) => {
     setSelectedChildId(childId);
   };
@@ -216,6 +247,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         updateProfile,
+        setUserStatus,
         switchChild,
         selectedChildId,
       }}
