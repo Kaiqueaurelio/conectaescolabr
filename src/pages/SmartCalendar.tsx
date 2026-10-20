@@ -147,7 +147,6 @@ export function SmartCalendarPage({ readOnly = false }: { readOnly?: boolean } =
       date: new Date().toISOString().split("T")[0],
       time: "09:00",
       location: "",
-      type: "activity",
     });
     toast.success("Evento salvo no banco de dados.");
   };
