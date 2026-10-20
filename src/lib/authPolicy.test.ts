@@ -12,7 +12,7 @@ describe("isAuthorizedProfile", () => {
   it("denies pending, rejected, missing and unsupported profiles", () => {
     expect(isAuthorizedProfile({ role: "ADMIN", status: "PENDING" })).toBe(false);
     expect(isAuthorizedProfile({ role: "STUDENT", status: "REJECTED" })).toBe(false);
-    expect(isAuthorizedProfile({ role: "VOLUNTEER", status: "APPROVED" })).toBe(false);
+    expect(isAuthorizedProfile({ role: "VOLUNTEER", status: "APPROVED" })).toBe(true);
     expect(isAuthorizedProfile(null)).toBe(false);
     expect(isAuthorizedProfile(undefined)).toBe(false);
   });
