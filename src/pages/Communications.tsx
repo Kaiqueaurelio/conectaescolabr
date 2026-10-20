@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ModernLayout, ModernCard, ModernSection, ModernEmptyState, ModernBadge } from "@/components/ModernLayout";
+import { useState, useEffect, useCallback } from "react";
+import { ModernLayout, ModernCard, ModernSection, ModernEmptyState } from "@/components/ModernLayout";
 import { ModernTopBar, ModernPageHeader, ModernTabs } from "@/components/ModernTopBar";
 import { ModernSidebar } from "@/components/ModernSidebar";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-import { useUsers } from "@/hooks/useSupabaseData";
-import { Bell, Send, MessageSquare, Users, Clock, Plus, Trash2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { Bell, MessageSquare, Users, Clock, Plus, Trash2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -22,116 +22,173 @@ interface Announcement {
   author: string;
   target: string[];
   created_at: string;
-  priority: "low" | "medium" | "high";
-}
-
-interface Message {
-  id: string;
-  sender: string;
-  content: string;
-  timestamp: string;
-  read: boolean;
 }
 
 export function CommunicationsPage() {
   const { user: currentUser } = useSupabaseAuth();
-  const { users: realUsers } = useUsers();
+  const [groupCounts, setGroupCounts] = useState<Record<string, number | null>>({});
+  const [groupCountsLoading, setGroupCountsLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState("announcements");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
+  const [savingAnnouncement, setSavingAnnouncement] = useState(false);
+  const loadAnnouncements = useCallback(async () => {
+    setLoadingAnnouncements(true);
+    const { data, error } = await supabase
+      .from("announcements")
+      .select("id,title,content,author_id,target_roles,created_at")
+      .order("created_at", { ascending: false });
 
-  const [messages, setMessages] = useState<Message[]>([]);
+    if (error) {
+      console.error("Erro ao carregar comunicados:", error);
+      toast.error("Não foi possível carregar comunicados do banco. Verifique as permissões.");
+      setLoadingAnnouncements(false);
+      return;
+    }
+
+    const authorIds = [...new Set((data ?? []).map((row) => row.author_id).filter(Boolean))];
+    let authorNames = new Map<string, string>();
+    if (authorIds.length > 0) {
+      const { data: authors, error: authorsError } = await supabase
+        .from("users")
+        .select("id,full_name")
+        .in("id", authorIds);
+      if (!authorsError) {
+        authorNames = new Map((authors ?? []).map((author) => [author.id, author.full_name]));
+      }
+    }
+
+    setAnnouncements((data ?? []).map((row) => ({
+      id: row.id,
+      title: row.title,
+      content: row.content,
+      author: authorNames.get(row.author_id) || "Equipe",
+      target: row.target_roles ?? [],
+      created_at: row.created_at,
+      // A tabela atual não possui uma coluna de prioridade; não inventamos
+      // esse valor como se estivesse persistido.
+    })));
+    setLoadingAnnouncements(false);
+  }, []);
+
+  useEffect(() => {
+    void loadAnnouncements();
+  }, [loadAnnouncements]);
+
+  useEffect(() => {
+    let active = true;
+    const roles = ["ADMIN", "TEACHER", "STUDENT", "PARENT", "VOLUNTEER"];
+    const loadGroupCounts = async () => {
+      const results = await Promise.all(roles.map(async (role) => {
+        const { count, error } = await supabase
+          .from("users")
+          .select("id", { count: "exact", head: true })
+          .eq("role", role)
+          .eq("status", "APPROVED");
+        if (error) {
+          console.error(`Erro ao contar perfis ${role}:`, error);
+          return [role, null] as const;
+        }
+        return [role, count ?? 0] as const;
+      }));
+      if (!active) return;
+      setGroupCounts(Object.fromEntries(results));
+      setGroupCountsLoading(false);
+    };
+    void loadGroupCounts().catch((error) => {
+      console.error("Erro ao carregar contagens de grupos:", error);
+      if (active) setGroupCountsLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
 
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: "",
     content: "",
     target: [] as string[],
-    priority: "medium" as "low" | "medium" | "high",
   });
 
-  const [newMessage, setNewMessage] = useState("");
-
-  const handleAddAnnouncement = () => {
+  const handleAddAnnouncement = async () => {
     if (!newAnnouncement.title.trim() || !newAnnouncement.content.trim()) {
       toast.error("Título e conteúdo são obrigatórios");
       return;
     }
-
     if (newAnnouncement.target.length === 0) {
       toast.error("Selecione pelo menos um público-alvo");
       return;
     }
-
-    const announcement: Announcement = {
-      id: `ann-${Date.now()}`,
-      title: newAnnouncement.title,
-      content: newAnnouncement.content,
-      author: currentUser?.full_name || "Anônimo",
-      target: newAnnouncement.target,
-      created_at: new Date().toISOString(),
-      priority: newAnnouncement.priority,
-    };
-
-    setAnnouncements([announcement, ...announcements]);
-    setNewAnnouncement({ title: "", content: "", target: [], priority: "medium" });
-    toast.success("Comunicado publicado com sucesso!");
-  };
-
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) {
-      toast.error("Mensagem não pode estar vazia");
+    if (!currentUser?.id) {
+      toast.error("Sua sessão não foi identificada. Entre novamente.");
       return;
     }
 
-    const message: Message = {
-      id: `msg-${Date.now()}`,
-      sender: currentUser?.full_name || "Anônimo",
-      content: newMessage,
-      timestamp: new Date().toISOString(),
-      read: true,
+    setSavingAnnouncement(true);
+    const { data, error } = await supabase
+      .from("announcements")
+      .insert({
+        title: newAnnouncement.title.trim(),
+        content: newAnnouncement.content.trim(),
+        author_id: currentUser.id,
+        target_roles: newAnnouncement.target,
+      })
+      .select("id,title,content,author_id,target_roles,created_at")
+      .single();
+    setSavingAnnouncement(false);
+
+    if (error || !data) {
+      console.error("Erro ao publicar comunicado:", error);
+      toast.error("O comunicado não foi salvo. Verifique as permissões e a estrutura da tabela announcements.");
+      return;
+    }
+
+    const announcement: Announcement = {
+      id: data.id,
+      title: data.title,
+      content: data.content,
+      author: currentUser.full_name || "Equipe",
+      target: data.target_roles ?? [],
+      created_at: data.created_at,
     };
-
-    setMessages([...messages, message]);
-    setNewMessage("");
-    toast.success("Mensagem enviada!");
+    setAnnouncements((previous) => [announcement, ...previous]);
+    setNewAnnouncement({ title: "", content: "", target: [] });
+    toast.success("Comunicado salvo no banco de dados.");
   };
 
-  const handleDeleteAnnouncement = (id: string) => {
+  const handleDeleteAnnouncement = async (id: string) => {
     if (!window.confirm("Remover este comunicado?")) return;
-    setAnnouncements(announcements.filter((a) => a.id !== id));
-    toast.success("Comunicado removido");
+    const { data, error } = await supabase
+      .from("announcements")
+      .delete()
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
+    if (error || !data) {
+      console.error("Erro ao remover comunicado:", error);
+      toast.error("Não foi possível remover o comunicado. Verifique suas permissões.");
+      return;
+    }
+    setAnnouncements((previous) => previous.filter((announcement) => announcement.id !== id));
+    toast.success("Comunicado removido do banco de dados.");
   };
 
-  const handleClearAnnouncements = () => {
-    if (!window.confirm("Remover todos os comunicados?")) return;
+  const handleClearAnnouncements = async () => {
+    if (!window.confirm("Remover todos os comunicados exibidos? Esta ação é permanente.")) return;
+    const ids = announcements.map((announcement) => announcement.id);
+    if (ids.length === 0) return;
+    const { data, error } = await supabase
+      .from("announcements")
+      .delete()
+      .in("id", ids)
+      .select("id");
+    if (error || !data || data.length !== ids.length) {
+      console.error("Erro ao limpar comunicados:", error);
+      toast.error("Nem todos os comunicados foram removidos. Verifique as permissões; a lista será recarregada.");
+      await loadAnnouncements();
+      return;
+    }
     setAnnouncements([]);
-    toast.success("Comunicados removidos");
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "destructive";
-      case "medium":
-        return "warning";
-      case "low":
-        return "muted";
-      default:
-        return "muted";
-    }
-  };
-
-  const getPriorityLabel = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "Urgente";
-      case "medium":
-        return "Normal";
-      case "low":
-        return "Baixa";
-      default:
-        return "Normal";
-    }
+    toast.success("Comunicados removidos do banco de dados.");
   };
 
   const sidebarItems = [
@@ -208,29 +265,7 @@ export function CommunicationsPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="priority">Prioridade</Label>
-                        <Select
-                          value={newAnnouncement.priority}
-                          onValueChange={(value) =>
-                            setNewAnnouncement({
-                              ...newAnnouncement,
-                              priority: value as "low" | "medium" | "high",
-                            })
-                          }
-                        >
-                          <SelectTrigger id="priority" className="mt-2">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="low">Baixa</SelectItem>
-                            <SelectItem value="medium">Normal</SelectItem>
-                            <SelectItem value="high">Urgente</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
+                    <div className="grid grid-cols-1 gap-4">
                       <div>
                         <Label htmlFor="target">Público-alvo *</Label>
                         <Select
@@ -255,7 +290,7 @@ export function CommunicationsPage() {
 
                     <div className="flex gap-3 justify-end">
                       <Button variant="outline">Cancelar</Button>
-                      <Button onClick={handleAddAnnouncement}>Publicar</Button>
+                      <Button onClick={handleAddAnnouncement} disabled={savingAnnouncement}>{savingAnnouncement ? "Publicando..." : "Publicar"}</Button>
                     </div>
                   </div>
                 </DialogContent>
@@ -269,7 +304,9 @@ export function CommunicationsPage() {
 
               {/* Lista de Comunicados */}
               <ModernSection title="Comunicados Recentes">
-                {announcements.length === 0 ? (
+                {loadingAnnouncements ? (
+                  <p className="text-sm text-muted-foreground">Carregando comunicados salvos...</p>
+                ) : announcements.length === 0 ? (
                   <ModernEmptyState
                     icon={<Bell />}
                     title="Nenhum comunicado"
@@ -283,9 +320,7 @@ export function CommunicationsPage() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <h3 className="font-semibold text-foreground">{ann.title}</h3>
-                              <ModernBadge variant={getPriorityColor(ann.priority)} size="sm">
-                                {getPriorityLabel(ann.priority)}
-                              </ModernBadge>
+                              
                             </div>
                             <p className="text-sm text-foreground/80 mb-3">{ann.content}</p>
                             <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -319,42 +354,16 @@ export function CommunicationsPage() {
           {activeTab === "messages" && (
             <div className="space-y-6 mt-6">
               <ModernCard className="p-6">
-                <h3 className="font-semibold text-foreground mb-4">Mural Interno</h3>
-
-                {/* Chat */}
-                <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
-                  {messages.map((msg) => (
-                    <div key={msg.id} className="flex gap-3">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-bold text-primary">
-                          {msg.sender.charAt(0)}
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-foreground">{msg.sender}</p>
-                        <p className="text-sm text-foreground/80 mt-1">{msg.content}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {format(new Date(msg.timestamp), "HH:mm", { locale: ptBR })}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Input */}
-                <div className="flex gap-2">
-                  <Input
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") handleSendMessage();
-                    }}
-                    placeholder="Digite sua mensagem..."
-                    className="flex-1"
-                  />
-                  <Button onClick={handleSendMessage} size="icon">
-                    <Send className="w-4 h-4" />
-                  </Button>
+                <h3 className="font-semibold text-foreground mb-4">Mensagens internas</h3>
+                <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                  <div>
+                    <p className="font-medium text-foreground">Mensagens ainda não conectadas</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      O envio de mensagens está desativado porque não há uma tabela de mensagens confirmada no esquema atual.
+                      Nenhuma mensagem será apresentada como enviada sem ser salva.
+                    </p>
+                  </div>
                 </div>
               </ModernCard>
             </div>
@@ -364,7 +373,8 @@ export function CommunicationsPage() {
           {activeTab === "groups" && (
             <div className="space-y-6 mt-6">
               <ModernCard className="p-6">
-                <h3 className="font-semibold text-foreground mb-4">Grupos Internos</h3>
+                <h3 className="font-semibold text-foreground mb-2">Grupos internos</h3>
+                <p className="text-sm text-muted-foreground mb-4">Os números abaixo são contagens de perfis retornados pelo banco. A navegação e a comunicação dentro de grupos ainda não estão implementadas.</p>
                 <div className="space-y-3">
                   {[
                     { name: "Coordenação", role: "ADMIN" },
@@ -372,19 +382,19 @@ export function CommunicationsPage() {
                     { name: "Alunos", role: "STUDENT" },
                     { name: "Responsáveis", role: "PARENT" },
                     { name: "Voluntários", role: "VOLUNTEER" },
-                  ].map((g) => ({ ...g, members: realUsers.filter((u) => u.role === g.role).length })).map((group, index) => (
-                    <ModernCard key={index} className="p-4">
+                  ].map((group) => (
+                    <ModernCard key={group.role} className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <Users className="w-5 h-5 text-primary" />
                           <div>
                             <p className="font-medium text-foreground">{group.name}</p>
-                            <p className="text-xs text-muted-foreground">{group.members} membros</p>
+                            <p className="text-xs text-muted-foreground">
+                              {groupCountsLoading ? "Carregando contagem..." : groupCounts[group.role] == null ? "Contagem indisponível" : `${groupCounts[group.role]} membros aprovados`}
+                            </p>
                           </div>
                         </div>
-                        <Button variant="outline" size="sm">
-                          Acessar
-                        </Button>
+                        <span className="text-xs text-muted-foreground">Somente contagem</span>
                       </div>
                     </ModernCard>
                   ))}
