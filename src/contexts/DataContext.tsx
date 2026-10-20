@@ -91,7 +91,8 @@ interface DataContextValue {
 
 const DataContext = createContext<DataContextValue | undefined>(undefined);
 
-const KEY = "camila_data_v3_clean";
+const KEY = "conectaescola_local_state_v1";
+const LEGACY_KEY = "camila_data_v3_clean";
 
 interface Persisted {
   announcements: Announcement[];
@@ -123,10 +124,15 @@ const uid = (p: string) => `${p}_${Date.now().toString(36)}_${Math.random().toSt
 export function DataProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<Persisted>(() => {
     try {
-      const raw = localStorage.getItem(KEY);
+      const raw = localStorage.getItem(KEY) || localStorage.getItem(LEGACY_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<Persisted>;
-        return { ...initial(), ...parsed };
+        // Migra apenas lembretes locais. Anúncios, eventos, turmas, alunos e
+        // presença do cache antigo eram dados de demonstração ou não sincronizados.
+        return {
+          ...initial(),
+          reminders: Array.isArray(parsed.reminders) ? parsed.reminders : [],
+        };
       }
     } catch {}
     return initial();
