@@ -62,7 +62,7 @@ export function AdminDashboardGlassPage() {
   const [counts, setCounts] = useState<{ students: number | null; activities: number | null; events: number | null; announcements: number | null; benefits: number | null }>({
     students: null, activities: null, events: null, announcements: null, benefits: null,
   });
-  const [monthly, setMonthly] = useState<Array<{ mes: string; presencas: number; benef: number }>>([]);
+  const [monthly, setMonthly] = useState<Array<{ mes: string; presencas: number | null; benef: number | null }>>([]);
   const [announcements, setAnnouncements] = useState<DashboardAnnouncement[]>([]);
   const [loading, setLoading] = useState(true);
   const [queryFailed, setQueryFailed] = useState(false);
@@ -110,8 +110,8 @@ export function AdminDashboardGlassPage() {
         const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
         return {
           mes: MONTHS[date.getMonth()],
-          presencas: attendance.filter((row) => String(row.date).slice(0, 7) === key && row.status === "PRESENT").length,
-          benef: benefits.filter((row) => String(row.distribution_date).slice(0, 7) === key)
+          presencas: attendanceRows.error ? null : attendance.filter((row) => String(row.date).slice(0, 7) === key && row.status === "PRESENT").length,
+          benef: benefitRows.error ? null : benefits.filter((row) => String(row.distribution_date).slice(0, 7) === key)
             .reduce((sum, row) => sum + Number(row.quantity ?? 0), 0),
         };
       }));
@@ -128,7 +128,7 @@ export function AdminDashboardGlassPage() {
   }, []);
 
   const roleData = [
-    { name: "Alunas aprovadas", value: counts.students, color: "hsl(var(--primary))" },
+    { name: "Alunos aprovados", value: counts.students, color: "hsl(var(--primary))" },
     { name: "Atividades", value: counts.activities, color: "hsl(var(--secondary))" },
     { name: "Eventos", value: counts.events, color: "hsl(var(--tertiary))" },
     { name: "Comunicados", value: counts.announcements, color: "hsl(var(--coral))" },
@@ -141,7 +141,7 @@ export function AdminDashboardGlassPage() {
         <div className="absolute -top-10 -right-10 h-44 w-44 rounded-full bg-coral/30 blur-3xl animate-blob" />
         <div className="absolute -bottom-12 -left-8 h-44 w-44 rounded-full bg-secondary/40 blur-3xl animate-blob" />
         <p className="text-xs opacity-90">Resumo geral</p>
-        <h2 className="text-2xl font-bold mt-1">Visão da Associação Camila</h2>
+        <h2 className="text-2xl font-bold mt-1">Visão geral do Conecta Escola BR</h2>
         <p className="text-xs opacity-90 mt-1">Indicadores consultados diretamente no banco de dados.</p>
       </section>
 
@@ -178,7 +178,7 @@ export function AdminDashboardGlassPage() {
         </Card>
 
         <Card className="p-5 rounded-2xl shadow-soft">
-          <h3 className="font-bold mb-2">Distribuição</h3>
+          <h3 className="font-bold mb-2">Resumo de indicadores</h3>
           <p className="text-xs text-muted-foreground mb-2">Distribuições registradas: {loading ? "…" : counts.benefits ?? "—"}</p>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
