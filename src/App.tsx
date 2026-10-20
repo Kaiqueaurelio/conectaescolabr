@@ -21,7 +21,6 @@ import Turmas from "./pages/Turmas.tsx";
 import Settings from "./pages/Settings.tsx";
 import Help from "./pages/Help.tsx";
 import CadastroGeral from "./pages/CadastroGeral.tsx";
-import { DataProvider } from "./contexts/DataContext";
 
 // Novas Páginas Implementadas
 import { AdminDashboardGlassPage as AdminDashboardNewPage } from "./pages/AdminDashboardGlass";
@@ -52,8 +51,7 @@ const App = () => (
       <BrowserRouter>
         <SupabaseAuthProvider>
           <AuthProvider>
-            <DataProvider>
-              <Routes>
+            <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 
@@ -100,8 +98,7 @@ const App = () => (
                 <Route path="/menu" element={<ProtectedRoute roles={["ADMIN", "TEACHER", "STUDENT", "PARENT"]}><Menu /></ProtectedRoute>} />
                 
                 <Route path="*" element={<NotFound />} />
-              </Routes>
-            </DataProvider>
+            </Routes>
           </AuthProvider>
         </SupabaseAuthProvider>
       </BrowserRouter>
