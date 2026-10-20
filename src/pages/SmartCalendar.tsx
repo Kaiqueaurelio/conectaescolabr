@@ -295,7 +295,6 @@ export function SmartCalendarPage({ readOnly = false }: { readOnly?: boolean } =
             <div className="space-y-6">
               {/* Edição restrita a perfis autorizados */}
               {canManageEvents && (
-                {/* Adicionar Evento */}
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button className="w-full">
