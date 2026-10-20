@@ -37,6 +37,7 @@ import { SmartCalendarPage } from "./pages/SmartCalendar";
 import { DocumentScanningPage } from "./pages/DocumentScanning";
 import { ReportsGenerationPage } from "./pages/ReportsGeneration";
 import { ParentPortalPage } from "./pages/ParentPortal";
+import VolunteerDashboardPage from "./pages/VolunteerDashboard";
 import { SecurityAndLGPDPage } from "./pages/SecurityAndLGPD";
 import { ColorPalettePageGlass } from "./pages/ColorPalettePage";
 import { ImpactDashboardPage } from "./pages/ImpactDashboard";
@@ -82,6 +83,7 @@ const App = () => (
                 
                 {/* Portal do Responsável */}
                 <Route path="/parent/portal" element={<ProtectedRoute roles={["PARENT"]}><ParentPortalPage /></ProtectedRoute>} />
+                <Route path="/voluntario" element={<ProtectedRoute roles={["VOLUNTEER"]}><VolunteerDashboardPage /></ProtectedRoute>} />
 
                 {/* Rotas Legadas/Existentes */}
                 <Route path="/admin" element={<ProtectedRoute roles={["ADMIN"]}><AdminDashboard /></ProtectedRoute>} />
