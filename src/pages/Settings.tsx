@@ -34,6 +34,10 @@ export default function Settings() {
 
 
   useEffect(() => {
+    setName(user?.name || "");
+  }, [user?.id, user?.name]);
+
+  useEffect(() => {
     try {
       const raw = localStorage.getItem(PREFS_KEY);
       if (raw) setPrefs({ ...defaultPrefs, ...JSON.parse(raw) });
