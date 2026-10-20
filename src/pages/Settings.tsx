@@ -29,7 +29,6 @@ export default function Settings() {
   const { user, updateProfile } = useAuth();
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
   const [name, setName] = useState(user?.name || "");
-  const [email] = useState(user?.email || "");
 
   useEffect(() => {
     try {
@@ -45,9 +44,6 @@ export default function Settings() {
 
   const saveProfile = async () => {
     if (name.trim().length < 3) return toast.error("Nome muito curto.");
-    if (email.trim() !== user?.email) {
-      return toast.error("A alteração de e-mail ainda não está disponível. O endereço atual foi mantido por segurança.");
-    }
     try {
       await updateProfile({ name: name.trim() });
       toast.success("Nome atualizado no banco de dados.");
@@ -69,7 +65,7 @@ export default function Settings() {
         <h2 className="text-sm font-semibold flex items-center gap-2 mb-4"><UserIcon className="h-4 w-4 text-primary" /> Perfil</h2>
         <div className="space-y-3">
           <div><Label>Nome</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-          <div><Label>E-mail</Label><Input type="email" value={email} disabled aria-describedby="email-change-note" /><p id="email-change-note" className="mt-1 text-xs text-muted-foreground">A alteração de e-mail exige confirmação da conta e ainda não está disponível.</p></div>
+          <div><Label>E-mail</Label><Input type="email" value={user?.email || ""} disabled aria-describedby="email-change-note" /><p id="email-change-note" className="mt-1 text-xs text-muted-foreground">A alteração de e-mail exige confirmação da conta e ainda não está disponível.</p></div>
           <Button onClick={saveProfile} className="gradient-primary text-primary-foreground"><Save className="h-4 w-4 mr-2" /> Salvar</Button>
         </div>
       </Card>
