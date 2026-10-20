@@ -118,22 +118,55 @@ Deno.serve(async (req) => {
     if (action === "read") {
       const { data: full, error } = await admin
         .from("users")
-        .select(Object.values(COLUMN_OF).join(","))
+        .select([...Object.values(COLUMN_OF), ...SENSITIVE_FIELDS].join(","))
         .eq("id", userId)
         .single();
       if (error) return json({ error: error.message }, 500);
 
+      const rowData = full as Record<string, string | null>;
       const result: Record<string, string | null> = {};
+      const migrationUpdates: Record<string, string | null> = {};
+
       for (const field of SENSITIVE_FIELDS) {
-        const stored = (full as Record<string, string | null>)[COLUMN_OF[field]];
-        const decrypted = stored ? await decryptValue(key, stored) : null;
-        if (stored && decrypted === null) {
-          // A wrong key or corrupted ciphertext must never look like an empty
-          // field; otherwise a subsequent save could erase the original data.
-          return json({ error: "Não foi possível descriptografar um campo protegido. Os dados foram preservados." }, 500);
+        const stored = rowData[COLUMN_OF[field]];
+        const legacyPlain = rowData[field];
+
+        if (stored) {
+          const decrypted = await decryptValue(key, stored);
+          if (decrypted === null) {
+            // Never replace unreadable ciphertext with an empty field.
+            return json({ error: "Não foi possível descriptografar um campo protegido. Os dados foram preservados." }, 500);
+          }
+          result[field] = decrypted;
+          if (legacyPlain) migrationUpdates[field] = null;
+          continue;
         }
-        result[field] = decrypted;
+
+        if (legacyPlain !== null && legacyPlain !== undefined && String(legacyPlain).trim() !== "") {
+          // Safely migrate legacy plaintext only after encryption succeeds.
+          migrationUpdates[COLUMN_OF[field]] = await encryptValue(key, String(legacyPlain));
+          migrationUpdates[field] = null;
+          result[field] = String(legacyPlain);
+        } else {
+          result[field] = null;
+        }
       }
+
+      if (Object.keys(migrationUpdates).length > 0) {
+        migrationUpdates.encrypted_at = new Date().toISOString();
+        const { data: migrated, error: migrationError } = await admin
+          .from("users")
+          .update(migrationUpdates)
+          .eq("id", userId)
+          .eq("auth_id", authId)
+          .select("id")
+          .maybeSingle();
+        if (migrationError || !migrated) {
+          console.error("Falha ao migrar campos protegidos:", migrationError);
+          return json({ error: "Os campos protegidos foram lidos, mas a migração segura não pôde ser concluída. Nenhum campo foi apagado." }, 500);
+        }
+      }
+
       return json({ data: result });
     }
 
