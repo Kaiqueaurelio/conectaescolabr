@@ -1,5 +1,6 @@
 import { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import { useSupabaseAuth } from "./SupabaseAuthContext";
+import { isAuthorizedProfile } from "@/lib/authPolicy";
 
 export type Role = "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
 
@@ -45,13 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // A cached profile is never sufficient to grant access to protected routes.
   useEffect(() => {
     const profile = supabaseAuth.user;
-    const supportedRoles: Role[] = ["ADMIN", "TEACHER", "STUDENT", "PARENT"];
 
-    if (
-      profile &&
-      profile.status === "APPROVED" &&
-      supportedRoles.includes(profile.role as Role)
-    ) {
+    if (isAuthorizedProfile(profile)) {
       setUser({
         id: profile.id,
         role: profile.role as Role,
