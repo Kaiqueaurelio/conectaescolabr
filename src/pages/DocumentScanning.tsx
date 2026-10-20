@@ -229,10 +229,10 @@ export function DocumentScanningPage() {
                           </div>
 
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            {false && doc.status === "selected" && (
+                            {doc.status === "selected" && (
                               <div className="flex items-center gap-2 text-warning">
-                                <Clock className="w-4 h-4 animate-spin" />
-                                <span className="text-xs">Processando...</span>
+                                <FileText className="w-4 h-4" />
+                                <span className="text-xs">Selecionado (sessão atual)</span>
                               </div>
                             )}
                             {false && doc.status === "selected" && (
@@ -240,7 +240,7 @@ export function DocumentScanningPage() {
                             )}
 
                             <div className="flex gap-2">
-                              {doc.status === "completed" && (
+                              {doc.status === "selected" && (
                                 <Button
                                   size="sm"
                                   variant="outline"
