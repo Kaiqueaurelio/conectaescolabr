@@ -27,6 +27,7 @@ import {
   Info,
   Edit,
   Ban,
+  CheckCircle,
   Eye,
   Mail,
   Phone,
@@ -34,12 +35,35 @@ import {
 
 export function UsersListGlassPage() {
   const navigate = useNavigate();
-  const { user: currentUser } = useSupabaseAuth();
+  const { user: currentUser, setUserStatus } = useSupabaseAuth();
   const { users, loading, error, refetch } = useUsers();
   const [searchQuery, setSearchQuery] = useState("");
   const [profileFilter, setProfileFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+
+  const handleStatusChange = async (user: UserProfile, status: "APPROVED" | "REJECTED") => {
+    if (user.id === currentUser?.id) {
+      toast({ title: "Não é possível alterar o status da própria conta." });
+      return;
+    }
+    if (status === "APPROVED" && user.role === "VOLUNTEER") {
+      toast({
+        title: "Perfil indisponível",
+        description: "A área de acesso de voluntários ainda não está implementada; essa conta não pode ser aprovada.",
+      });
+      return;
+    }
+    if (status === "REJECTED" && !window.confirm(`Rejeitar o cadastro de ${user.full_name || user.email}? Os dados serão preservados.`)) return;
+
+    const result = await setUserStatus(user.id, status);
+    if (!result.success) {
+      toast({ title: "Não foi possível alterar o status", description: result.error });
+      return;
+    }
+    toast({ title: status === "APPROVED" ? "Conta aprovada" : "Cadastro rejeitado" });
+    await refetch();
+  };
 
   const sidebarItems = [
     { label: "Dashboard", href: "/admin/dashboard", icon: "📊" },
@@ -300,6 +324,17 @@ export function UsersListGlassPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      {user.status === "PENDING" && user.role !== "VOLUNTEER" && user.id !== currentUser?.id && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-lg text-primary"
+                          title="Aprovar cadastro"
+                          onClick={() => void handleStatusChange(user, "APPROVED")}
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
