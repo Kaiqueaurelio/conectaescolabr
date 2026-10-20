@@ -23,7 +23,6 @@ interface Announcement {
   author: string;
   target: string[];
   created_at: string;
-  priority: "low" | "medium" | "high";
 }
 
 export function CommunicationsPage() {
