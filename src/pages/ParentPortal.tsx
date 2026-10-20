@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { ModernLayout, ModernCard, ModernSection, ModernEmptyState, StatCard } from "@/components/ModernLayout";
 import { ModernTopBar, ModernPageHeader, ModernTabs } from "@/components/ModernTopBar";
 import { ModernSidebar } from "@/components/ModernSidebar";
 import { Button } from "@/components/ui/button";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-import { useUsers } from "@/hooks/useSupabaseData";
+import { supabase } from "@/lib/supabase";
 import { Users, Calendar, Bell, FileText, CheckCircle, AlertCircle, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,53 +19,54 @@ interface StudentInfo {
 
 export function ParentPortalPage() {
   const { user: currentUser } = useSupabaseAuth();
-  const { users } = useUsers();
-
   const [activeTab, setActiveTab] = useState("overview");
+  const [announcements, setAnnouncements] = useState<Array<{ id: string; title: string; content: string; date: string }>>([]);
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
+  const [announcementError, setAnnouncementError] = useState(false);
 
-  // Mock: Filhos do responsável logado
-  const myChildren: StudentInfo[] = [
-    {
-      id: "1",
-      name: "João Silva",
-      frequency: 95,
-      status: "active",
-      lastUpdate: new Date().toISOString(),
-    },
-    {
-      id: "2",
-      name: "Maria Silva",
-      frequency: 88,
-      status: "active",
-      lastUpdate: new Date().toISOString(),
-    },
-  ];
+  // O esquema atual não expõe uma tabela de vínculo responsável-aluno validada.
+  // Não inferimos parentesco nem exibimos nomes ou frequências de terceiros.
+  const myChildren: StudentInfo[] = [];
+  const attendanceData = myChildren.map((child) => ({
+    ...child,
+    presentDays: 0,
+    totalDays: 0,
+  }));
 
-  // Mock: Comunicados para responsáveis
-  const announcements = [
-    {
-      id: "1",
-      title: "Reunião de Pais",
-      content: "Convidamos todos os responsáveis para a reunião de pais no próximo sábado às 10h.",
-      date: new Date().toISOString(),
-      priority: "high",
-    },
-    {
-      id: "2",
-      title: "Atividade Recreativa",
-      content: "Haverá atividade recreativa amanhã à tarde. Todos os alunos devem trazer água.",
-      date: new Date(Date.now() - 86400000).toISOString(),
-      priority: "medium",
-    },
-  ];
+  useEffect(() => {
+    let active = true;
+    const loadAnnouncements = async () => {
+      const { data, error } = await supabase
+        .from("announcements")
+        .select("id,title,content,target_roles,created_at")
+        .order("created_at", { ascending: false });
 
-  // Mock: Presença dos filhos
-  const attendanceData = useMemo(() => {
-    return myChildren.map((child) => ({
-      ...child,
-      presentDays: Math.floor((child.frequency / 100) * 20),
-      totalDays: 20,
-    }));
+      if (!active) return;
+      if (error) {
+        console.error("Erro ao carregar comunicados para responsáveis:", error);
+        setAnnouncementError(true);
+        setAnnouncements([]);
+      } else {
+        setAnnouncements((data ?? [])
+          .filter((item) => Array.isArray(item.target_roles) &&
+            (item.target_roles.includes("ALL") || item.target_roles.includes("PARENTS")))
+          .map((item) => ({
+            id: item.id,
+            title: item.title,
+            content: item.content,
+            date: item.created_at,
+          })));
+      }
+      setLoadingAnnouncements(false);
+    };
+    void loadAnnouncements().catch((error) => {
+      console.error("Erro inesperado ao carregar comunicados:", error);
+      if (active) {
+        setAnnouncementError(true);
+        setLoadingAnnouncements(false);
+      }
+    });
+    return () => { active = false; };
   }, []);
 
   const sidebarItems = [
@@ -113,7 +114,7 @@ export function ParentPortalPage() {
                 />
                 <StatCard
                   label="Frequência Média"
-                  value={Math.round(myChildren.reduce((sum, c) => sum + c.frequency, 0) / myChildren.length)}
+                  value={myChildren.length > 0 ? Math.round(myChildren.reduce((sum, child) => sum + child.frequency, 0) / myChildren.length) : "—"}
                   trend="up"
                   trendValue="+5%"
                   color="success"
@@ -127,6 +128,13 @@ export function ParentPortalPage() {
 
               {/* Resumo dos Filhos */}
               <ModernSection title="Resumo dos Meus Filhos">
+                {myChildren.length === 0 ? (
+                  <ModernEmptyState
+                    icon={<Users />}
+                    title="Vínculo de alunos não configurado"
+                    description="Nenhum dado de criança será exibido até que o vínculo entre responsável e aluno seja validado no banco de dados."
+                  />
+                ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {myChildren.map((child) => (
                     <ModernCard key={child.id} className="p-6 hover-lift">
@@ -159,10 +167,18 @@ export function ParentPortalPage() {
                     </ModernCard>
                   ))}
                 </div>
+                )}
               </ModernSection>
 
               {/* Comunicados Recentes */}
               <ModernSection title="Comunicados Recentes">
+                {loadingAnnouncements ? (
+                  <p className="text-sm text-muted-foreground">Carregando comunicados...</p>
+                ) : announcementError ? (
+                  <ModernEmptyState icon={<AlertCircle />} title="Comunicados indisponíveis" description="Não foi possível consultar os comunicados no banco." />
+                ) : announcements.length === 0 ? (
+                  <ModernEmptyState icon={<Bell />} title="Nenhum comunicado para responsáveis" description="Não há comunicados publicados para este público." />
+                ) : (
                 <div className="space-y-3">
                   {announcements.map((ann) => (
                     <ModernCard key={ann.id} className="p-4">
@@ -181,6 +197,7 @@ export function ParentPortalPage() {
                     </ModernCard>
                   ))}
                 </div>
+                )}
               </ModernSection>
             </div>
           )}
@@ -289,6 +306,13 @@ export function ParentPortalPage() {
           {activeTab === "announcements" && (
             <div className="space-y-6 mt-6">
               <ModernSection title="Todos os Comunicados">
+                {loadingAnnouncements ? (
+                  <p className="text-sm text-muted-foreground">Carregando comunicados...</p>
+                ) : announcementError ? (
+                  <ModernEmptyState icon={<AlertCircle />} title="Comunicados indisponíveis" description="Não foi possível consultar os comunicados no banco." />
+                ) : announcements.length === 0 ? (
+                  <ModernEmptyState icon={<Bell />} title="Nenhum comunicado" description="Não há comunicados publicados para responsáveis." />
+                ) : (
                 <div className="space-y-3">
                   {announcements.map((ann) => (
                     <ModernCard key={ann.id} className="p-6">
@@ -309,6 +333,7 @@ export function ParentPortalPage() {
                     </ModernCard>
                   ))}
                 </div>
+                )}
               </ModernSection>
             </div>
           )}
