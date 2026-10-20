@@ -25,6 +25,7 @@ import {
   Users,
   Search,
   Info,
+  Plus,
   Edit,
   Ban,
   CheckCircle,
