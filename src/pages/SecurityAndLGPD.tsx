@@ -212,30 +212,35 @@ export function SecurityAndLGPDPage() {
       return;
     }
     const requestedAt = new Date().toISOString();
-    const { data, error } = await supabase
-      .from("user_activity_logs")
-      .insert({
-        user_id: currentUser.id,
-        action: "LGPD_DATA_DELETION_REQUEST",
-        details: { type: "deletion", status: "pending", requested_at: requestedAt },
-      })
-      .select("id,action,details,created_at")
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("user_activity_logs")
+        .insert({
+          user_id: currentUser.id,
+          action: "LGPD_DATA_DELETION_REQUEST",
+          details: { type: "deletion", status: "pending", requested_at: requestedAt },
+        })
+        .select("id,action,details,created_at")
+        .single();
 
-    if (error || !data) {
-      console.error("Erro ao registrar solicitação de exclusão:", error);
-      toast.error("A solicitação não foi registrada. Entre em contato com a coordenação.");
-      return;
+      if (error || !data) {
+        console.error("Erro ao registrar solicitação de exclusão:", error);
+        toast.error("A solicitação não foi registrada. Entre em contato com a coordenação.");
+        return;
+      }
+
+      setAuditLogs((previous) => [data as AuditLog, ...previous]);
+      setDataRequests((previous) => [{
+        id: data.id,
+        type: "deletion",
+        status: "pending",
+        requested_at: requestedAt,
+      }, ...previous]);
+      toast.info("Solicitação registrada no log do servidor. A coordenação ainda precisa consultá-la; nenhum aviso automático foi enviado e os dados não foram apagados.");
+    } catch (error) {
+      console.error("Falha inesperada ao solicitar exclusão:", error);
+      toast.error("Ocorreu um erro inesperado. A solicitação não foi confirmada.");
     }
-
-    setAuditLogs((previous) => [data as AuditLog, ...previous]);
-    setDataRequests((previous) => [{
-      id: data.id,
-      type: "deletion",
-      status: "pending",
-      requested_at: requestedAt,
-    }, ...previous]);
-    toast.info("Solicitação registrada no log do servidor. A coordenação ainda precisa consultá-la; nenhum aviso automático foi enviado e os dados não foram apagados.");
   };
 
   const handleDownloadPrivacyDraft = () => {
