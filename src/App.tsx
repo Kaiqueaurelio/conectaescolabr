@@ -76,7 +76,7 @@ const App = () => (
                 <Route path="/admin/calendar" element={<ProtectedRoute roles={["ADMIN", "TEACHER"]}><SmartCalendarPage /></ProtectedRoute>} />
                 <Route path="/admin/scanning" element={<ProtectedRoute roles={["ADMIN"]}><DocumentScanningPage /></ProtectedRoute>} />
                 <Route path="/admin/reports" element={<ProtectedRoute roles={["ADMIN"]}><ReportsGenerationPage /></ProtectedRoute>} />
-                <Route path="/admin/security" element={<ProtectedRoute roles={["ADMIN"]}><SecurityAndLGPDPage /></ProtectedRoute>} />
+                <Route path="/admin/security" element={<ProtectedRoute roles={["ADMIN", "TEACHER", "STUDENT", "PARENT"]}><SecurityAndLGPDPage /></ProtectedRoute>} />
                 <Route path="/admin/colors" element={<ProtectedRoute roles={["ADMIN"]}><ColorPalettePageGlass /></ProtectedRoute>} />
                 
                 {/* Rotas de Alunos/Assistidos */}
