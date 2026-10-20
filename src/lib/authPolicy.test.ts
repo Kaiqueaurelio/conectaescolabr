@@ -7,12 +7,12 @@ describe("isAuthorizedProfile", () => {
     expect(isAuthorizedProfile({ role: "TEACHER", status: "APPROVED" })).toBe(true);
     expect(isAuthorizedProfile({ role: "STUDENT", status: "APPROVED" })).toBe(true);
     expect(isAuthorizedProfile({ role: "PARENT", status: "APPROVED" })).toBe(true);
+    expect(isAuthorizedProfile({ role: "VOLUNTEER", status: "APPROVED" })).toBe(true);
   });
 
   it("denies pending, rejected, missing and unsupported profiles", () => {
     expect(isAuthorizedProfile({ role: "ADMIN", status: "PENDING" })).toBe(false);
     expect(isAuthorizedProfile({ role: "STUDENT", status: "REJECTED" })).toBe(false);
-    expect(isAuthorizedProfile({ role: "VOLUNTEER", status: "APPROVED" })).toBe(true);
     expect(isAuthorizedProfile(null)).toBe(false);
     expect(isAuthorizedProfile(undefined)).toBe(false);
   });
