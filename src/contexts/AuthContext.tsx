@@ -1,5 +1,6 @@
 import { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import { useSupabaseAuth } from "./SupabaseAuthContext";
+import { isAuthorizedProfile } from "@/lib/authPolicy";
 
 export type Role = "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
 
@@ -52,11 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const allowedRoles: Role[] = ["ADMIN", "TEACHER", "STUDENT", "PARENT"];
-    // Não converta VOLUNTEER em STUDENT: isso concederia permissões de aluno
-    // a um perfil de outro tipo. Cadastros com papel não suportado ficam sem acesso
-    // até existir uma rota e uma política próprias para esse papel.
-    if (profile.status !== "APPROVED" || !allowedRoles.includes(profile.role as Role)) {
+    // O mesmo critério é testado unitariamente e usado para negar contas
+    // pendentes, rejeitadas e papéis que ainda não possuem uma área própria.
+    if (!isAuthorizedProfile(profile)) {
       setUser(null);
       setLoading(false);
       return;
