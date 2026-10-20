@@ -60,7 +60,7 @@ export function useUser(userId: string | null, options: UseSupabaseDataOptions =
       setLoading(true);
       const { data, error: err } = await supabase
         .from("users")
-        .select("id,auth_id,full_name,email,role,status,avatar_url,priority_public,created_at,updated_at")
+        .select("id,full_name,email,role,status,avatar_url,priority_public,created_at,updated_at")
         .eq("id", userId)
         .single();
 
