@@ -47,14 +47,14 @@ export function ReportsGenerationPage() {
     {
       id: "2",
       name: "Relatório Social",
-      description: "Dados sobre situação social e benefícios dos usuários",
+      description: "Registros de prontuário social no período selecionado",
       type: "social",
       icon: <Users className="w-6 h-6" />,
     },
     {
       id: "3",
       name: "Relatório de Benefícios",
-      description: "Distribuição e estoque de benefícios",
+      description: "Registros de distribuição de benefícios no período selecionado",
       type: "benefits",
       icon: <TrendingUp className="w-6 h-6" />,
     },
@@ -112,11 +112,11 @@ export function ReportsGenerationPage() {
       queryError = result.error;
     } else if (type === "social") {
       const result = await supabase
-        .from("users")
-        .select("id,full_name,email,role,status,created_at")
-        .gte("created_at", `${startDate}T00:00:00`)
-        .lte("created_at", `${endDate}T23:59:59`)
-        .order("created_at", { ascending: true });
+        .from("social_records")
+        .select("user_id,record_type,title,description,record_date,created_by")
+        .gte("record_date", startDate)
+        .lte("record_date", endDate)
+        .order("record_date", { ascending: true });
       rows = (result.data ?? []) as Record<string, unknown>[];
       queryError = result.error;
     } else if (type === "benefits") {
