@@ -209,8 +209,8 @@ export function ParentPortalPage() {
                 {myChildren.length === 0 ? (
                   <ModernEmptyState
                     icon={<Users />}
-                    title="Nenhum filho cadastrado"
-                    description="Entre em contato com a coordenação para cadastrar seus filhos"
+                    title="Vínculo de alunos não configurado"
+                    description="A associação ainda precisa configurar e validar a relação entre responsável e aluno no banco."
                   />
                 ) : (
                   <div className="space-y-4">
@@ -267,6 +267,13 @@ export function ParentPortalPage() {
           {activeTab === "attendance" && (
             <div className="space-y-6 mt-6">
               <ModernSection title="Presença dos Meus Filhos">
+                {attendanceData.length === 0 ? (
+                  <ModernEmptyState
+                    icon={<AlertCircle />}
+                    title="Frequência indisponível"
+                    description="A frequência dos filhos só poderá aparecer depois que o vínculo responsável-aluno estiver configurado e validado."
+                  />
+                ) : (
                 <div className="space-y-4">
                   {attendanceData.map((child) => (
                     <ModernCard key={child.id} className="p-6">
@@ -298,6 +305,7 @@ export function ParentPortalPage() {
                     </ModernCard>
                   ))}
                 </div>
+                )}
               </ModernSection>
             </div>
           )}
