@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { supabase } from "@/lib/supabase";
-import { useUsers } from "@/hooks/useSupabaseData";
 import { Bell, MessageSquare, Users, Clock, Plus, Trash2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -27,7 +26,8 @@ interface Announcement {
 
 export function CommunicationsPage() {
   const { user: currentUser } = useSupabaseAuth();
-  const { users: realUsers } = useUsers();
+  const [groupCounts, setGroupCounts] = useState<Record<string, number | null>>({});
+  const [groupCountsLoading, setGroupCountsLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState("announcements");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -75,6 +75,33 @@ export function CommunicationsPage() {
   useEffect(() => {
     void loadAnnouncements();
   }, [loadAnnouncements]);
+
+  useEffect(() => {
+    let active = true;
+    const roles = ["ADMIN", "TEACHER", "STUDENT", "PARENT", "VOLUNTEER"];
+    const loadGroupCounts = async () => {
+      const results = await Promise.all(roles.map(async (role) => {
+        const { count, error } = await supabase
+          .from("users")
+          .select("id", { count: "exact", head: true })
+          .eq("role", role)
+          .eq("status", "APPROVED");
+        if (error) {
+          console.error(`Erro ao contar perfis ${role}:`, error);
+          return [role, null] as const;
+        }
+        return [role, count ?? 0] as const;
+      }));
+      if (!active) return;
+      setGroupCounts(Object.fromEntries(results));
+      setGroupCountsLoading(false);
+    };
+    void loadGroupCounts().catch((error) => {
+      console.error("Erro ao carregar contagens de grupos:", error);
+      if (active) setGroupCountsLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
 
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: "",
@@ -355,14 +382,16 @@ export function CommunicationsPage() {
                     { name: "Alunos", role: "STUDENT" },
                     { name: "Responsáveis", role: "PARENT" },
                     { name: "Voluntários", role: "VOLUNTEER" },
-                  ].map((g) => ({ ...g, members: realUsers.filter((u) => u.role === g.role).length })).map((group, index) => (
-                    <ModernCard key={index} className="p-4">
+                  ].map((group) => (
+                    <ModernCard key={group.role} className="p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <Users className="w-5 h-5 text-primary" />
                           <div>
                             <p className="font-medium text-foreground">{group.name}</p>
-                            <p className="text-xs text-muted-foreground">{group.members} membros</p>
+                            <p className="text-xs text-muted-foreground">
+                              {groupCountsLoading ? "Carregando contagem..." : groupCounts[group.role] == null ? "Contagem indisponível" : `${groupCounts[group.role]} membros aprovados`}
+                            </p>
                           </div>
                         </div>
                         <span className="text-xs text-muted-foreground">Somente contagem</span>
