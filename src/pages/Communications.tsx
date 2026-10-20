@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ModernLayout, ModernCard, ModernSection, ModernEmptyState, ModernBadge } from "@/components/ModernLayout";
+import { ModernLayout, ModernCard, ModernSection, ModernEmptyState } from "@/components/ModernLayout";
 import { ModernTopBar, ModernPageHeader, ModernTabs } from "@/components/ModernTopBar";
 import { ModernSidebar } from "@/components/ModernSidebar";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { supabase } from "@/lib/supabase";
 import { useUsers } from "@/hooks/useSupabaseData";
-import { Bell, Send, MessageSquare, Users, Clock, Plus, Trash2 } from "lucide-react";
+import { Bell, MessageSquare, Users, Clock, Plus, Trash2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -79,7 +79,6 @@ export function CommunicationsPage() {
       created_at: row.created_at,
       // A tabela atual não possui uma coluna de prioridade; não inventamos
       // esse valor como se estivesse persistido.
-      priority: "medium",
     })));
     setLoadingAnnouncements(false);
   };
@@ -140,27 +139,8 @@ export function CommunicationsPage() {
       priority: "medium",
     };
     setAnnouncements((previous) => [announcement, ...previous]);
-    setNewAnnouncement({ title: "", content: "", target: [], priority: "medium" });
+    setNewAnnouncement({ title: "", content: "", target: [] });
     toast.success("Comunicado salvo no banco de dados.");
-  };
-
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) {
-      toast.error("Mensagem não pode estar vazia");
-      return;
-    }
-
-    const message: Message = {
-      id: `msg-${Date.now()}`,
-      sender: currentUser?.full_name || "Anônimo",
-      content: newMessage,
-      timestamp: new Date().toISOString(),
-      read: true,
-    };
-
-    setMessages([...messages, message]);
-    setNewMessage("");
-    toast.success("Mensagem enviada!");
   };
 
   const handleDeleteAnnouncement = async (id: string) => {
@@ -197,32 +177,6 @@ export function CommunicationsPage() {
     }
     setAnnouncements([]);
     toast.success("Comunicados removidos do banco de dados.");
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "destructive";
-      case "medium":
-        return "warning";
-      case "low":
-        return "muted";
-      default:
-        return "muted";
-    }
-  };
-
-  const getPriorityLabel = (priority: string) => {
-    switch (priority) {
-      case "high":
-        return "Urgente";
-      case "medium":
-        return "Normal";
-      case "low":
-        return "Baixa";
-      default:
-        return "Normal";
-    }
   };
 
   const sidebarItems = [
@@ -299,29 +253,7 @@ export function CommunicationsPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="priority">Prioridade</Label>
-                        <Select
-                          value={newAnnouncement.priority}
-                          onValueChange={(value) =>
-                            setNewAnnouncement({
-                              ...newAnnouncement,
-                              priority: value as "low" | "medium" | "high",
-                            })
-                          }
-                        >
-                          <SelectTrigger id="priority" className="mt-2">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="low">Baixa</SelectItem>
-                            <SelectItem value="medium">Normal</SelectItem>
-                            <SelectItem value="high">Urgente</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
+                    <div className="grid grid-cols-1 gap-4">
                       <div>
                         <Label htmlFor="target">Público-alvo *</Label>
                         <Select
@@ -376,9 +308,7 @@ export function CommunicationsPage() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
                               <h3 className="font-semibold text-foreground">{ann.title}</h3>
-                              <ModernBadge variant={getPriorityColor(ann.priority)} size="sm">
-                                {getPriorityLabel(ann.priority)}
-                              </ModernBadge>
+                              
                             </div>
                             <p className="text-sm text-foreground/80 mb-3">{ann.content}</p>
                             <div className="flex items-center gap-4 text-xs text-muted-foreground">
@@ -412,42 +342,16 @@ export function CommunicationsPage() {
           {activeTab === "messages" && (
             <div className="space-y-6 mt-6">
               <ModernCard className="p-6">
-                <h3 className="font-semibold text-foreground mb-4">Mural Interno</h3>
-
-                {/* Chat */}
-                <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
-                  {messages.map((msg) => (
-                    <div key={msg.id} className="flex gap-3">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-bold text-primary">
-                          {msg.sender.charAt(0)}
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-foreground">{msg.sender}</p>
-                        <p className="text-sm text-foreground/80 mt-1">{msg.content}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {format(new Date(msg.timestamp), "HH:mm", { locale: ptBR })}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Input */}
-                <div className="flex gap-2">
-                  <Input
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === "Enter") handleSendMessage();
-                    }}
-                    placeholder="Digite sua mensagem..."
-                    className="flex-1"
-                  />
-                  <Button onClick={handleSendMessage} size="icon">
-                    <Send className="w-4 h-4" />
-                  </Button>
+                <h3 className="font-semibold text-foreground mb-4">Mensagens internas</h3>
+                <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                  <div>
+                    <p className="font-medium text-foreground">Mensagens ainda não conectadas</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      O envio de mensagens está desativado porque não há uma tabela de mensagens confirmada no esquema atual.
+                      Nenhuma mensagem será apresentada como enviada sem ser salva.
+                    </p>
+                  </div>
                 </div>
               </ModernCard>
             </div>
@@ -457,7 +361,8 @@ export function CommunicationsPage() {
           {activeTab === "groups" && (
             <div className="space-y-6 mt-6">
               <ModernCard className="p-6">
-                <h3 className="font-semibold text-foreground mb-4">Grupos Internos</h3>
+                <h3 className="font-semibold text-foreground mb-2">Grupos internos</h3>
+                <p className="text-sm text-muted-foreground mb-4">Os números abaixo são contagens de perfis retornados pelo banco. A navegação e a comunicação dentro de grupos ainda não estão implementadas.</p>
                 <div className="space-y-3">
                   {[
                     { name: "Coordenação", role: "ADMIN" },
@@ -475,9 +380,7 @@ export function CommunicationsPage() {
                             <p className="text-xs text-muted-foreground">{group.members} membros</p>
                           </div>
                         </div>
-                        <Button variant="outline" size="sm">
-                          Acessar
-                        </Button>
+                        <span className="text-xs text-muted-foreground">Somente contagem</span>
                       </div>
                     </ModernCard>
                   ))}
