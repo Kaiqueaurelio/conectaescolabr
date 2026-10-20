@@ -5,7 +5,6 @@ import { ModernSidebar } from "@/components/ModernSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { supabase } from "@/lib/supabase";
 import { Shield, Lock, Eye, EyeOff, Download, Trash2, AlertTriangle, CheckCircle, AlertCircle } from "lucide-react";
@@ -223,7 +222,7 @@ export function SecurityAndLGPDPage() {
       status: "pending",
       requested_at: requestedAt,
     }, ...previous]);
-    toast.info("Solicitação registrada para análise. Os dados não foram apagados automaticamente.");
+    toast.info("Solicitação registrada no log do servidor. A coordenação ainda precisa consultá-la; nenhum aviso automático foi enviado e os dados não foram apagados.");
   };
 
   const handleDownloadPrivacyDraft = () => {
