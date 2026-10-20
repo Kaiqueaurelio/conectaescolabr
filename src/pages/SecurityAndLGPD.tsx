@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { supabase } from "@/lib/supabase";
+import { readSecureProfile } from "@/lib/secureProfile";
 import { Shield, Lock, Eye, EyeOff, Download, Trash2, AlertTriangle, CheckCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -140,25 +141,38 @@ export function SecurityAndLGPDPage() {
 
     setExporting(true);
     try {
-      const [profile, socialRecords, attendanceRecords, benefits] = await Promise.all([
+      const [profile, socialRecords, attendanceRecords, benefits, protectedProfile] = await Promise.all([
         supabase.from("users").select("*").eq("id", currentUser.id).single(),
         supabase.from("social_records").select("*").eq("user_id", currentUser.id),
         supabase.from("attendance_records").select("*").eq("user_id", currentUser.id),
         supabase.from("benefit_distributions").select("*").eq("user_id", currentUser.id),
+        readSecureProfile(currentUser.id),
       ]);
 
       const queryError = profile.error || socialRecords.error || attendanceRecords.error || benefits.error;
-      if (queryError || !profile.data) {
-        console.error("Erro ao exportar dados pessoais:", queryError);
-        toast.error("Não foi possível consultar todos os seus dados. Nenhum arquivo foi criado.");
+      if (queryError || !profile.data || protectedProfile.error || !protectedProfile.data) {
+        console.error("Erro ao exportar dados pessoais:", queryError || protectedProfile.error);
+        toast.error("Não foi possível consultar todos os seus dados, incluindo os campos protegidos. Nenhum arquivo foi criado.");
         return;
       }
 
+      const {
+        auth_id: _authId,
+        cpf_enc: _cpfEncrypted,
+        rg_enc: _rgEncrypted,
+        address_enc: _addressEncrypted,
+        phone_enc: _phoneEncrypted,
+        mother_name_enc: _motherEncrypted,
+        father_name_enc: _fatherEncrypted,
+        vulnerability_enc: _vulnerabilityEncrypted,
+        encrypted_at: _encryptedAt,
+        ...profileWithoutSecrets
+      } = profile.data as Record<string, unknown>;
       const requestedAt = new Date().toISOString();
       const payload = {
         exportado_em: requestedAt,
         observacao: "Exportação dos dados pessoais disponíveis nas tabelas consultadas. Registros de outras tabelas ou vínculos não configurados podem não estar incluídos.",
-        perfil: profile.data,
+        perfil: { ...profileWithoutSecrets, ...protectedProfile.data },
         prontuario_social: socialRecords.data ?? [],
         frequencia: attendanceRecords.data ?? [],
         beneficios_recebidos: benefits.data ?? [],
