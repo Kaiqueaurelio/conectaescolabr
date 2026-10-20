@@ -55,6 +55,8 @@ export function UsersListGlassPage() {
       return;
     }
     if (status === "REJECTED" && !window.confirm(`Rejeitar o cadastro de ${user.full_name || user.email}? Os dados serão preservados.`)) return;
+    if (status === "APPROVED" && user.status === "REJECTED" &&
+      !window.confirm(`Reaprovar a conta de ${user.full_name || user.email}?`)) return;
 
     const result = await setUserStatus(user.id, status);
     if (!result.success) {
@@ -318,7 +320,7 @@ export function UsersListGlassPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {user.status === "PENDING" && user.role !== "VOLUNTEER" && user.id !== currentUser?.id && (
+                      {user.status !== "APPROVED" && user.role !== "VOLUNTEER" && user.id !== currentUser?.id && (
                         <Button
                           variant="outline"
                           size="sm"
