@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { GlassLayout, GlassContainer } from "@/components/GlassLayout";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { TrendingUp, Users, Heart, Zap, AlertCircle } from "lucide-react";
+import { TrendingUp, Users, Heart, CalendarDays, AlertCircle } from "lucide-react";
 
 interface ImpactMetric {
   label: string;
@@ -41,7 +41,7 @@ export function ImpactDashboardPage() {
         benefitsCount,
         attendanceTotal,
         attendancePresent,
-        volunteersCount,
+        eventsCount,
         familiesByMonth,
         benefitsByMonth,
         attendanceByMonth,
@@ -50,7 +50,7 @@ export function ImpactDashboardPage() {
         supabase.from("benefit_distributions").select("id", { count: "exact", head: true }),
         supabase.from("attendance_records").select("id", { count: "exact", head: true }),
         supabase.from("attendance_records").select("id", { count: "exact", head: true }).eq("status", "PRESENT"),
-        supabase.from("users").select("id", { count: "exact", head: true }).eq("role", "VOLUNTEER").eq("status", "APPROVED"),
+        supabase.from("events").select("id", { count: "exact", head: true }),
         supabase.from("users").select("created_at").eq("role", "PARENT").eq("status", "APPROVED").gte("created_at", startIso),
         supabase.from("benefit_distributions").select("distribution_date,quantity").gte("distribution_date", startIso.slice(0, 10)),
         supabase.from("attendance_records").select("date,status").gte("date", startIso.slice(0, 10)),
@@ -60,13 +60,13 @@ export function ImpactDashboardPage() {
 
       const hasErrors = [
         familiesCount.error, benefitsCount.error, attendanceTotal.error,
-        attendancePresent.error, volunteersCount.error, familiesByMonth.error,
+        attendancePresent.error, eventsCount.error, familiesByMonth.error,
         benefitsByMonth.error, attendanceByMonth.error,
       ].some(Boolean);
       if (hasErrors) {
         console.error("Falha ao carregar dados do painel de impacto", {
           families: familiesCount.error, benefits: benefitsCount.error,
-          attendance: attendanceTotal.error, volunteers: volunteersCount.error,
+          attendance: attendanceTotal.error, events: eventsCount.error,
           familiesByMonth: familiesByMonth.error, benefitsByMonth: benefitsByMonth.error,
           attendanceByMonth: attendanceByMonth.error,
         });
@@ -101,10 +101,10 @@ export function ImpactDashboardPage() {
           color: "from-blue-500 to-cyan-600",
         },
         {
-          label: "Voluntários aprovados",
-          value: volunteersCount.error ? null : (volunteersCount.count ?? 0),
+          label: "Eventos cadastrados",
+          value: eventsCount.error ? null : (eventsCount.count ?? 0),
           change: null,
-          icon: <Zap className="w-6 h-6" />,
+          icon: <CalendarDays className="w-6 h-6" />,
           color: "from-purple-500 to-pink-600",
         },
       ]);
