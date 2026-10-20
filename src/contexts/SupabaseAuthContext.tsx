@@ -34,6 +34,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   // Initialize auth state
   useEffect(() => {
     let active = true;
+    let authEventReceived = false;
 
     const loadProfile = async (authId: string) => {
       const requestId = ++profileRequestId.current;
@@ -69,6 +70,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     // Register listener BEFORE getSession so we never miss events.
     const { data: authListener } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (!active) return;
+      authEventReceived = true;
       setSession(newSession);
       if (newSession?.user) {
         void loadProfile(newSession.user.id);
@@ -87,9 +89,8 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       .getSession()
       .then(({ data }) => {
         if (!active) return;
-        // Evita que uma resposta antiga de getSession substitua uma mudança de
-        // sessão já recebida pelo listener.
-        if (profileRequestId.current > 0) return;
+        // O listener tem prioridade caso já tenha recebido um evento de sessão.
+        if (authEventReceived) return;
         setSession(data.session);
         if (data.session?.user) {
           void loadProfile(data.session.user.id);
