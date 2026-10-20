@@ -209,9 +209,15 @@ export function useUpdateUser() {
   const updateUser = useCallback(async (userId: string, updates: Partial<UserProfile>) => {
     try {
       setLoading(true);
+      const safeUpdates: Partial<UserProfile> = { ...updates };
+      for (const field of [
+        "cpf", "rg", "address", "phone", "mother_name", "father_name", "vulnerability_situation",
+      ] as const) {
+        delete safeUpdates[field];
+      }
       const { data, error: err } = await supabase
         .from("users")
-        .update(updates)
+        .update(safeUpdates)
         .eq("id", userId)
         .select("id")
         .maybeSingle();
