@@ -210,10 +210,19 @@ export function useUpdateUser() {
     try {
       setLoading(true);
       const safeUpdates: Partial<UserProfile> = { ...updates };
+      // Auth identity and e-mail changes require a dedicated confirmation flow.
+      delete safeUpdates.id;
+      delete safeUpdates.auth_id;
+      delete safeUpdates.email;
+      delete safeUpdates.created_at;
+      delete safeUpdates.updated_at;
       for (const field of [
         "cpf", "rg", "address", "phone", "mother_name", "father_name", "vulnerability_situation",
       ] as const) {
         delete safeUpdates[field];
+      }
+      if (Object.keys(safeUpdates).length === 0) {
+        throw new Error("Nenhum campo editável foi informado.");
       }
       const { data, error: err } = await supabase
         .from("users")
