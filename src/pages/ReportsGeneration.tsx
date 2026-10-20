@@ -148,12 +148,12 @@ export function ReportsGenerationPage() {
       const text = value == null ? "" : String(value);
       return `"${text.replace(/"/g, '""')}"`;
     };
-    const csv = "\\uFEFF" + [
+    const csv = "\uFEFF" + [
       columns.map(csvEscape).join(","),
       ...rows.map((row) => columns.map((column) => csvEscape(row[column])).join(",")),
-    ].join("\\r\\n");
+    ].join("\r\n");
     const dateSuffix = `${startDate}_a_${endDate}`;
-    const safeName = selectedTemplate.name.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase();
+    const safeName = selectedTemplate.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase();
 
     if (format === "csv") {
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
