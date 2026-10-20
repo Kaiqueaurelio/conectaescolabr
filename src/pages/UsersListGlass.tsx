@@ -358,9 +358,9 @@ export function UsersListGlassPage() {
                         variant="outline"
                         size="sm"
                         className="rounded-lg text-destructive hover:text-destructive"
-                        title="Bloquear acesso"
+                        title={user.status === "REJECTED" ? "Acesso já bloqueado" : "Bloquear acesso"}
                         onClick={() => handleBlockUser(user)}
-                        disabled={deletingUserId === user.id}
+                        disabled={deletingUserId === user.id || user.status === "REJECTED"}
                       >
                         <Ban className="w-4 h-4" />
                       </Button>
