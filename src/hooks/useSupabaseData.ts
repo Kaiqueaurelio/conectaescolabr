@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase, UserProfile, SocialRecord, AttendanceRecord } from "@/lib/supabase";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
 interface UseSupabaseDataOptions {
   enabled?: boolean;
@@ -18,7 +19,7 @@ export function useUsers(options: UseSupabaseDataOptions = {}) {
       setLoading(true);
       const { data, error: err } = await supabase
         .from("users")
-        .select("*")
+        .select("id,full_name,email,role,status,avatar_url,priority_public,created_at,updated_at")
         .order("created_at", { ascending: false });
 
       if (err) throw err;
@@ -59,7 +60,7 @@ export function useUser(userId: string | null, options: UseSupabaseDataOptions =
       setLoading(true);
       const { data, error: err } = await supabase
         .from("users")
-        .select("*")
+        .select("id,auth_id,full_name,email,role,status,avatar_url,priority_public,created_at,updated_at")
         .eq("id", userId)
         .single();
 
@@ -162,7 +163,7 @@ export function useAttendance(userId: string | null, options: UseSupabaseDataOpt
     try {
       setLoading(true);
       const { data, error: err } = await supabase
-        .from("attendance")
+        .from("attendance_records")
         .select("*")
         .eq("user_id", userId)
         .order("date", { ascending: false });
@@ -192,16 +193,39 @@ export function useAttendance(userId: string | null, options: UseSupabaseDataOpt
 export function useUpdateUser() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user: currentUser } = useSupabaseAuth();
 
   const updateUser = useCallback(async (userId: string, updates: Partial<UserProfile>) => {
+    if (!currentUser) return { success: false, error: "Usuário não autenticado." };
+    const isSelf = currentUser.id === userId;
+    const isAdmin = currentUser.role === "ADMIN";
+    if (!isAdmin && !isSelf) {
+      return { success: false, error: "Você não tem permissão para editar este perfil." };
+    }
+
+    // Nunca aceite auth_id, id, e-mail ou dados protegidos de um formulário
+    // comum. Funções e status só podem ser alterados por um admin para outra conta.
+    const allowedFields = isAdmin && !isSelf
+      ? ["full_name", "role", "status", "priority_public", "avatar_url"]
+      : ["full_name", "priority_public", "avatar_url"];
+    const safeUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([field, value]) => allowedFields.includes(field) && value !== undefined)
+    );
+    if (Object.keys(safeUpdates).length === 0) {
+      return { success: false, error: "Nenhum campo permitido para atualização foi informado." };
+    }
+
     try {
       setLoading(true);
-      const { error: err } = await supabase
+      const { data, error: err } = await supabase
         .from("users")
-        .update(updates)
-        .eq("id", userId);
+        .update(safeUpdates)
+        .eq("id", userId)
+        .select("id")
+        .maybeSingle();
 
       if (err) throw err;
+      if (!data) throw new Error("O perfil não foi atualizado. Verifique as permissões do banco.");
       setError(null);
       return { success: true };
     } catch (err) {
@@ -211,7 +235,7 @@ export function useUpdateUser() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUser]);
 
   return { updateUser, loading, error };
 }
