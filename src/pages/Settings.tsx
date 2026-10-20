@@ -43,10 +43,17 @@ export default function Settings() {
     document.documentElement.classList.toggle("dark", prefs.darkMode);
   }, [prefs]);
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
     if (name.trim().length < 3) return toast.error("Nome muito curto.");
-    updateProfile({ name: name.trim(), email: email.trim() });
-    toast.success("Perfil atualizado!");
+    if (email.trim() !== user?.email) {
+      return toast.error("A alteração de e-mail ainda não está disponível. O endereço atual foi mantido por segurança.");
+    }
+    try {
+      await updateProfile({ name: name.trim() });
+      toast.success("Nome atualizado no banco de dados.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar o perfil.");
+    }
   };
 
   const clearLocal = () => {
@@ -62,7 +69,7 @@ export default function Settings() {
         <h2 className="text-sm font-semibold flex items-center gap-2 mb-4"><UserIcon className="h-4 w-4 text-primary" /> Perfil</h2>
         <div className="space-y-3">
           <div><Label>Nome</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-          <div><Label>E-mail</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+          <div><Label>E-mail</Label><Input type="email" value={email} disabled aria-describedby="email-change-note" /><p id="email-change-note" className="mt-1 text-xs text-muted-foreground">A alteração de e-mail exige confirmação da conta e ainda não está disponível.</p></div>
           <Button onClick={saveProfile} className="gradient-primary text-primary-foreground"><Save className="h-4 w-4 mr-2" /> Salvar</Button>
         </div>
       </Card>
