@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/AppLayout";
 import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -14,8 +15,8 @@ const sections = [
   },
   {
     to: "/turmas",
-    title: "Turmas",
-    desc: "Crie e gerencie turmas, vincule alunas e responsáveis.",
+    title: "Atividades",
+    desc: "Consulte as atividades cadastradas no banco. Vínculos de turma ainda não estão configurados.",
     icon: GraduationCap,
     tone: "tone-tertiary",
   },
@@ -36,14 +37,17 @@ const sections = [
 ];
 
 export default function CadastroGeral() {
+  const { user } = useAuth();
+  const visibleSections = sections.filter((section) => section.to !== "/admin/users" || user?.role === "ADMIN");
+
   return (
     <AppLayout>
       <PageHeader
-        title="Cadastro Geral"
-        subtitle="Centro de gestão da ONG — pessoas, turmas, chamada e agenda."
+        title="Gestão geral"
+        subtitle="Atalhos para módulos conectados ao banco de dados."
       />
       <div className="grid sm:grid-cols-2 gap-4">
-        {sections.map((s) => {
+        {visibleSections.map((s) => {
           const Icon = s.icon;
           return (
             <Link key={s.to} to={s.to} className="group">
