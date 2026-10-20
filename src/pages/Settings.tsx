@@ -29,7 +29,7 @@ export default function Settings() {
   const { user, updateProfile } = useAuth();
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
   const [name, setName] = useState(user?.name || "");
-  const [email, setEmail] = useState(user?.email || "");
+
 
   useEffect(() => {
     try {
@@ -43,15 +43,20 @@ export default function Settings() {
     document.documentElement.classList.toggle("dark", prefs.darkMode);
   }, [prefs]);
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
     if (name.trim().length < 3) return toast.error("Nome muito curto.");
-    updateProfile({ name: name.trim(), email: email.trim() });
-    toast.success("Perfil atualizado!");
+    const result = await updateProfile({ name: name.trim() });
+    if (!result.success) {
+      toast.error(result.error || "Não foi possível atualizar o perfil.");
+      return;
+    }
+    toast.success("Nome atualizado no banco de dados.");
   };
 
   const clearLocal = () => {
     localStorage.removeItem("camila_data_v2");
-    toast.success("Dados locais limpos. Recarregue para ver o efeito.");
+    localStorage.removeItem("camila_data_v3_clean");
+    toast.success("Dados legados do protótipo removidos. Os dados do servidor foram preservados.");
   };
 
   return (
@@ -62,7 +67,7 @@ export default function Settings() {
         <h2 className="text-sm font-semibold flex items-center gap-2 mb-4"><UserIcon className="h-4 w-4 text-primary" /> Perfil</h2>
         <div className="space-y-3">
           <div><Label>Nome</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-          <div><Label>E-mail</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+          <div><Label>E-mail</Label><Input type="email" value={user?.email || ""} disabled /><p className="mt-1 text-xs text-muted-foreground">Para alterar o e-mail, será necessário confirmar o novo endereço. Essa opção ainda não está disponível.</p></div>
           <Button onClick={saveProfile} className="gradient-primary text-primary-foreground"><Save className="h-4 w-4 mr-2" /> Salvar</Button>
         </div>
       </Card>
@@ -82,7 +87,7 @@ export default function Settings() {
 
       <Card className="p-5 border-destructive/30">
         <h2 className="text-sm font-semibold flex items-center gap-2 mb-2 text-destructive"><Trash2 className="h-4 w-4" /> Zona perigosa</h2>
-        <p className="text-xs text-muted-foreground mb-3">Limpa todos os dados deste navegador (chamadas, comunicados, lembretes etc.).</p>
+        <p className="text-xs text-muted-foreground mb-3">Remove apenas dados legados do protótipo deste navegador. Os dados salvos no servidor e as preferências atuais não serão apagados.</p>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="outline" size="sm" className="text-destructive border-destructive/40">Limpar dados locais</Button>
@@ -90,7 +95,7 @@ export default function Settings() {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Limpar dados locais?</AlertDialogTitle>
-              <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+              <AlertDialogDescription>Isso não remove dados do Supabase. Somente a chave legada do protótipo será removida.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
