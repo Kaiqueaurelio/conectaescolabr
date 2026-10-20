@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ModernLayout, ModernCard, ModernSection, ModernGrid, StatCard } from "@/components/ModernLayout";
+import { ModernLayout, ModernCard, ModernSection, ModernGrid, ModernEmptyState } from "@/components/ModernLayout";
 import { ModernTopBar, ModernPageHeader, ModernTabs } from "@/components/ModernTopBar";
 import { ModernSidebar } from "@/components/ModernSidebar";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-import { Download, FileText, BarChart3, Users, Calendar, TrendingUp } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { Download, FileText, BarChart3, Users, Calendar, TrendingUp, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 interface ReportTemplate {
@@ -22,10 +23,18 @@ export function ReportsGenerationPage() {
   const { user: currentUser } = useSupabaseAuth();
 
   const [activeTab, setActiveTab] = useState("templates");
-  const [reportType, setReportType] = useState("frequency");
   const [startDate, setStartDate] = useState(new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
-  const [format, setFormat] = useState("pdf");
+  const [format, setFormat] = useState("csv");
+  const [generating, setGenerating] = useState(false);
+  const [history, setHistory] = useState<Array<{ name: string; date: string; format: string }>>(() => {
+    try {
+      const saved = localStorage.getItem("conectaescola_report_history_v1");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const reportTemplates: ReportTemplate[] = [
     {
@@ -38,14 +47,14 @@ export function ReportsGenerationPage() {
     {
       id: "2",
       name: "Relatório Social",
-      description: "Dados sobre situação social e benefícios dos usuários",
+      description: "Registros de prontuário social no período selecionado",
       type: "social",
       icon: <Users className="w-6 h-6" />,
     },
     {
       id: "3",
       name: "Relatório de Benefícios",
-      description: "Distribuição e estoque de benefícios",
+      description: "Registros de distribuição de benefícios no período selecionado",
       type: "benefits",
       icon: <TrendingUp className="w-6 h-6" />,
     },
@@ -58,35 +67,124 @@ export function ReportsGenerationPage() {
     },
   ];
 
-  const handleGenerateReport = (type: string) => {
+  const handleGenerateReport = async (type: string) => {
     if (!startDate || !endDate) {
       toast.error("Selecione o período do relatório");
       return;
     }
+    if (startDate > endDate) {
+      toast.error("A data inicial não pode ser posterior à data final.");
+      return;
+    }
+    if (type === "financial" || type === "custom") {
+      toast.error(type === "financial"
+        ? "Não há uma tabela financeira confirmada no banco. Nenhum relatório foi criado."
+        : "Relatórios personalizados ainda não estão conectados a uma definição de campos persistente. Escolha um dos modelos disponíveis.");
+      return;
+    }
 
-    toast.loading("Gerando relatório...");
+    const selectedTemplate = reportTemplates.find((template) => template.type === type);
+    if (!selectedTemplate) {
+      toast.error("Modelo de relatório inválido.");
+      return;
+    }
 
-    // Simular geração de relatório
-    setTimeout(() => {
-      const filename = `relatorio-${type}-${new Date().toISOString().split("T")[0]}.${format === "pdf" ? "pdf" : "xlsx"}`;
-      
-      // Criar um blob simulado
-      const content = `Relatório de ${type}\nPeríodo: ${startDate} a ${endDate}\nGerado em: ${new Date().toLocaleString("pt-BR")}`;
-      const blob = new Blob([content], { type: format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-      
-      // Criar link de download
+    // Abrimos a janela de impressão durante o clique do usuário para reduzir
+    // bloqueios de pop-up; o conteúdo só é preenchido após a consulta real.
+    const printWindow = format === "pdf" ? window.open("", "_blank") : null;
+    if (format === "pdf" && !printWindow) {
+      toast.error("O navegador bloqueou a janela de impressão. Permita pop-ups e tente novamente.");
+      return;
+    }
+
+    setGenerating(true);
+    let rows: Record<string, unknown>[] = [];
+    let queryError: { message: string } | null = null;
+
+    if (type === "frequency") {
+      const result = await supabase
+        .from("attendance_records")
+        .select("date,status,user_id,activity_id,recorded_by")
+        .gte("date", startDate)
+        .lte("date", endDate)
+        .order("date", { ascending: true });
+      rows = (result.data ?? []) as Record<string, unknown>[];
+      queryError = result.error;
+    } else if (type === "social") {
+      const result = await supabase
+        .from("social_records")
+        .select("user_id,record_type,title,description,record_date,created_by")
+        .gte("record_date", startDate)
+        .lte("record_date", endDate)
+        .order("record_date", { ascending: true });
+      rows = (result.data ?? []) as Record<string, unknown>[];
+      queryError = result.error;
+    } else if (type === "benefits") {
+      const result = await supabase
+        .from("benefit_distributions")
+        .select("distribution_date,quantity,notes,user_id,inventory_item_id,distributed_by")
+        .gte("distribution_date", startDate)
+        .lte("distribution_date", endDate)
+        .order("distribution_date", { ascending: true });
+      rows = (result.data ?? []) as Record<string, unknown>[];
+      queryError = result.error;
+    }
+    setGenerating(false);
+
+    if (queryError) {
+      printWindow?.close();
+      console.error("Falha ao gerar relatório:", queryError);
+      toast.error("A consulta falhou. Nenhum relatório foi gerado; verifique a conexão e as permissões do banco.");
+      return;
+    }
+    if (rows.length === 0) {
+      printWindow?.close();
+      toast.info("Não há registros no período selecionado. Nenhum arquivo foi gerado.");
+      return;
+    }
+
+    const columns = Object.keys(rows[0]);
+    const csvEscape = (value: unknown) => {
+      const text = value == null ? "" : String(value);
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+    const csv = "\uFEFF" + [
+      columns.map(csvEscape).join(","),
+      ...rows.map((row) => columns.map((column) => csvEscape(row[column])).join(",")),
+    ].join("\r\n");
+    const dateSuffix = `${startDate}_a_${endDate}`;
+    const safeName = selectedTemplate.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_|_$/g, "").toLowerCase();
+
+    if (format === "csv") {
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${safeName}_${dateSuffix}.csv`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
       URL.revokeObjectURL(url);
+    } else if (printWindow) {
+      const escapeHtml = (value: unknown) => String(value ?? "")
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+      const tableHead = columns.map((column) => `<th>${escapeHtml(column)}</th>`).join("");
+      const tableRows = rows.map((row) => `<tr>${columns.map((column) => `<td>${escapeHtml(row[column])}</td>`).join("")}</tr>`).join("");
+      printWindow.document.open();
+      printWindow.document.write(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${escapeHtml(selectedTemplate.name)}</title><style>body{font:12px Arial,sans-serif;margin:24px;color:#111}h1{font-size:20px}p{color:#444}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #bbb;padding:6px;text-align:left;overflow-wrap:anywhere}th{background:#eee}@media print{body{margin:12mm}}</style></head><body><h1>${escapeHtml(selectedTemplate.name)}</h1><p>Período: ${escapeHtml(startDate)} a ${escapeHtml(endDate)} · Registros: ${rows.length}</p><table><thead><tr>${tableHead}</tr></thead><tbody>${tableRows}</tbody></table></body></html>`);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+    }
 
-      toast.dismiss();
-      toast.success(`Relatório gerado e baixado: ${filename}`);
-    }, 2000);
+    const historyItem = { name: `${selectedTemplate.name} — ${startDate} a ${endDate}`, date: new Date().toISOString(), format: format === "csv" ? "CSV (Excel)" : "PDF / impressão" };
+    setHistory((previous) => {
+      const next = [historyItem, ...previous].slice(0, 20);
+      try { localStorage.setItem("conectaescola_report_history_v1", JSON.stringify(next)); } catch {}
+      return next;
+    });
+    toast.success("Relatório gerado a partir dos dados retornados pelo banco.");
   };
 
   const sidebarItems = [
@@ -114,7 +212,7 @@ export function ReportsGenerationPage() {
         <div className="p-6">
           <ModernPageHeader
             title="Relatórios"
-            description="Gere relatórios automáticos em PDF ou Excel"
+            description="Modelos disponíveis para integração. A geração está desabilitada até conectar as consultas aos dados reais."
             icon={<BarChart3 />}
           />
 
@@ -156,17 +254,14 @@ export function ReportsGenerationPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pdf">PDF</SelectItem>
-                        <SelectItem value="excel">Excel</SelectItem>
+                        <SelectItem value="csv">CSV (abre no Excel)</SelectItem>
+                        <SelectItem value="pdf">PDF (imprimir / salvar)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="flex items-end">
-                    <Button className="w-full">
-                      <Download className="w-4 h-4 mr-2" />
-                      Aplicar Filtros
-                    </Button>
+                    <p className="text-xs text-muted-foreground">O período selecionado será aplicado ao gerar o relatório.</p>
                   </div>
                 </div>
               </ModernCard>
@@ -175,7 +270,7 @@ export function ReportsGenerationPage() {
               <ModernSection title="Modelos Disponíveis">
                 <ModernGrid cols={2}>
                   {reportTemplates.map((template) => (
-                    <ModernCard key={template.id} className="p-6 hover-lift cursor-pointer">
+                    <ModernCard key={template.id} className="p-6 hover-lift">
                       <div className="flex items-start gap-4 mb-4">
                         <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
                           {template.icon}
@@ -188,10 +283,11 @@ export function ReportsGenerationPage() {
 
                       <Button
                         className="w-full"
-                        onClick={() => handleGenerateReport(template.type)}
+                        disabled={generating || template.type === "financial"}
+                        onClick={() => void handleGenerateReport(template.type)}
                       >
                         <Download className="w-4 h-4 mr-2" />
-                        Gerar Relatório
+                        {generating ? "Gerando..." : template.type === "financial" ? "Indisponível sem dados financeiros" : "Gerar Relatório"}
                       </Button>
                     </ModernCard>
                   ))}
@@ -202,67 +298,15 @@ export function ReportsGenerationPage() {
 
           {/* Aba: Relatórios Personalizados */}
           {activeTab === "custom" && (
-            <div className="space-y-6 mt-6">
+            <div className="mt-6">
               <ModernCard className="p-6">
-                <h3 className="font-semibold text-foreground mb-6">Criar Relatório Personalizado</h3>
-                <div className="space-y-6">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
                   <div>
-                    <Label htmlFor="custom_name">Nome do Relatório</Label>
-                    <Input
-                      id="custom_name"
-                      placeholder="Ex: Relatório de Frequência - Maio 2026"
-                      className="mt-2"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <Label htmlFor="custom_start">Data Inicial</Label>
-                      <Input
-                        id="custom_start"
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="mt-2"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="custom_end">Data Final</Label>
-                      <Input
-                        id="custom_end"
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="mt-2"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="custom_fields">Campos a Incluir</Label>
-                    <div className="mt-3 space-y-2">
-                      {[
-                        "Frequência",
-                        "Dados Sociais",
-                        "Benefícios",
-                        "Participação",
-                        "Observações",
-                      ].map((field) => (
-                        <label key={field} className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" defaultChecked className="rounded" />
-                          <span className="text-sm">{field}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3 justify-end">
-                    <Button variant="outline">Cancelar</Button>
-                    <Button onClick={() => handleGenerateReport("custom")}>
-                      <Download className="w-4 h-4 mr-2" />
-                      Gerar Relatório Personalizado
-                    </Button>
+                    <h3 className="font-semibold text-foreground">Relatórios personalizados ainda não disponíveis</h3>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      A seleção de campos ainda não está ligada a um modelo persistente. Para evitar exportar um relatório incompleto como se estivesse correto, use por enquanto os modelos de frequência, cadastros sociais e benefícios.
+                    </p>
                   </div>
                 </div>
               </ModernCard>
@@ -272,49 +316,31 @@ export function ReportsGenerationPage() {
           {/* Aba: Histórico */}
           {activeTab === "history" && (
             <div className="space-y-6 mt-6">
-              <ModernSection title="Relatórios Gerados Recentemente">
-                <div className="space-y-3">
-                  {[
-                    {
-                      name: "Relatório de Frequência - Maio 2026",
-                      date: new Date().toISOString(),
-                      format: "PDF",
-                    },
-                    {
-                      name: "Relatório Social - Maio 2026",
-                      date: new Date(Date.now() - 86400000).toISOString(),
-                      format: "Excel",
-                    },
-                    {
-                      name: "Relatório de Benefícios - Abril 2026",
-                      date: new Date(Date.now() - 7 * 86400000).toISOString(),
-                      format: "PDF",
-                    },
-                  ].map((report, index) => (
-                    <ModernCard key={index} className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 flex-1">
-                          <FileText className="w-5 h-5 text-primary" />
-                          <div>
-                            <p className="font-medium text-foreground">{report.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(report.date).toLocaleString("pt-BR")}
-                            </p>
+              <ModernSection title="Histórico deste navegador">
+                {history.length === 0 ? (
+                  <ModernEmptyState
+                    icon={<FileText />}
+                    title="Nenhum relatório gerado neste dispositivo"
+                    description="Os relatórios aparecerão aqui depois que você gerar um arquivo. Este histórico é local e não representa um registro central do servidor."
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    {history.map((report, index) => (
+                      <ModernCard key={`${report.date}-${index}`} className="p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 flex-1">
+                            <FileText className="w-5 h-5 text-primary" />
+                            <div>
+                              <p className="font-medium text-foreground">{report.name}</p>
+                              <p className="text-xs text-muted-foreground">{new Date(report.date).toLocaleString("pt-BR")}</p>
+                            </div>
                           </div>
+                          <span className="text-xs bg-muted px-2 py-1 rounded">{report.format}</span>
                         </div>
-
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs bg-muted px-2 py-1 rounded">
-                            {report.format}
-                          </span>
-                          <Button variant="outline" size="sm">
-                            <Download className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </ModernCard>
-                  ))}
-                </div>
+                      </ModernCard>
+                    ))}
+                  </div>
+                )}
               </ModernSection>
             </div>
           )}
