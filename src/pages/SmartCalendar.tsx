@@ -64,7 +64,12 @@ export function SmartCalendarPage({ readOnly = false }: { readOnly?: boolean } =
   }, []);
 
   useEffect(() => {
-    void loadEvents();
+    void loadEvents().catch((error) => {
+      console.error("Falha inesperada ao carregar eventos:", error);
+      setEvents([]);
+      setLoadingEvents(false);
+      toast.error("Não foi possível carregar os eventos.");
+    });
   }, [loadEvents]);
 
   const [newEvent, setNewEvent] = useState({
