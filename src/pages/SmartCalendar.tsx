@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { ModernLayout, ModernCard, ModernEmptyState } from "@/components/ModernLayout";
 import { ModernTopBar, ModernPageHeader } from "@/components/ModernTopBar";
 import { ModernSidebar } from "@/components/ModernSidebar";
@@ -33,7 +33,7 @@ export function SmartCalendarPage() {
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [savingEvent, setSavingEvent] = useState(false);
 
-  const loadEvents = async () => {
+  const loadEvents = useCallback(async () => {
     setLoadingEvents(true);
     const { data, error } = await supabase
       .from("events")
@@ -60,11 +60,11 @@ export function SmartCalendarPage() {
       };
     }));
     setLoadingEvents(false);
-  };
+  }, []);
 
   useEffect(() => {
     void loadEvents();
-  }, []);
+  }, [loadEvents]);
 
   const [newEvent, setNewEvent] = useState({
     title: "",
