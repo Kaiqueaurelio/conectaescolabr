@@ -26,14 +26,6 @@ interface Announcement {
   priority: "low" | "medium" | "high";
 }
 
-interface Message {
-  id: string;
-  sender: string;
-  content: string;
-  timestamp: string;
-  read: boolean;
-}
-
 export function CommunicationsPage() {
   const { user: currentUser } = useSupabaseAuth();
   const { users: realUsers } = useUsers();
@@ -42,8 +34,6 @@ export function CommunicationsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
   const [savingAnnouncement, setSavingAnnouncement] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
-
   const loadAnnouncements = async () => {
     setLoadingAnnouncements(true);
     const { data, error } = await supabase
@@ -91,10 +81,7 @@ export function CommunicationsPage() {
     title: "",
     content: "",
     target: [] as string[],
-    priority: "medium" as "low" | "medium" | "high",
   });
-
-  const [newMessage, setNewMessage] = useState("");
 
   const handleAddAnnouncement = async () => {
     if (!newAnnouncement.title.trim() || !newAnnouncement.content.trim()) {
@@ -136,7 +123,6 @@ export function CommunicationsPage() {
       author: currentUser.full_name || "Equipe",
       target: data.target_roles ?? [],
       created_at: data.created_at,
-      priority: "medium",
     };
     setAnnouncements((previous) => [announcement, ...previous]);
     setNewAnnouncement({ title: "", content: "", target: [] });
