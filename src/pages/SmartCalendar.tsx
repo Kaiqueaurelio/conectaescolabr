@@ -112,17 +112,33 @@ export function SmartCalendarPage({ readOnly = false }: { readOnly?: boolean } =
     }
 
     setSavingEvent(true);
-    const { data, error } = await supabase
-      .from("events")
-      .insert({
-        title: newEvent.title.trim(),
-        description: newEvent.description.trim() || null,
-        start_datetime: startsAt.toISOString(),
-        location: newEvent.location.trim() || null,
-        created_by: currentUser.id,
-      })
-      .select("id,title,description,start_datetime,location,created_by,created_at")
-      .single();
+    let data: {
+      id: string;
+      title: string;
+      description: string | null;
+      start_datetime: string;
+      location: string | null;
+      created_by: string;
+      created_at: string;
+    } | null = null;
+    let error: unknown = null;
+    try {
+      const result = await supabase
+        .from("events")
+        .insert({
+          title: newEvent.title.trim(),
+          description: newEvent.description.trim() || null,
+          start_datetime: startsAt.toISOString(),
+          location: newEvent.location.trim() || null,
+          created_by: currentUser.id,
+        })
+        .select("id,title,description,start_datetime,location,created_by,created_at")
+        .single();
+      data = result.data;
+      error = result.error;
+    } catch (caught) {
+      error = caught;
+    }
     setSavingEvent(false);
 
     if (error || !data) {
@@ -153,20 +169,25 @@ export function SmartCalendarPage({ readOnly = false }: { readOnly?: boolean } =
 
   const handleDeleteEvent = async (id: string) => {
     if (!window.confirm("Remover este evento?")) return;
-    const { data, error } = await supabase
-      .from("events")
-      .delete()
-      .eq("id", id)
-      .select("id")
-      .maybeSingle();
+    try {
+      const { data, error } = await supabase
+        .from("events")
+        .delete()
+        .eq("id", id)
+        .select("id")
+        .maybeSingle();
 
-    if (error || !data) {
-      console.error("Erro ao remover evento:", error);
-      toast.error("Não foi possível remover o evento. Verifique suas permissões.");
-      return;
+      if (error || !data) {
+        console.error("Erro ao remover evento:", error);
+        toast.error("Não foi possível remover o evento. Verifique suas permissões.");
+        return;
+      }
+      setEvents((previous) => previous.filter((event) => event.id !== id));
+      toast.success("Evento removido do banco de dados.");
+    } catch (error) {
+      console.error("Falha inesperada ao remover evento:", error);
+      toast.error("Não foi possível remover o evento.");
     }
-    setEvents((previous) => previous.filter((event) => event.id !== id));
-    toast.success("Evento removido do banco de dados.");
   };
 
   const getEventTypeColor = (type: string) => {
