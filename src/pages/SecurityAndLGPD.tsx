@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ModernLayout, ModernCard, ModernSection } from "@/components/ModernLayout";
+import { useState, useEffect } from "react";
+import { ModernLayout, ModernCard, ModernSection, ModernEmptyState } from "@/components/ModernLayout";
 import { ModernTopBar, ModernPageHeader, ModernTabs } from "@/components/ModernTopBar";
 import { ModernSidebar } from "@/components/ModernSidebar";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-import { Shield, Lock, Eye, EyeOff, Download, Trash2, AlertTriangle, CheckCircle } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { Shield, Lock, Eye, EyeOff, Download, Trash2, AlertTriangle, CheckCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 interface DataRequest {
@@ -18,6 +19,13 @@ interface DataRequest {
   completed_at?: string;
 }
 
+interface AuditLog {
+  id: string;
+  action: string;
+  details?: Record<string, unknown> | null;
+  created_at: string;
+}
+
 export function SecurityAndLGPDPage() {
   const { user: currentUser } = useSupabaseAuth();
 
@@ -25,91 +33,207 @@ export function SecurityAndLGPDPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [dataRequests, setDataRequests] = useState<DataRequest[]>([
-    {
-      id: "1",
-      type: "export",
-      status: "completed",
-      requested_at: new Date(Date.now() - 7 * 86400000).toISOString(),
-      completed_at: new Date(Date.now() - 6 * 86400000).toISOString(),
-    },
-  ]);
+  const [dataRequests, setDataRequests] = useState<DataRequest[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [loadingAuditLogs, setLoadingAuditLogs] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
-  const handleChangePassword = () => {
+  useEffect(() => {
+    if (!currentUser?.id) {
+      setDataRequests([]);
+      setAuditLogs([]);
+      setLoadingAuditLogs(false);
+      return;
+    }
+
+    let active = true;
+    const loadAuditLogs = async () => {
+      setLoadingAuditLogs(true);
+      const { data, error } = await supabase
+        .from("user_activity_logs")
+        .select("id,action,details,created_at")
+        .eq("user_id", currentUser.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (!active) return;
+      if (error) {
+        console.error("Erro ao carregar auditoria:", error);
+        setAuditLogs([]);
+        setDataRequests([]);
+        setLoadingAuditLogs(false);
+        return;
+      }
+
+      const logs = (data ?? []) as AuditLog[];
+      setAuditLogs(logs);
+      setDataRequests(logs.flatMap((log) => {
+        if (log.action !== "LGPD_DATA_EXPORT" && log.action !== "LGPD_DATA_DELETION_REQUEST") return [];
+        const details = log.details ?? {};
+        return [{
+          id: log.id,
+          type: details.type === "deletion" ? "deletion" as const : "export" as const,
+          status: details.status === "completed" ? "completed" as const : "pending" as const,
+          requested_at: typeof details.requested_at === "string" ? details.requested_at : log.created_at,
+          ...(typeof details.completed_at === "string" ? { completed_at: details.completed_at } : {}),
+        }];
+      }));
+      setLoadingAuditLogs(false);
+    };
+
+    void loadAuditLogs().catch((error) => {
+      console.error("Erro inesperado ao carregar auditoria:", error);
+      if (active) setLoadingAuditLogs(false);
+    });
+    return () => { active = false; };
+  }, [currentUser?.id]);
+
+  const handleChangePassword = async () => {
     if (!newPassword || !confirmPassword) {
       toast.error("Preencha todos os campos");
       return;
     }
-
     if (newPassword !== confirmPassword) {
       toast.error("As senhas não coincidem");
       return;
     }
-
-    if (newPassword.length < 8) {
-      toast.error("A senha deve ter no mínimo 8 caracteres");
+    if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+      toast.error("Use pelo menos 8 caracteres, com letras maiúsculas, minúsculas e números.");
       return;
     }
 
-    toast.success("Senha alterada com sucesso!");
+    setChangingPassword(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setChangingPassword(false);
+    if (error) {
+      toast.error(`Não foi possível alterar a senha: ${error.message}`);
+      return;
+    }
+
+    const createdAt = new Date().toISOString();
+    const { error: auditError } = await supabase.from("user_activity_logs").insert({
+      user_id: currentUser?.id,
+      action: "PASSWORD_CHANGED",
+      details: { changed_at: createdAt },
+    });
     setNewPassword("");
     setConfirmPassword("");
+    if (auditError) {
+      console.error("Senha alterada, mas a auditoria não foi gravada:", auditError);
+      toast.warning("Senha alterada, mas não foi possível registrar o evento de auditoria.");
+    } else {
+      toast.success("Senha alterada com sucesso.");
+    }
   };
 
-  const handleExportData = () => {
-    const newRequest: DataRequest = {
-      id: `req-${Date.now()}`,
-      type: "export",
-      status: "processing",
-      requested_at: new Date().toISOString(),
+  const handleExportData = async () => {
+    if (!currentUser?.id) {
+      toast.error("Sua sessão não foi identificada. Entre novamente.");
+      return;
+    }
+
+    setExporting(true);
+    const [profile, socialRecords, attendanceRecords, benefits] = await Promise.all([
+      supabase.from("users").select("*").eq("id", currentUser.id).single(),
+      supabase.from("social_records").select("*").eq("user_id", currentUser.id),
+      supabase.from("attendance_records").select("*").eq("user_id", currentUser.id),
+      supabase.from("benefit_distributions").select("*").eq("user_id", currentUser.id),
+    ]);
+    setExporting(false);
+
+    const queryError = profile.error || socialRecords.error || attendanceRecords.error || benefits.error;
+    if (queryError || !profile.data) {
+      console.error("Erro ao exportar dados pessoais:", queryError);
+      toast.error("Não foi possível consultar todos os seus dados. Nenhum arquivo foi criado.");
+      return;
+    }
+
+    const requestedAt = new Date().toISOString();
+    const payload = {
+      exportado_em: requestedAt,
+      observacao: "Exportação dos dados pessoais disponíveis nas tabelas consultadas. Registros de outras tabelas ou vínculos não configurados podem não estar incluídos.",
+      perfil: profile.data,
+      prontuario_social: socialRecords.data ?? [],
+      frequencia: attendanceRecords.data ?? [],
+      beneficios_recebidos: benefits.data ?? [],
     };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `meus-dados-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-    setDataRequests([...dataRequests, newRequest]);
-    toast.success("Solicitação de exportação criada. Você receberá um e-mail em breve.");
+    const { data: auditRecord, error: auditError } = await supabase
+      .from("user_activity_logs")
+      .insert({
+        user_id: currentUser.id,
+        action: "LGPD_DATA_EXPORT",
+        details: { type: "export", status: "completed", requested_at: requestedAt, completed_at: new Date().toISOString() },
+      })
+      .select("id,action,details,created_at")
+      .single();
 
-    // Simular conclusão
-    setTimeout(() => {
-      setDataRequests((prev) =>
-        prev.map((r) =>
-          r.id === newRequest.id
-            ? {
-                ...r,
-                status: "completed",
-                completed_at: new Date().toISOString(),
-              }
-            : r
-        )
-      );
-      toast.success("Seus dados estão prontos para download!");
-    }, 3000);
+    if (auditRecord && !auditError) {
+      setAuditLogs((previous) => [auditRecord as AuditLog, ...previous]);
+      setDataRequests((previous) => [{
+        id: auditRecord.id,
+        type: "export",
+        status: "completed",
+        requested_at: requestedAt,
+        completed_at: new Date().toISOString(),
+      }, ...previous]);
+      toast.success("Arquivo JSON com os dados consultados foi baixado.");
+    } else {
+      console.error("Exportação concluída, mas a auditoria falhou:", auditError);
+      toast.warning("Arquivo baixado, mas não foi possível registrar a exportação no histórico do servidor.");
+    }
   };
 
-  const handleRequestDeletion = () => {
-    const newRequest: DataRequest = {
-      id: `req-${Date.now()}`,
+  const handleRequestDeletion = async () => {
+    if (!currentUser?.id) {
+      toast.error("Sua sessão não foi identificada. Entre novamente.");
+      return;
+    }
+    const requestedAt = new Date().toISOString();
+    const { data, error } = await supabase
+      .from("user_activity_logs")
+      .insert({
+        user_id: currentUser.id,
+        action: "LGPD_DATA_DELETION_REQUEST",
+        details: { type: "deletion", status: "pending", requested_at: requestedAt },
+      })
+      .select("id,action,details,created_at")
+      .single();
+
+    if (error || !data) {
+      console.error("Erro ao registrar solicitação de exclusão:", error);
+      toast.error("A solicitação não foi registrada. Entre em contato com a coordenação.");
+      return;
+    }
+
+    setAuditLogs((previous) => [data as AuditLog, ...previous]);
+    setDataRequests((previous) => [{
+      id: data.id,
       type: "deletion",
       status: "pending",
-      requested_at: new Date().toISOString(),
-    };
-
-    setDataRequests([...dataRequests, newRequest]);
-    toast.success("Solicitação de exclusão de dados criada. A coordenação será notificada.");
+      requested_at: requestedAt,
+    }, ...previous]);
+    toast.info("Solicitação registrada para análise. Os dados não foram apagados automaticamente.");
   };
 
-  const handleDownloadData = (id: string) => {
-    const element = document.createElement("a");
-    const file = new Blob(
-      [
-        `Dados Pessoais Exportados\nData: ${new Date().toLocaleString("pt-BR")}\n\nNome: ${currentUser?.full_name}\nE-mail: ${currentUser?.email}`,
-      ],
-      { type: "text/plain" }
-    );
-    element.href = URL.createObjectURL(file);
-    element.download = `dados-pessoais-${new Date().toISOString().split("T")[0]}.txt`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    toast.success("Arquivo baixado com sucesso!");
+  const handleDownloadPrivacyDraft = () => {
+    const draft = "RASCUNHO — POLÍTICA DE PRIVACIDADE\n\nEste texto é provisório e precisa ser revisado pela organização antes de ser publicado como política oficial.\n\nA organização deve informar a identidade do controlador, finalidades, bases legais, compartilhamentos, prazos de retenção, direitos dos titulares e canal de contato.\n";
+    const url = URL.createObjectURL(new Blob([draft], { type: "text/plain;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "rascunho-politica-de-privacidade.txt";
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const sidebarItems = [
