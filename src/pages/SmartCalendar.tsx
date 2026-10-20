@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ModernLayout, ModernCard, ModernSection, ModernEmptyState } from "@/components/ModernLayout";
 import { ModernTopBar, ModernPageHeader } from "@/components/ModernTopBar";
 import { ModernSidebar } from "@/components/ModernSidebar";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { supabase } from "@/lib/supabase";
 import { Calendar, Plus, Clock, MapPin, Users, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay } from "date-fns";
@@ -29,6 +30,41 @@ export function SmartCalendarPage() {
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [savingEvent, setSavingEvent] = useState(false);
+
+  const loadEvents = async () => {
+    setLoadingEvents(true);
+    const { data, error } = await supabase
+      .from("events")
+      .select("id,title,description,start_datetime,end_datetime,location,created_by,created_at")
+      .order("start_datetime", { ascending: true });
+
+    if (error) {
+      console.error("Erro ao carregar eventos:", error);
+      toast.error("Não foi possível carregar os eventos salvos. Verifique a conexão e as permissões do banco.");
+      setLoadingEvents(false);
+      return;
+    }
+
+    setEvents((data ?? []).map((row) => {
+      const startsAt = new Date(row.start_datetime);
+      return {
+        id: row.id,
+        title: row.title,
+        description: row.description ?? "",
+        date: format(startsAt, "yyyy-MM-dd"),
+        time: format(startsAt, "HH:mm"),
+        location: row.location ?? "",
+        type: "event" as const,
+      };
+    }));
+    setLoadingEvents(false);
+  };
+
+  useEffect(() => {
+    void loadEvents();
+  }, []);
 
   const [newEvent, setNewEvent] = useState({
     title: "",
@@ -50,23 +86,56 @@ export function SmartCalendarPage() {
     return events.filter((e) => e.date === dateStr);
   };
 
-  const handleAddEvent = () => {
+  const handleAddEvent = async () => {
     if (!newEvent.title.trim()) {
       toast.error("Título é obrigatório");
       return;
     }
+    if (!newEvent.date || !newEvent.time) {
+      toast.error("Data e hora são obrigatórias");
+      return;
+    }
+    if (!currentUser?.id) {
+      toast.error("Sua sessão não foi identificada. Entre novamente.");
+      return;
+    }
 
-    const event: CalendarEvent = {
-      id: `event-${Date.now()}`,
-      title: newEvent.title,
-      description: newEvent.description,
-      date: newEvent.date,
-      time: newEvent.time,
-      location: newEvent.location,
-      type: newEvent.type,
-    };
+    const startsAt = new Date(`${newEvent.date}T${newEvent.time}:00`);
+    if (Number.isNaN(startsAt.getTime())) {
+      toast.error("Data ou hora inválida.");
+      return;
+    }
 
-    setEvents([...events, event]);
+    setSavingEvent(true);
+    const { data, error } = await supabase
+      .from("events")
+      .insert({
+        title: newEvent.title.trim(),
+        description: newEvent.description.trim() || null,
+        start_datetime: startsAt.toISOString(),
+        location: newEvent.location.trim() || null,
+        created_by: currentUser.id,
+      })
+      .select("id,title,description,start_datetime,location,created_by,created_at")
+      .single();
+    setSavingEvent(false);
+
+    if (error || !data) {
+      console.error("Erro ao salvar evento:", error);
+      toast.error("Não foi possível salvar o evento. Nenhuma confirmação foi emitida; verifique as permissões e a estrutura da tabela events.");
+      return;
+    }
+
+    const savedAt = new Date(data.start_datetime);
+    setEvents((previous) => [...previous, {
+      id: data.id,
+      title: data.title,
+      description: data.description ?? "",
+      date: format(savedAt, "yyyy-MM-dd"),
+      time: format(savedAt, "HH:mm"),
+      location: data.location ?? "",
+      type: "event",
+    }]);
     setNewEvent({
       title: "",
       description: "",
@@ -75,13 +144,25 @@ export function SmartCalendarPage() {
       location: "",
       type: "activity",
     });
-    toast.success("Evento adicionado com sucesso!");
+    toast.success("Evento salvo no banco de dados.");
   };
 
-  const handleDeleteEvent = (id: string) => {
+  const handleDeleteEvent = async (id: string) => {
     if (!window.confirm("Remover este evento?")) return;
-    setEvents(events.filter((e) => e.id !== id));
-    toast.success("Evento removido");
+    const { data, error } = await supabase
+      .from("events")
+      .delete()
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
+
+    if (error || !data) {
+      console.error("Erro ao remover evento:", error);
+      toast.error("Não foi possível remover o evento. Verifique suas permissões.");
+      return;
+    }
+    setEvents((previous) => previous.filter((event) => event.id !== id));
+    toast.success("Evento removido do banco de dados.");
   };
 
   const getEventTypeColor = (type: string) => {
@@ -305,7 +386,7 @@ export function SmartCalendarPage() {
 
                     <div className="flex gap-3 justify-end">
                       <Button variant="outline">Cancelar</Button>
-                      <Button onClick={handleAddEvent}>Criar</Button>
+                      <Button onClick={handleAddEvent} disabled={savingEvent}>{savingEvent ? "Salvando..." : "Criar"}</Button>
                     </div>
                   </div>
                 </DialogContent>
@@ -314,15 +395,17 @@ export function SmartCalendarPage() {
               {/* Próximos Eventos */}
               <ModernCard className="p-6">
                 <h3 className="font-semibold text-foreground mb-4">Próximos Eventos</h3>
-                {events.length === 0 ? (
+                {loadingEvents ? (
+                  <p className="text-sm text-muted-foreground">Carregando eventos salvos...</p>
+                ) : events.length === 0 ? (
                   <ModernEmptyState
                     icon={<Calendar />}
-                    title="Nenhum evento"
-                    description="Crie um novo evento"
+                    title="Nenhum evento salvo"
+                    description="Crie um evento para registrá-lo no calendário."
                   />
                 ) : (
                   <div className="space-y-3">
-                    {events
+                    {[...events]
                       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
                       .slice(0, 5)
                       .map((event) => (
