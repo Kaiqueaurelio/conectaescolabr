@@ -96,11 +96,8 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
 
-    if (action === "clear") {
-      const { error } = await admin.from("benefit_items").delete().not("id", "is", null);
-      if (error) return json({ error: error.message }, 500);
-      return json({ success: true });
-    }
+    // Bulk deletion is intentionally unsupported until a reviewed retention
+    // workflow exists. Individual item deletion remains available to admins.
 
     return json({ error: "Ação inválida" }, 400);
   } catch (e) {
