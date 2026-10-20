@@ -60,7 +60,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
             setSession(null);
           }
         } else if (data.status !== "APPROVED" ||
-          !["ADMIN", "TEACHER", "STUDENT", "PARENT", "VOLUNTEER"].includes(data.role)) {
+          !["ADMIN", "TEACHER", "STUDENT", "PARENT"].includes(data.role)) {
           setUser(null);
           // Pending, rejected, or unsupported profiles cannot access the app.
           void supabase.auth.signOut();
