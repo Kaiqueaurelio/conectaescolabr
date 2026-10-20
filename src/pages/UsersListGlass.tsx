@@ -24,7 +24,7 @@ import { toast } from "@/hooks/use-toast";
 import {
   Users,
   Search,
-  Plus,
+  Info,
   Edit,
   Ban,
   Eye,
@@ -156,9 +156,16 @@ export function UsersListGlassPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-          <Button className="gap-2 rounded-lg" onClick={() => navigate("/admin/users/new")}>
-            <Plus className="w-4 h-4" />
-            Novo Usuário
+          <Button
+            variant="outline"
+            className="gap-2 rounded-lg"
+            onClick={() => toast({
+              title: "Cadastro de novas contas",
+              description: "A criação de contas pela administração ainda não está conectada a um endpoint seguro. Oriente a pessoa a solicitar cadastro na tela de login; depois, aprove ou rejeite a solicitação nesta lista.",
+            })}
+          >
+            <Info className="w-4 h-4" />
+            Como cadastrar
           </Button>
           </div>
         </div>
