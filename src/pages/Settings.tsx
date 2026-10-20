@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useData } from "@/contexts/DataContext";
 import { Bell, Moon, User as UserIcon, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -27,6 +28,7 @@ const defaultPrefs: Prefs = { notifications: true, emailDigest: false, darkMode:
 
 export default function Settings() {
   const { user, updateProfile } = useAuth();
+  const { resetAll } = useData();
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
   const [name, setName] = useState(user?.name || "");
 
@@ -53,8 +55,10 @@ export default function Settings() {
   };
 
   const clearLocal = () => {
+    resetAll();
     localStorage.removeItem("camila_data_v2");
-    toast.success("Dados locais limpos. Recarregue para ver o efeito.");
+    localStorage.removeItem("camila_data_v3_clean");
+    toast.success("Dados locais deste navegador foram limpos. Os dados salvos no servidor não foram alterados.");
   };
 
   return (
