@@ -78,6 +78,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
+  if (req.method !== "POST") return json({ error: "Método não permitido" }, 405);
+
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace("Bearer ", "").trim();
@@ -124,7 +126,13 @@ Deno.serve(async (req) => {
       const result: Record<string, string | null> = {};
       for (const field of SENSITIVE_FIELDS) {
         const stored = (full as Record<string, string | null>)[COLUMN_OF[field]];
-        result[field] = stored ? await decryptValue(key, stored) : null;
+        const decrypted = stored ? await decryptValue(key, stored) : null;
+        if (stored && decrypted === null) {
+          // A wrong key or corrupted ciphertext must never look like an empty
+          // field; otherwise a subsequent save could erase the original data.
+          return json({ error: "Não foi possível descriptografar um campo protegido. Os dados foram preservados." }, 500);
+        }
+        result[field] = decrypted;
       }
       return json({ data: result });
     }
@@ -150,8 +158,14 @@ Deno.serve(async (req) => {
       updates[field] = null;
     }
 
-    const { error: updateError } = await admin.from("users").update(updates).eq("id", userId);
+    const { data: updated, error: updateError } = await admin
+      .from("users")
+      .update(updates)
+      .eq("id", userId)
+      .select("id")
+      .maybeSingle();
     if (updateError) return json({ error: updateError.message }, 500);
+    if (!updated) return json({ error: "Nenhum perfil foi atualizado." }, 404);
 
     return json({ success: true });
   } catch (error) {
