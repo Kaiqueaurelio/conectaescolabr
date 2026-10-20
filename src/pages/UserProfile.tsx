@@ -262,10 +262,10 @@ export function UserProfilePage() {
                     id="email"
                     type="email"
                     value={formData.email || ""}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    disabled={!isEditing}
+                    disabled
                     className="mt-2"
                   />
+                  <p className="mt-1 text-xs text-muted-foreground">A alteração de e-mail ainda exige um fluxo de confirmação da conta e está temporariamente desativada.</p>
                 </div>
 
                 <div>
@@ -311,7 +311,7 @@ export function UserProfilePage() {
                     onValueChange={(value) =>
                       handleInputChange("role", value as UserProfile["role"])
                     }
-                    disabled={!isEditing}
+                    disabled={!isEditing || isOwner}
                   >
                     <SelectTrigger id="role" className="mt-2">
                       <SelectValue />
@@ -321,7 +321,7 @@ export function UserProfilePage() {
                       <SelectItem value="TEACHER">Professor</SelectItem>
                       <SelectItem value="STUDENT">Aluno</SelectItem>
                       <SelectItem value="PARENT">Responsável</SelectItem>
-                      <SelectItem value="VOLUNTEER">Voluntário</SelectItem>
+                      <SelectItem value="VOLUNTEER" disabled>Voluntário (área de acesso indisponível)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
