@@ -65,7 +65,12 @@ export default function Announcements() {
   }, []);
 
   useEffect(() => {
-    void loadAnnouncements();
+    void loadAnnouncements().catch((error) => {
+      console.error("Falha inesperada ao carregar comunicados:", error);
+      setAnnouncements([]);
+      setLoadError(true);
+      setLoading(false);
+    });
   }, [loadAnnouncements]);
 
   const audience = useMemo(() => announcements.filter((announcement) => {
@@ -82,10 +87,16 @@ export default function Announcements() {
 
   const refresh = async () => {
     setRefreshing(true);
-    const success = await loadAnnouncements();
-    setRefreshing(false);
-    if (success) toast.success("Comunicados atualizados a partir do banco.");
-    else toast.error("Não foi possível atualizar os comunicados.");
+    try {
+      const success = await loadAnnouncements();
+      if (success) toast.success("Comunicados atualizados a partir do banco.");
+      else toast.error("Não foi possível atualizar os comunicados.");
+    } catch (error) {
+      console.error("Falha inesperada ao atualizar comunicados:", error);
+      toast.error("Não foi possível atualizar os comunicados.");
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   return (
