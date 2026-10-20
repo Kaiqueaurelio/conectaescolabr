@@ -43,8 +43,13 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
           if (!active) return;
           if (error) {
             console.error("Error fetching user profile:", error);
-          } else if (profileData) {
+            setUser(null);
+          } else if (profileData && profileData.status === "APPROVED") {
             setUser(profileData as UserProfile);
+          } else {
+            // Contas pendentes/rejeitadas nunca devem receber acesso por um
+            // evento de sessão ou por uma atualização de página.
+            setUser(null);
           }
         });
     };
