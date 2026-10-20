@@ -73,10 +73,10 @@ const App = () => (
                 <Route path="/admin/attendance" element={<ProtectedRoute roles={["ADMIN", "TEACHER"]}><AttendanceAdvancedPage /></ProtectedRoute>} />
                 <Route path="/admin/benefits" element={<ProtectedRoute roles={["ADMIN"]}><BenefitsManagementPage /></ProtectedRoute>} />
                 <Route path="/admin/communications" element={<ProtectedRoute roles={["ADMIN", "TEACHER"]}><CommunicationsPage /></ProtectedRoute>} />
-                <Route path="/admin/calendar" element={<ProtectedRoute><SmartCalendarPage /></ProtectedRoute>} />
+                <Route path="/admin/calendar" element={<ProtectedRoute roles={["ADMIN", "TEACHER"]}><SmartCalendarPage /></ProtectedRoute>} />
                 <Route path="/admin/scanning" element={<ProtectedRoute roles={["ADMIN"]}><DocumentScanningPage /></ProtectedRoute>} />
                 <Route path="/admin/reports" element={<ProtectedRoute roles={["ADMIN"]}><ReportsGenerationPage /></ProtectedRoute>} />
-                <Route path="/admin/security" element={<ProtectedRoute><SecurityAndLGPDPage /></ProtectedRoute>} />
+                <Route path="/admin/security" element={<ProtectedRoute roles={["ADMIN"]}><SecurityAndLGPDPage /></ProtectedRoute>} />
                 <Route path="/admin/colors" element={<ProtectedRoute roles={["ADMIN"]}><ColorPalettePageGlass /></ProtectedRoute>} />
                 
                 {/* Rotas de Alunos/Assistidos */}
@@ -91,17 +91,17 @@ const App = () => (
                 <Route path="/aluno" element={<ProtectedRoute roles={["STUDENT"]}><StudentDashboard /></ProtectedRoute>} />
                 <Route path="/responsavel" element={<ProtectedRoute roles={["PARENT"]}><ParentDashboard /></ProtectedRoute>} />
                 <Route path="/chamada" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><Attendance /></ProtectedRoute>} />
-                <Route path="/agenda" element={<ProtectedRoute><Agenda /></ProtectedRoute>} />
+                <Route path="/agenda" element={<ProtectedRoute roles={["ADMIN", "TEACHER", "STUDENT", "PARENT"]}><Agenda /></ProtectedRoute>} />
                 <Route path="/cadastro" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><CadastroGeral /></ProtectedRoute>} />
-                <Route path="/comunicados" element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
+                <Route path="/comunicados" element={<ProtectedRoute roles={["ADMIN", "TEACHER", "STUDENT", "PARENT"]}><Announcements /></ProtectedRoute>} />
                 <Route path="/comunicados/novo" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><NewAnnouncement /></ProtectedRoute>} />
-                <Route path="/lembretes" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
+                <Route path="/lembretes" element={<ProtectedRoute roles={["ADMIN", "TEACHER", "STUDENT", "PARENT"]}><Reminders /></ProtectedRoute>} />
                 <Route path="/turmas" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><Turmas /></ProtectedRoute>} />
-                <Route path="/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-                <Route path="/ajuda" element={<ProtectedRoute><Help /></ProtectedRoute>} />
-                <Route path="/blog" element={<ProtectedRoute><Blog /></ProtectedRoute>} />
-                <Route path="/blog/:id" element={<ProtectedRoute><BlogPost /></ProtectedRoute>} />
-                <Route path="/menu" element={<ProtectedRoute><Menu /></ProtectedRoute>} />
+                <Route path="/configuracoes" element={<ProtectedRoute roles={["ADMIN", "TEACHER", "STUDENT", "PARENT"]}><Settings /></ProtectedRoute>} />
+                <Route path="/ajuda" element={<ProtectedRoute roles={["ADMIN", "TEACHER", "STUDENT", "PARENT"]}><Help /></ProtectedRoute>} />
+                <Route path="/blog" element={<ProtectedRoute roles={["ADMIN", "TEACHER", "STUDENT", "PARENT"]}><Blog /></ProtectedRoute>} />
+                <Route path="/blog/:id" element={<ProtectedRoute roles={["ADMIN", "TEACHER", "STUDENT", "PARENT"]}><BlogPost /></ProtectedRoute>} />
+                <Route path="/menu" element={<ProtectedRoute roles={["ADMIN", "TEACHER", "STUDENT", "PARENT"]}><Menu /></ProtectedRoute>} />
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>
