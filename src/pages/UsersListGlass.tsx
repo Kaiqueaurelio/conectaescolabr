@@ -26,7 +26,7 @@ import {
   Search,
   Plus,
   Edit,
-  Trash2,
+  Ban,
   Eye,
   Mail,
   Phone,
@@ -40,7 +40,6 @@ export function UsersListGlassPage() {
   const [profileFilter, setProfileFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
-  const [clearingUsers, setClearingUsers] = useState(false);
 
   const sidebarItems = [
     { label: "Dashboard", href: "/admin/dashboard", icon: "📊" },
@@ -99,61 +98,33 @@ export function UsersListGlassPage() {
     });
   }, [users, searchQuery, profileFilter, statusFilter]);
 
-  const handleDeleteUser = async (user: UserProfile) => {
+  const handleBlockUser = async (user: UserProfile) => {
     if (user.id === currentUser?.id) {
-      toast({ title: "Não é possível excluir sua própria conta logada." });
+      toast({ title: "Não é possível bloquear sua própria conta." });
       return;
     }
-
-    const confirmed = window.confirm(`Remover definitivamente ${user.full_name || user.email}?`);
+    const confirmed = window.confirm(
+      `Bloquear o acesso de ${user.full_name || user.email}? A conta e os dados serão preservados; o status passará para Rejeitado.`
+    );
     if (!confirmed) return;
 
     setDeletingUserId(user.id);
-    const { data, error: deleteError } = await supabase
+    const { data, error: updateError } = await supabase
       .from("users")
-      .delete()
+      .update({ status: "REJECTED" })
       .eq("id", user.id)
       .select("id")
       .maybeSingle();
     setDeletingUserId(null);
 
-    if (deleteError || !data) {
+    if (updateError || !data) {
       toast({
-        title: "Não foi possível remover",
-        description: deleteError?.message || "Verifique se você está logado como administrador aprovado.",
+        title: "Não foi possível bloquear o acesso",
+        description: updateError?.message || "Verifique as permissões do banco.",
       });
       return;
     }
-
-    toast({ title: "Usuário removido com sucesso." });
-    await refetch();
-  };
-
-  const handleClearUsers = async () => {
-    const removableIds = users.filter((user) => user.id !== currentUser?.id).map((user) => user.id);
-    if (removableIds.length === 0) {
-      toast({ title: "Não há outros usuários para remover." });
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Remover definitivamente ${removableIds.length} usuário(s)? Sua conta logada será mantida para você não perder o acesso.`
-    );
-    if (!confirmed) return;
-
-    setClearingUsers(true);
-    const { error: clearError } = await supabase
-      .from("users")
-      .delete()
-      .in("id", removableIds);
-    setClearingUsers(false);
-
-    if (clearError) {
-      toast({ title: "Não foi possível limpar usuários", description: clearError.message });
-      return;
-    }
-
-    toast({ title: "Usuários removidos com sucesso." });
+    toast({ title: "Acesso bloqueado. Os dados foram preservados." });
     await refetch();
   };
 
@@ -185,17 +156,6 @@ export function UsersListGlassPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-          {users.length > 1 && (
-            <Button
-              variant="destructive"
-              className="gap-2 rounded-lg"
-              onClick={handleClearUsers}
-              disabled={clearingUsers}
-            >
-              <Trash2 className="w-4 h-4" />
-              {clearingUsers ? "Limpando..." : "Limpar tudo"}
-            </Button>
-          )}
           <Button className="gap-2 rounded-lg" onClick={() => navigate("/admin/users/new")}>
             <Plus className="w-4 h-4" />
             Novo Usuário
@@ -353,10 +313,10 @@ export function UsersListGlassPage() {
                         size="sm"
                         className="rounded-lg text-destructive hover:text-destructive"
                         title="Deletar"
-                        onClick={() => handleDeleteUser(user)}
+                        onClick={() => handleBlockUser(user)}
                         disabled={deletingUserId === user.id}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Ban className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
