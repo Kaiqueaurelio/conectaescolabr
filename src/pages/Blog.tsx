@@ -26,6 +26,7 @@ export default function Blog() {
       const { data, error: queryError } = await supabase
         .from("blog_posts")
         .select("id,title,cover_image_url,excerpt,published_at")
+        .lte("published_at", new Date().toISOString())
         .order("published_at", { ascending: false });
       if (!active) return;
       if (queryError) {
