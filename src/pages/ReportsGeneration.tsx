@@ -101,35 +101,43 @@ export function ReportsGenerationPage() {
     let rows: Record<string, unknown>[] = [];
     let queryError: { message: string } | null = null;
 
-    if (type === "frequency") {
-      const result = await supabase
-        .from("attendance_records")
-        .select("date,status,user_id,activity_id,recorded_by")
-        .gte("date", startDate)
-        .lte("date", endDate)
-        .order("date", { ascending: true });
-      rows = (result.data ?? []) as Record<string, unknown>[];
-      queryError = result.error;
-    } else if (type === "social") {
-      const result = await supabase
-        .from("social_records")
-        .select("user_id,record_type,title,description,record_date,created_by")
-        .gte("record_date", startDate)
-        .lte("record_date", endDate)
-        .order("record_date", { ascending: true });
-      rows = (result.data ?? []) as Record<string, unknown>[];
-      queryError = result.error;
-    } else if (type === "benefits") {
-      const result = await supabase
-        .from("benefit_distributions")
-        .select("distribution_date,quantity,notes,user_id,inventory_item_id,distributed_by")
-        .gte("distribution_date", startDate)
-        .lte("distribution_date", endDate)
-        .order("distribution_date", { ascending: true });
-      rows = (result.data ?? []) as Record<string, unknown>[];
-      queryError = result.error;
+    try {
+      if (type === "frequency") {
+        const result = await supabase
+          .from("attendance_records")
+          .select("date,status,user_id,activity_id,recorded_by")
+          .gte("date", startDate)
+          .lte("date", endDate)
+          .order("date", { ascending: true });
+        rows = (result.data ?? []) as Record<string, unknown>[];
+        queryError = result.error;
+      } else if (type === "social") {
+        const result = await supabase
+          .from("social_records")
+          .select("user_id,record_type,title,description,record_date,created_by")
+          .gte("record_date", startDate)
+          .lte("record_date", endDate)
+          .order("record_date", { ascending: true });
+        rows = (result.data ?? []) as Record<string, unknown>[];
+        queryError = result.error;
+      } else if (type === "benefits") {
+        const result = await supabase
+          .from("benefit_distributions")
+          .select("distribution_date,quantity,notes,user_id,inventory_item_id,distributed_by")
+          .gte("distribution_date", startDate)
+          .lte("distribution_date", endDate)
+          .order("distribution_date", { ascending: true });
+        rows = (result.data ?? []) as Record<string, unknown>[];
+        queryError = result.error;
+      }
+    } catch (error) {
+      printWindow?.close();
+      console.error("Falha inesperada ao consultar relatório:", error);
+      toast.error("A consulta foi interrompida. Nenhum relatório foi gerado.");
+      return;
+    } finally {
+      setGenerating(false);
     }
-    setGenerating(false);
 
     if (queryError) {
       printWindow?.close();
