@@ -7,9 +7,6 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Login from "./pages/Login.tsx";
 import TeacherDashboard from "./pages/TeacherDashboard.tsx";
-import StudentDashboard from "./pages/StudentDashboard.tsx";
-import ParentDashboard from "./pages/ParentDashboard.tsx";
-import Attendance from "./pages/Attendance.tsx";
 import Agenda from "./pages/Agenda.tsx";
 import Announcements from "./pages/Announcements.tsx";
 import NewAnnouncement from "./pages/NewAnnouncement.tsx";
@@ -19,7 +16,6 @@ import Menu from "./pages/Menu.tsx";
 import { AuthProvider } from "./contexts/AuthContext"; // Usando a versão limpa
 import { SupabaseAuthProvider } from "./contexts/SupabaseAuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import AdminDashboard from "./pages/AdminDashboard.tsx";
 import Reminders from "./pages/Reminders.tsx";
 import Turmas from "./pages/Turmas.tsx";
 import Settings from "./pages/Settings.tsx";
