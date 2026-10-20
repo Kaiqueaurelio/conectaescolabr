@@ -95,6 +95,7 @@ export function useSocialRecords(userId: string | null, options: UseSupabaseData
   const fetchRecords = useCallback(async () => {
     if (!userId) {
       setRecords([]);
+      setError(null);
       setLoading(false);
       return;
     }
@@ -111,6 +112,7 @@ export function useSocialRecords(userId: string | null, options: UseSupabaseData
       setRecords(data || []);
       setError(null);
     } catch (err) {
+      setRecords([]);
       setError(err instanceof Error ? err.message : "Erro ao buscar prontuário");
     } finally {
       setLoading(false);
@@ -157,6 +159,7 @@ export function useAttendance(userId: string | null, options: UseSupabaseDataOpt
   const fetchAttendance = useCallback(async () => {
     if (!userId) {
       setAttendance([]);
+      setError(null);
       setLoading(false);
       return;
     }
@@ -173,6 +176,7 @@ export function useAttendance(userId: string | null, options: UseSupabaseDataOpt
       setAttendance(data || []);
       setError(null);
     } catch (err) {
+      setAttendance([]);
       setError(err instanceof Error ? err.message : "Erro ao buscar presença");
     } finally {
       setLoading(false);
