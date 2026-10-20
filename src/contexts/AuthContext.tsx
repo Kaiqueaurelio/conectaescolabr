@@ -35,72 +35,62 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const STORAGE_KEY = "ong_auth_user";
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const supabaseAuth = useSupabaseAuth();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
 
-  // Sincronizar com Supabase
+  // A sessão autenticada do Supabase é a única fonte de verdade.
+  // Nunca restaure privilégios de uma cópia local que pode estar desatualizada.
   useEffect(() => {
-    if (supabaseAuth.user) {
-      const profile = supabaseAuth.user;
-      const rawRole = profile.role;
-      const role: Role = (rawRole === "VOLUNTEER" ? "STUDENT" : rawRole) as Role;
-      const authUser: User = {
-        id: profile.id,
-        role,
-        name: profile.full_name || profile.email || "",
-        email: profile.email || "",
-        avatar_url: profile.avatar_url,
-        status: profile.status || "APPROVED",
-      };
-      setUser(authUser);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(authUser));
-    } else {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        try {
-          const u = JSON.parse(stored) as User;
-          setUser(u);
-          if (u.role === "PARENT" && u.childrenIds?.length) {
-            setSelectedChildId(u.childrenIds[0]);
-          }
-        } catch {
-          localStorage.removeItem(STORAGE_KEY);
-        }
-      }
+    const profile = supabaseAuth.user;
+    if (!profile) {
+      setUser(null);
+      setSelectedChildId(null);
+      setLoading(supabaseAuth.loading);
+      return;
     }
+
+    const allowedRoles: Role[] = ["ADMIN", "TEACHER", "STUDENT", "PARENT"];
+    const role = profile.role === "VOLUNTEER" ? "STUDENT" : profile.role;
+    if (!allowedRoles.includes(role as Role)) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
+    const authUser: User = {
+      id: profile.id,
+      role: role as Role,
+      name: profile.full_name || profile.email || "",
+      email: profile.email || "",
+      avatar_url: profile.avatar_url || undefined,
+      status: profile.status || "APPROVED",
+    };
+
+    setUser(authUser);
     setLoading(supabaseAuth.loading);
   }, [supabaseAuth.user, supabaseAuth.loading]);
 
   const login = async (email: string, password: string): Promise<AuthResult> => {
     try {
-      const result = await supabaseAuth.login(email, password);
-      if (result.success) {
-        return { success: true };
-      }
-      return { error: result.error || "Falha ao fazer login" };
-    } catch (error) {
+      const result = await supabaseAuth.login(email.trim(), password);
+      return result.success ? { success: true } : { error: result.error || "Falha ao fazer login" };
+    } catch {
       return { error: "Erro ao fazer login. Tente novamente." };
     }
   };
 
   const register = async (name: string, email: string, password: string, role: Role): Promise<AuthResult> => {
+    if (!name.trim()) return { error: "O preenchimento do nome é obrigatório." };
+    if (!email.trim()) return { error: "O preenchimento do e-mail é obrigatório." };
+    if (password.length < 8) return { error: "A senha deve ter pelo menos 8 caracteres." };
+
     try {
-      if (!name.trim()) return { error: "O preenchimento do nome é obrigatório." };
-      if (!email.trim()) return { error: "O preenchimento do e-mail é obrigatório." };
-      if (!password.trim()) return { error: "O preenchimento da senha é obrigatório." };
-
-      const result = await supabaseAuth.register(email, password, name, role);
-
-      if (result.success) {
-        return { success: true };
-      }
-      return { error: result.error || "Falha ao registrar" };
-    } catch (error) {
+      const result = await supabaseAuth.register(email.trim(), password, name.trim(), role);
+      return result.success ? { success: true } : { error: result.error || "Falha ao registrar" };
+    } catch {
       return { error: "Erro ao registrar. Tente novamente." };
     }
   };
@@ -109,7 +99,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabaseAuth.logout();
     setUser(null);
     setSelectedChildId(null);
-    localStorage.removeItem(STORAGE_KEY);
   };
 
   const switchChild = (childId: string) => {
@@ -118,64 +107,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = async (patch: Partial<Pick<User, "name" | "email" | "avatar_url">>) => {
     if (!user) return;
-    
-    try {
-      await supabaseAuth.updateProfile(patch);
-      const updated = { ...user, ...patch };
-      setUser(updated);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    } catch (error) {
-      console.error("Erro ao atualizar perfil:", error);
+    const result = await supabaseAuth.updateProfile({
+      ...(patch.name !== undefined ? { full_name: patch.name } : {}),
+      ...(patch.email !== undefined ? { email: patch.email } : {}),
+      ...(patch.avatar_url !== undefined ? { avatar_url: patch.avatar_url } : {}),
+    });
+    if (!result.success) {
+      throw new Error(result.error || "Não foi possível atualizar o perfil.");
     }
   };
 
+  // Aprovação/rejeição não pode ser simulada no cliente. A operação precisa ser
+  // autorizada pelas políticas RLS do banco e retornar seu resultado real.
   const approveUser = async (userId: string) => {
-    try {
-      // Implementar via Supabase RPC ou API
-      console.log("Aprovando usuário:", userId);
-    } catch (error) {
-      console.error("Erro ao aprovar usuário:", error);
-    }
+    const result = await supabaseAuth.setUserStatus(userId, "APPROVED");
+    if (!result.success) throw new Error(result.error || "Não foi possível aprovar o usuário.");
   };
 
   const rejectUser = async (userId: string) => {
-    try {
-      // Implementar via Supabase RPC ou API
-      console.log("Rejeitando usuário:", userId);
-    } catch (error) {
-      console.error("Erro ao rejeitar usuário:", error);
-    }
+    const result = await supabaseAuth.setUserStatus(userId, "REJECTED");
+    if (!result.success) throw new Error(result.error || "Não foi possível rejeitar o usuário.");
   };
 
-  const linkChild = async (childId: string): Promise<AuthResult> => {
-    try {
-      if (!user) return { error: "Usuário não autenticado" };
-      
-      const childrenIds = user.childrenIds || [];
-      if (!childrenIds.includes(childId)) {
-        childrenIds.push(childId);
-        await updateProfile({ ...user });
-      }
-      return { success: true };
-    } catch (error) {
-      return { error: "Erro ao vincular filho" };
-    }
-  };
+  const linkChild = async (_childId: string): Promise<AuthResult> => ({
+    error: "O vínculo com responsável ainda precisa ser configurado no banco de dados. Nenhuma alteração foi salva.",
+  });
 
   return (
     <AuthContext.Provider
       value={{
-        user,
-        login,
-        register,
-        logout,
-        loading,
-        switchChild,
-        selectedChildId,
-        updateProfile,
-        approveUser,
-        rejectUser,
-        linkChild,
+        user, login, register, logout, loading, switchChild, selectedChildId,
+        updateProfile, approveUser, rejectUser, linkChild,
       }}
     >
       {children}
