@@ -232,15 +232,18 @@ export function UserProfilePage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="email">E-mail *</Label>
+                  <Label htmlFor="email">E-mail</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email || ""}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    disabled={!isEditing}
+                    disabled
                     className="mt-2"
+                    aria-describedby="email-edit-note"
                   />
+                  <p id="email-edit-note" className="mt-1 text-xs text-muted-foreground">
+                    A alteração de e-mail exige um fluxo seguro de autenticação e confirmação, ainda não configurado.
+                  </p>
                 </div>
 
                 <div>
@@ -286,7 +289,7 @@ export function UserProfilePage() {
                     onValueChange={(value) =>
                       handleInputChange("role", value as UserProfile["role"])
                     }
-                    disabled={!isEditing}
+                    disabled={!isEditing || isOwner}
                   >
                     <SelectTrigger id="role" className="mt-2">
                       <SelectValue />
