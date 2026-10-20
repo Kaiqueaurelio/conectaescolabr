@@ -2,7 +2,7 @@ import { createContext, useContext, ReactNode, useState, useEffect } from "react
 import { useSupabaseAuth } from "./SupabaseAuthContext";
 import { isAuthorizedProfile } from "@/lib/authPolicy";
 
-export type Role = "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
+export type Role = "ADMIN" | "TEACHER" | "STUDENT" | "PARENT" | "VOLUNTEER";
 
 export interface User {
   id: string;
@@ -160,6 +160,7 @@ export function roleHome(role: Role): string {
     TEACHER: "/professor",
     STUDENT: "/aluno/dashboard",
     PARENT: "/parent/portal",
+    VOLUNTEER: "/voluntario",
   };
   return homes[role] || "/";
 }
