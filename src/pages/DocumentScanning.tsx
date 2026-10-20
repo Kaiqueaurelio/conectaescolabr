@@ -3,10 +3,8 @@ import { ModernLayout, ModernCard, ModernSection, ModernEmptyState } from "@/com
 import { ModernTopBar, ModernPageHeader, ModernTabs } from "@/components/ModernTopBar";
 import { ModernSidebar } from "@/components/ModernSidebar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-import { FileText, Upload, Camera, Download, Trash2, CheckCircle, Clock } from "lucide-react";
+import { FileText, Upload, Camera, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface ScannedDocument {
@@ -14,9 +12,8 @@ interface ScannedDocument {
   filename: string;
   type: string;
   uploaded_at: string;
-  status: "processing" | "completed" | "error";
-  extracted_text?: string;
-  user_id?: string;
+  status: "selected";
+  file: File;
 }
 
 export function DocumentScanningPage() {
@@ -28,72 +25,55 @@ export function DocumentScanningPage() {
   const [documents, setDocuments] = useState<ScannedDocument[]>([]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const newDoc: ScannedDocument = {
-        id: `doc-${Date.now()}-${i}`,
+    const validFiles = files.filter((file) => {
+      const supported = file.type.startsWith("image/") || file.type === "application/pdf";
+      if (!supported) toast.error(`${file.name}: formato não suportado.`);
+      else if (file.size > 10 * 1024 * 1024) toast.error(`${file.name}: o limite é 10 MB.`);
+      return supported && file.size <= 10 * 1024 * 1024;
+    });
+
+    setDocuments((prev) => [
+      ...prev,
+      ...validFiles.map((file, index): ScannedDocument => ({
+        id: `doc-${Date.now()}-${index}`,
         filename: file.name,
-        type: "Documento",
+        type: file.type === "application/pdf" ? "PDF" : "Imagem",
         uploaded_at: new Date().toISOString(),
-        status: "processing",
-      };
+        status: "selected",
+        file,
+      })),
+    ]);
 
-      setDocuments([...documents, newDoc]);
-
-      // Simular processamento OCR
-      setTimeout(() => {
-        setDocuments((prev) =>
-          prev.map((d) =>
-            d.id === newDoc.id
-              ? {
-                  ...d,
-                  status: "completed",
-                  extracted_text: `Texto extraído de ${file.name}...\nEste é um exemplo de texto OCR extraído do documento.`,
-                }
-              : d
-          )
-        );
-        toast.success(`${file.name} processado com sucesso!`);
-      }, 2000);
+    if (validFiles.length > 0) {
+      toast.info("Arquivo selecionado nesta sessão. O OCR e o armazenamento permanente ainda não estão conectados.");
     }
-
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("A imagem excede o limite de 10 MB.");
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
+      return;
+    }
 
-    const file = files[0];
-    const newDoc: ScannedDocument = {
-      id: `doc-${Date.now()}`,
-      filename: `Captura_${new Date().toISOString().split("T")[0]}.jpg`,
-      type: "Captura de Câmera",
-      uploaded_at: new Date().toISOString(),
-      status: "processing",
-    };
-
-    setDocuments([...documents, newDoc]);
-
-    // Simular processamento OCR
-    setTimeout(() => {
-      setDocuments((prev) =>
-        prev.map((d) =>
-          d.id === newDoc.id
-            ? {
-                ...d,
-                status: "completed",
-                extracted_text: `Texto extraído da captura...\nEste é um exemplo de texto OCR extraído da imagem capturada.`,
-              }
-            : d
-        )
-      );
-      toast.success("Documento capturado e processado com sucesso!");
-    }, 2000);
-
+    setDocuments((prev) => [
+      ...prev,
+      {
+        id: `doc-${Date.now()}`,
+        filename: file.name || `Captura_${new Date().toISOString().split("T")[0]}.jpg`,
+        type: "Captura de Câmera",
+        uploaded_at: new Date().toISOString(),
+        status: "selected",
+        file,
+      },
+    ]);
+    toast.info("Captura selecionada nesta sessão. O OCR e o armazenamento permanente ainda não estão conectados.");
     if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
@@ -103,21 +83,15 @@ export function DocumentScanningPage() {
     toast.success("Documento removido");
   };
 
-  const handleClearDocuments = () => {
-    if (!window.confirm("Remover todos os documentos digitalizados?")) return;
-    setDocuments([]);
-    toast.success("Documentos removidos");
-  };
-
   const handleDownloadDocument = (doc: ScannedDocument) => {
+    const url = URL.createObjectURL(doc.file);
     const element = document.createElement("a");
-    const file = new Blob([doc.extracted_text || ""], { type: "text/plain" });
-    element.href = URL.createObjectURL(file);
-    element.download = `${doc.filename}.txt`;
+    element.href = url;
+    element.download = doc.filename;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
-    toast.success("Documento baixado!");
+    URL.revokeObjectURL(url);
   };
 
   const sidebarItems = [
@@ -145,7 +119,7 @@ export function DocumentScanningPage() {
         <div className="p-6">
           <ModernPageHeader
             title="OCR e Digitalização"
-            description="Digitalize e extraia texto de documentos com OCR"
+            description="Selecione e baixe arquivos. A extração OCR e o armazenamento permanente ainda não estão configurados."
             icon={<FileText />}
           />
 
@@ -174,7 +148,7 @@ export function DocumentScanningPage() {
                     Selecionar Arquivos
                   </Button>
                   <p className="text-xs text-muted-foreground mt-4">
-                    Formatos aceitos: PNG, JPG, PDF (máx. 10MB)
+                    Formatos aceitos: PNG, JPG, PDF (máx. 10 MB)
                   </p>
                 </div>
               </ModernCard>
@@ -231,32 +205,19 @@ export function DocumentScanningPage() {
                               </h3>
                               <p className="text-sm text-muted-foreground">{doc.type}</p>
 
-                              {doc.status === "completed" && doc.extracted_text && (
-                                <div className="mt-3 p-3 bg-muted/50 rounded-lg">
-                                  <p className="text-xs font-medium text-foreground mb-2">
-                                    Texto Extraído:
-                                  </p>
-                                  <p className="text-xs text-foreground/80 line-clamp-3">
-                                    {doc.extracted_text}
-                                  </p>
-                                </div>
-                              )}
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            {doc.status === "processing" && (
+                            {doc.status === "selected" && (
                               <div className="flex items-center gap-2 text-warning">
-                                <Clock className="w-4 h-4 animate-spin" />
-                                <span className="text-xs">Processando...</span>
+                                <FileText className="w-4 h-4" />
+                                <span className="text-xs">Selecionado (sessão atual)</span>
                               </div>
-                            )}
-                            {doc.status === "completed" && (
-                              <CheckCircle className="w-5 h-5 text-success" />
                             )}
 
                             <div className="flex gap-2">
-                              {doc.status === "completed" && (
+                              {doc.status === "selected" && (
                                 <Button
                                   size="sm"
                                   variant="outline"
