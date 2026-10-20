@@ -1,10 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import {
-  announcements as seedAnnouncements,
-  events as seedEvents,
-  blogPosts as seedBlogPosts,
-  turmas as seedTurmas,
-  users as seedUsers,
+import type {
   Announcement,
   EventItem,
   BlogPost,
@@ -111,12 +106,13 @@ interface Persisted {
 }
 
 const initial = (): Persisted => ({
-  announcements: seedAnnouncements,
-  events: seedEvents,
+  // Nenhum dado de demonstração é inicializado como se fosse dado real.
+  announcements: [],
+  events: [],
   reminders: seedReminders,
-  blogPosts: seedBlogPosts,
-  turmas: seedTurmas,
-  students: seedUsers.filter((u) => u.role === "STUDENT"),
+  blogPosts: [],
+  turmas: [],
+  students: [],
   attendance: [],
   studentPoints: {},
   readAnnouncements: [],
