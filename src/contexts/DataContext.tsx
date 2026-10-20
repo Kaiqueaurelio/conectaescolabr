@@ -248,14 +248,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ),
       })),
 
-    linkChildToParent: (parentId, childEmail) => {
-      const child = state.students.find(s => s.email === childEmail);
+    linkChildToParent: (_parentId, childEmail) => {
+      const child = state.students.find((student) => student.email.toLowerCase() === childEmail.trim().toLowerCase());
       if (!child) return { success: false, error: "Aluno não encontrado com este e-mail." };
-      
-      // This is a bit tricky since users are in seedUsers (AuthContext) but students are in DataContext
-      // For this demo, we'll update the parent's childrenIds in the local state if the parent exists there
-      // In a real app, this would be a single database update
-      return { success: true };
+
+      // Não informe sucesso enquanto o vínculo não for gravado em uma tabela
+      // de relacionamento persistente e validado por RLS no servidor.
+      return {
+        success: false,
+        error: "O vínculo não foi salvo. A tabela de relacionamento entre responsáveis e alunos ainda não está configurada.",
+      };
     },
 
     isOverdue: (r) => !r.done && r.due_date < new Date().toISOString().slice(0, 10),
