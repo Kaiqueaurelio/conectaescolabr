@@ -17,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 const schema = z.object({
   title: z.string().trim().min(3, "Título deve ter ao menos 3 caracteres").max(100, "Título muito longo"),
   content: z.string().trim().min(10, "Conteúdo deve ter ao menos 10 caracteres").max(1000, "Conteúdo muito longo"),
-  target: z.enum(["ALL", "TEACHERS", "PARENTS", "STUDENTS", "VOLUNTEERS"]),
+  target: z.enum(["ALL", "TEACHERS", "PARENTS", "STUDENTS"]),
 });
 
 export default function NewAnnouncement() {
@@ -25,7 +25,7 @@ export default function NewAnnouncement() {
   const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [target, setTarget] = useState<"ALL" | "TEACHERS" | "PARENTS" | "STUDENTS" | "VOLUNTEERS">("ALL");
+  const [target, setTarget] = useState<"ALL" | "TEACHERS" | "PARENTS" | "STUDENTS">("ALL");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -83,7 +83,6 @@ export default function NewAnnouncement() {
                 <SelectItem value="PARENTS">Responsáveis</SelectItem>
                 <SelectItem value="STUDENTS">Alunos</SelectItem>
                 <SelectItem value="TEACHERS">Professores</SelectItem>
-                <SelectItem value="VOLUNTEERS">Voluntários</SelectItem>
               </SelectContent>
             </Select>
           </div>
