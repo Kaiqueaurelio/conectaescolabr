@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { supabase, UserProfile } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 
@@ -28,30 +28,42 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
 
+  // A resposta mais recente da sessão deve vencer consultas de perfil antigas.
+  const profileRequestId = useRef(0);
+
   // Initialize auth state
   useEffect(() => {
     let active = true;
 
-    const loadProfile = (authId: string) => {
-      // Run in background — do NOT block the loading flag on this query.
-      supabase
-        .from("users")
-        .select("*")
-        .eq("auth_id", authId)
-        .maybeSingle()
-        .then(({ data: profileData, error }) => {
-          if (!active) return;
-          if (error) {
-            console.error("Error fetching user profile:", error);
-            setUser(null);
-          } else if (profileData && profileData.status === "APPROVED") {
-            setUser(profileData as UserProfile);
-          } else {
-            // Contas pendentes/rejeitadas nunca devem receber acesso por um
-            // evento de sessão ou por uma atualização de página.
-            setUser(null);
-          }
-        });
+    const loadProfile = async (authId: string) => {
+      const requestId = ++profileRequestId.current;
+      setLoading(true);
+      try {
+        const { data: profileData, error } = await supabase
+          .from("users")
+          .select("*")
+          .eq("auth_id", authId)
+          .maybeSingle();
+
+        if (!active || requestId !== profileRequestId.current) return;
+        if (error) {
+          console.error("Error fetching user profile:", error);
+          setUser(null);
+        } else if (profileData && profileData.status === "APPROVED") {
+          setUser(profileData as UserProfile);
+        } else {
+          // Contas pendentes/rejeitadas nunca devem receber acesso por um
+          // evento de sessão ou por uma atualização de página.
+          setUser(null);
+        }
+      } catch (error) {
+        if (active && requestId === profileRequestId.current) {
+          console.error("Error fetching user profile:", error);
+          setUser(null);
+        }
+      } finally {
+        if (active && requestId === profileRequestId.current) setLoading(false);
+      }
     };
 
     // Register listener BEFORE getSession so we never miss events.
@@ -59,9 +71,13 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       if (!active) return;
       setSession(newSession);
       if (newSession?.user) {
-        loadProfile(newSession.user.id);
+        void loadProfile(newSession.user.id);
       } else {
+        // Invalida consultas em andamento para que um perfil antigo não seja
+        // restaurado depois de logout ou troca de sessão.
+        profileRequestId.current += 1;
         setUser(null);
+        setLoading(false);
       }
     });
 
@@ -71,22 +87,26 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       .getSession()
       .then(({ data }) => {
         if (!active) return;
+        // Evita que uma resposta antiga de getSession substitua uma mudança de
+        // sessão já recebida pelo listener.
+        if (profileRequestId.current > 0) return;
         setSession(data.session);
         if (data.session?.user) {
-          loadProfile(data.session.user.id);
+          void loadProfile(data.session.user.id);
+        } else {
+          setUser(null);
+          setLoading(false);
         }
       })
       .catch((err) => {
         console.error("Error initializing auth:", err);
-      })
-      .finally(() => {
         if (active) setLoading(false);
       });
 
     // Safety net: never let the app stay stuck on a spinner forever.
     const timeout = setTimeout(() => {
-      if (active) setLoading(false);
-    }, 3000);
+      if (active && loading) setLoading(false);
+    }, 8000);
 
     return () => {
       active = false;
