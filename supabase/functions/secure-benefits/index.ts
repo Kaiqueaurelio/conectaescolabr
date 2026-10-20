@@ -25,7 +25,9 @@ async function decNum(key: CryptoKey, p: string | null): Promise<number> {
     const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromB64(iv) }, key, fromB64(d));
     return Number(dec.decode(plain)) || 0;
   } catch {
-    return 0;
+    // Never reinterpret corrupted ciphertext or a wrong key as zero stock.
+    // Returning zero here could silently overwrite real inventory quantities.
+    throw new Error("Não foi possível descriptografar a quantidade. A operação foi cancelada para preservar o estoque.");
   }
 }
 const toInt = (v: unknown) => {
@@ -82,7 +84,9 @@ Deno.serve(async (req) => {
       if (!id || !Number.isFinite(delta) || Math.abs(delta) > 100000) return json({ error: "Dados inválidos" }, 400);
       const { data: r } = await admin.from("benefit_items").select("quantity_enc").eq("id", id).maybeSingle();
       if (!r) return json({ error: "Item não encontrado" }, 404);
-      const q = Math.max(0, (await decNum(key, r.quantity_enc)) + delta);
+      const currentQuantity = await decNum(key, r.quantity_enc);
+      const q = currentQuantity + delta;
+      if (q < 0) return json({ error: "Quantidade insuficiente para registrar essa saída." }, 409);
       const { error } = await admin.from("benefit_items").update({ quantity_enc: await encNum(key, q) }).eq("id", id);
       if (error) return json({ error: error.message }, 500);
       return json({ success: true });
@@ -92,12 +96,6 @@ Deno.serve(async (req) => {
       const id = String(body?.id ?? "");
       if (!id) return json({ error: "id obrigatório" }, 400);
       const { error } = await admin.from("benefit_items").delete().eq("id", id);
-      if (error) return json({ error: error.message }, 500);
-      return json({ success: true });
-    }
-
-    if (action === "clear") {
-      const { error } = await admin.from("benefit_items").delete().not("id", "is", null);
       if (error) return json({ error: error.message }, 500);
       return json({ success: true });
     }
