@@ -119,44 +119,55 @@ export function AttendanceGlassPage() {
     }
 
     setSaving(true);
-    const { data: existing, error: existingError } = await supabase
-      .from("attendance_records")
-      .select("id,user_id")
-      .eq("activity_id", selectedActivityId)
-      .eq("date", selectedDate);
-    if (existingError) {
-      setSaving(false);
-      console.error("Erro ao consultar registros existentes:", existingError);
-      toast.error("Não foi possível salvar a chamada com segurança.");
-      return;
-    }
+    try {
+      const { data: existing, error: existingError } = await supabase
+        .from("attendance_records")
+        .select("id,user_id")
+        .eq("activity_id", selectedActivityId)
+        .eq("date", selectedDate);
+      if (existingError) {
+        console.error("Erro ao consultar registros existentes:", existingError);
+        toast.error("Não foi possível salvar a chamada com segurança.");
+        return;
+      }
 
-    const existingByUser = new Map((existing ?? []).map((row) => [row.user_id, row.id]));
-    const results = await Promise.all(students.map(async (student) => {
-      const existingId = existingByUser.get(student.id);
-      const query = existingId
-        ? supabase.from("attendance_records").update({
-            status: attendance[student.id],
-            recorded_by: currentUser.id,
-          }).eq("id", existingId).select("id").maybeSingle()
-        : supabase.from("attendance_records").insert({
+      const existingByUser = new Map((existing ?? []).map((row) => [row.user_id, row.id]));
+      const results = await Promise.all(students.map(async (student) => {
+        const existingId = existingByUser.get(student.id);
+        if (existingId) {
+          return await supabase
+            .from("attendance_records")
+            .update({ status: attendance[student.id], recorded_by: currentUser.id })
+            .eq("id", existingId)
+            .select("id")
+            .maybeSingle();
+        }
+        return await supabase
+          .from("attendance_records")
+          .insert({
             user_id: student.id,
             activity_id: selectedActivityId,
             date: selectedDate,
             status: attendance[student.id],
             recorded_by: currentUser.id,
-          }).select("id").maybeSingle();
-      return query;
-    }));
-    setSaving(false);
+          })
+          .select("id")
+          .maybeSingle();
+      }));
 
-    const failed = results.filter((result) => result.error || !result.data);
-    if (failed.length > 0) {
-      console.error("Parte da chamada não foi salva:", failed);
-      toast.error(`A chamada foi salva parcialmente (${students.length - failed.length}/${students.length}). Atualize a tela e confira os registros antes de tentar novamente.`);
-      return;
+      const failed = results.filter((result) => result.error || !result.data);
+      if (failed.length > 0) {
+        console.error("Parte da chamada não foi salva:", failed);
+        toast.error("A chamada foi salva parcialmente (" + (students.length - failed.length) + "/" + students.length + "). Atualize a tela e confira os registros antes de tentar novamente.");
+        return;
+      }
+      toast.success("Chamada salva no banco de dados.");
+    } catch (error) {
+      console.error("Falha inesperada ao salvar chamada:", error);
+      toast.error("Ocorreu um erro ao salvar a chamada. Confira os registros antes de tentar novamente.");
+    } finally {
+      setSaving(false);
     }
-    toast.success("Chamada salva no banco de dados.");
   };
 
   const sidebarItems = [
