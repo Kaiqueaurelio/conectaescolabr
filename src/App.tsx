@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -86,11 +86,11 @@ const App = () => (
                 <Route path="/parent/portal" element={<ProtectedRoute roles={["PARENT"]}><ParentPortalPage /></ProtectedRoute>} />
 
                 {/* Rotas Legadas/Existentes */}
-                <Route path="/admin" element={<ProtectedRoute roles={["ADMIN"]}><AdminDashboard /></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute roles={["ADMIN"]}><Navigate to="/admin/dashboard" replace /></ProtectedRoute>} />
                 <Route path="/professor" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><TeacherDashboard /></ProtectedRoute>} />
-                <Route path="/aluno" element={<ProtectedRoute roles={["STUDENT"]}><StudentDashboard /></ProtectedRoute>} />
-                <Route path="/responsavel" element={<ProtectedRoute roles={["PARENT"]}><ParentDashboard /></ProtectedRoute>} />
-                <Route path="/chamada" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><Attendance /></ProtectedRoute>} />
+                <Route path="/aluno" element={<ProtectedRoute roles={["STUDENT"]}><Navigate to="/aluno/dashboard" replace /></ProtectedRoute>} />
+                <Route path="/responsavel" element={<ProtectedRoute roles={["PARENT"]}><Navigate to="/parent/portal" replace /></ProtectedRoute>} />
+                <Route path="/chamada" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><Navigate to="/admin/attendance" replace /></ProtectedRoute>} />
                 <Route path="/agenda" element={<ProtectedRoute roles={["ADMIN", "TEACHER", "STUDENT", "PARENT"]}><Agenda /></ProtectedRoute>} />
                 <Route path="/cadastro" element={<ProtectedRoute roles={["TEACHER", "ADMIN"]}><CadastroGeral /></ProtectedRoute>} />
                 <Route path="/comunicados" element={<ProtectedRoute roles={["ADMIN", "TEACHER", "STUDENT", "PARENT"]}><Announcements /></ProtectedRoute>} />
