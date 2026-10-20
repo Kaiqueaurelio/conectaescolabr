@@ -3,10 +3,8 @@ import { ModernLayout, ModernCard, ModernSection, ModernEmptyState } from "@/com
 import { ModernTopBar, ModernPageHeader, ModernTabs } from "@/components/ModernTopBar";
 import { ModernSidebar } from "@/components/ModernSidebar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-import { FileText, Upload, Camera, Download, Trash2, CheckCircle, Clock } from "lucide-react";
+import { FileText, Upload, Camera, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface ScannedDocument {
@@ -14,10 +12,8 @@ interface ScannedDocument {
   filename: string;
   type: string;
   uploaded_at: string;
-  status: "selected" | "error";
+  status: "selected";
   file: File;
-  extracted_text?: string;
-  user_id?: string;
 }
 
 export function DocumentScanningPage() {
@@ -85,12 +81,6 @@ export function DocumentScanningPage() {
     if (!window.confirm("Remover este documento?")) return;
     setDocuments(documents.filter((d) => d.id !== id));
     toast.success("Documento removido");
-  };
-
-  const handleClearDocuments = () => {
-    if (!window.confirm("Remover todos os documentos digitalizados?")) return;
-    setDocuments([]);
-    toast.success("Documentos removidos");
   };
 
   const handleDownloadDocument = (doc: ScannedDocument) => {
@@ -215,16 +205,6 @@ export function DocumentScanningPage() {
                               </h3>
                               <p className="text-sm text-muted-foreground">{doc.type}</p>
 
-                              {doc.status === "error" && doc.extracted_text && (
-                                <div className="mt-3 p-3 bg-muted/50 rounded-lg">
-                                  <p className="text-xs font-medium text-foreground mb-2">
-                                    Texto Extraído:
-                                  </p>
-                                  <p className="text-xs text-foreground/80 line-clamp-3">
-                                    {doc.extracted_text}
-                                  </p>
-                                </div>
-                              )}
                             </div>
                           </div>
 
@@ -234,9 +214,6 @@ export function DocumentScanningPage() {
                                 <FileText className="w-4 h-4" />
                                 <span className="text-xs">Selecionado (sessão atual)</span>
                               </div>
-                            )}
-                            {false && doc.status === "selected" && (
-                              <CheckCircle className="w-5 h-5 text-success" />
                             )}
 
                             <div className="flex gap-2">
