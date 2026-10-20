@@ -52,7 +52,7 @@ export function BenefitsGlassPage() {
   const [newItemOpen, setNewItemOpen] = useState(false);
   const [newItem, setNewItem] = useState({ name: "", quantity: 0, minStock: 0, unit: "un" });
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoadingItems(true);
     try {
       const data = await callBenefits({ action: "list" });
