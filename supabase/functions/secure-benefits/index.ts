@@ -87,16 +87,26 @@ Deno.serve(async (req) => {
       const currentQuantity = await decNum(key, r.quantity_enc);
       const q = currentQuantity + delta;
       if (q < 0) return json({ error: "Quantidade insuficiente para registrar essa saída." }, 409);
-      const { error } = await admin.from("benefit_items").update({ quantity_enc: await encNum(key, q) }).eq("id", id);
+      // Compare-and-swap prevents two simultaneous adjustments from silently
+      // overwriting each other with a stale decrypted quantity.
+      const { data: updated, error } = await admin
+        .from("benefit_items")
+        .update({ quantity_enc: await encNum(key, q) })
+        .eq("id", id)
+        .eq("quantity_enc", r.quantity_enc)
+        .select("id")
+        .maybeSingle();
       if (error) return json({ error: error.message }, 500);
+      if (!updated) return json({ error: "O estoque foi alterado por outra operação. Atualize a tela e tente novamente." }, 409);
       return json({ success: true });
     }
 
     if (action === "delete") {
       const id = String(body?.id ?? "");
       if (!id) return json({ error: "id obrigatório" }, 400);
-      const { error } = await admin.from("benefit_items").delete().eq("id", id);
+      const { data, error } = await admin.from("benefit_items").delete().eq("id", id).select("id").maybeSingle();
       if (error) return json({ error: error.message }, 500);
+      if (!data) return json({ error: "Item não encontrado." }, 404);
       return json({ success: true });
     }
 
