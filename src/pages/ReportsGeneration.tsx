@@ -58,35 +58,21 @@ export function ReportsGenerationPage() {
     },
   ];
 
-  const handleGenerateReport = (type: string) => {
+  const handleGenerateReport = (_type: string) => {
     if (!startDate || !endDate) {
       toast.error("Selecione o período do relatório");
       return;
     }
+    if (startDate > endDate) {
+      toast.error("A data inicial não pode ser posterior à data final.");
+      return;
+    }
 
-    toast.loading("Gerando relatório...");
-
-    // Simular geração de relatório
-    setTimeout(() => {
-      const filename = `relatorio-${type}-${new Date().toISOString().split("T")[0]}.${format === "pdf" ? "pdf" : "xlsx"}`;
-      
-      // Criar um blob simulado
-      const content = `Relatório de ${type}\nPeríodo: ${startDate} a ${endDate}\nGerado em: ${new Date().toLocaleString("pt-BR")}`;
-      const blob = new Blob([content], { type: format === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-      
-      // Criar link de download
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      toast.dismiss();
-      toast.success(`Relatório gerado e baixado: ${filename}`);
-    }, 2000);
+    // Não criar arquivos fictícios: esta tela ainda não consulta as tabelas reais
+    // para montar relatórios de frequência, benefícios, dados sociais ou finanças.
+    toast.error(
+      "Relatórios ainda não conectados aos dados reais. Nenhum arquivo foi criado; é necessário integrar as consultas ao banco antes de habilitar esta função."
+    );
   };
 
   const sidebarItems = [
@@ -114,7 +100,7 @@ export function ReportsGenerationPage() {
         <div className="p-6">
           <ModernPageHeader
             title="Relatórios"
-            description="Gere relatórios automáticos em PDF ou Excel"
+            description="Modelos disponíveis para integração. A geração está desabilitada até conectar as consultas aos dados reais."
             icon={<BarChart3 />}
           />
 
