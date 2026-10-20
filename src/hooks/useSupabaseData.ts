@@ -18,7 +18,7 @@ export function useUsers(options: UseSupabaseDataOptions = {}) {
       setLoading(true);
       const { data, error: err } = await supabase
         .from("users")
-        .select("*")
+        .select("id,full_name,email,role,status,avatar_url,created_at,updated_at")
         .order("created_at", { ascending: false });
 
       if (err) throw err;
@@ -63,7 +63,7 @@ export function useUser(userId: string | null, options: UseSupabaseDataOptions =
       setError(null);
       const { data, error: err } = await supabase
         .from("users")
-        .select("*")
+        .select("id,full_name,email,role,status,avatar_url,priority_public,created_at,updated_at")
         .eq("id", userId)
         .single();
 
