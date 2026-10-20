@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { GlassLayout, GlassContainer } from "@/components/GlassLayout";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { TrendingUp, Users, Heart, Zap, AlertCircle } from "lucide-react";
 
 interface ImpactMetric {
