@@ -247,25 +247,12 @@ export function useCreateUser() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createUser = useCallback(async (user: Omit<UserProfile, "id" | "created_at" | "updated_at">) => {
-    try {
-      setLoading(true);
-      const { data, error: err } = await supabase
-        .from("users")
-        .insert([user])
-        .select()
-        .single();
-
-      if (err) throw err;
-      setError(null);
-      return { success: true, data };
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Erro ao criar usuário";
-      setError(errorMsg);
-      return { success: false, error: errorMsg };
-    } finally {
-      setLoading(false);
-    }
+  // Criar apenas a linha de perfil não cria uma conta em auth.users. Até haver
+  // uma função administrativa segura no servidor, esta operação fica bloqueada.
+  const createUser = useCallback(async (_user: Omit<UserProfile, "id" | "created_at" | "updated_at">) => {
+    const message = "A criação direta de usuários está desativada. Use o cadastro de autenticação e depois aprove o perfil.";
+    setError(message);
+    return { success: false, error: message };
   }, []);
 
   return { createUser, loading, error };
