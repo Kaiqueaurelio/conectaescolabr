@@ -273,11 +273,16 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       if (!user || user.role !== "ADMIN") {
         return { success: false, error: "Somente um administrador pode alterar o status de cadastro." };
       }
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("users")
         .update({ status })
-        .eq("id", userId);
+        .eq("id", userId)
+        .select("id")
+        .maybeSingle();
       if (error) return { success: false, error: error.message };
+      if (!data) {
+        return { success: false, error: "O status não foi alterado. Verifique as permissões do banco e se o usuário existe." };
+      }
       return { success: true };
     } catch (error) {
       return { success: false, error: String(error) };
