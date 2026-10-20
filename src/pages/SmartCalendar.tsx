@@ -25,8 +25,9 @@ interface CalendarEvent {
   type: "event" | "activity" | "holiday";
 }
 
-export function SmartCalendarPage() {
+export function SmartCalendarPage({ readOnly = false }: { readOnly?: boolean } = {}) {
   const { user: currentUser } = useSupabaseAuth();
+  const canManageEvents = !readOnly && (currentUser?.role === "ADMIN" || currentUser?.role === "TEACHER");
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -189,17 +190,17 @@ export function SmartCalendarPage() {
 
   return (
     <ModernLayout>
-      <ModernSidebar items={sidebarItems} />
+      <ModernSidebar items={readOnly ? [{ label: "Agenda", href: "/agenda", icon: "📅" }] : sidebarItems} />
       <div className="lg:ml-64">
         <ModernTopBar
-          title="Calendário Inteligente"
+          title={readOnly ? "Agenda" : "Calendário Inteligente"}
           user={currentUser ? { name: currentUser.full_name, email: currentUser.email } : undefined}
         />
 
         <div className="p-6">
           <ModernPageHeader
-            title="Calendário"
-            description="Gerencie eventos e atividades da ONG"
+            title={readOnly ? "Agenda de eventos" : "Calendário"}
+            description={readOnly ? "Consulte os próximos eventos publicados." : "Gerencie eventos e atividades da ONG"}
             icon={<Calendar />}
           />
 
@@ -292,92 +293,95 @@ export function SmartCalendarPage() {
 
             {/* Painel Lateral */}
             <div className="space-y-6">
-              {/* Adicionar Evento */}
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="w-full">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Novo Evento
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Criar Novo Evento</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="event_title">Título *</Label>
-                      <Input
-                        id="event_title"
-                        value={newEvent.title}
-                        onChange={(e) =>
-                          setNewEvent({ ...newEvent, title: e.target.value })
-                        }
-                        placeholder="Título do evento"
-                        className="mt-2"
-                      />
+              {/* Edição restrita a perfis autorizados */}
+              {canManageEvents && (
+                {/* Adicionar Evento */}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="w-full">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Novo Evento
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Criar Novo Evento</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="event_title">Título *</Label>
+                        <Input
+                          id="event_title"
+                          value={newEvent.title}
+                          onChange={(e) =>
+                            setNewEvent({ ...newEvent, title: e.target.value })
+                          }
+                          placeholder="Título do evento"
+                          className="mt-2"
+                        />
+                      </div>
+  
+                      <div>
+                        <Label htmlFor="event_date">Data *</Label>
+                        <Input
+                          id="event_date"
+                          type="date"
+                          value={newEvent.date}
+                          onChange={(e) =>
+                            setNewEvent({ ...newEvent, date: e.target.value })
+                          }
+                          className="mt-2"
+                        />
+                      </div>
+  
+                      <div>
+                        <Label htmlFor="event_time">Hora</Label>
+                        <Input
+                          id="event_time"
+                          type="time"
+                          value={newEvent.time}
+                          onChange={(e) =>
+                            setNewEvent({ ...newEvent, time: e.target.value })
+                          }
+                          className="mt-2"
+                        />
+                      </div>
+  
+                      <div>
+                        <Label htmlFor="event_location">Local</Label>
+                        <Input
+                          id="event_location"
+                          value={newEvent.location}
+                          onChange={(e) =>
+                            setNewEvent({ ...newEvent, location: e.target.value })
+                          }
+                          placeholder="Local do evento"
+                          className="mt-2"
+                        />
+                      </div>
+  
+                      <div>
+                        <Label htmlFor="event_description">Descrição</Label>
+                        <Textarea
+                          id="event_description"
+                          value={newEvent.description}
+                          onChange={(e) =>
+                            setNewEvent({ ...newEvent, description: e.target.value })
+                          }
+                          placeholder="Descrição do evento"
+                          rows={4}
+                          className="mt-2"
+                        />
+                      </div>
+  
+                      <div className="flex gap-3 justify-end">
+                        <Button variant="outline">Cancelar</Button>
+                        <Button onClick={handleAddEvent} disabled={savingEvent}>{savingEvent ? "Salvando..." : "Criar"}</Button>
+                      </div>
                     </div>
-
-                    <div>
-                      <Label htmlFor="event_date">Data *</Label>
-                      <Input
-                        id="event_date"
-                        type="date"
-                        value={newEvent.date}
-                        onChange={(e) =>
-                          setNewEvent({ ...newEvent, date: e.target.value })
-                        }
-                        className="mt-2"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="event_time">Hora</Label>
-                      <Input
-                        id="event_time"
-                        type="time"
-                        value={newEvent.time}
-                        onChange={(e) =>
-                          setNewEvent({ ...newEvent, time: e.target.value })
-                        }
-                        className="mt-2"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="event_location">Local</Label>
-                      <Input
-                        id="event_location"
-                        value={newEvent.location}
-                        onChange={(e) =>
-                          setNewEvent({ ...newEvent, location: e.target.value })
-                        }
-                        placeholder="Local do evento"
-                        className="mt-2"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="event_description">Descrição</Label>
-                      <Textarea
-                        id="event_description"
-                        value={newEvent.description}
-                        onChange={(e) =>
-                          setNewEvent({ ...newEvent, description: e.target.value })
-                        }
-                        placeholder="Descrição do evento"
-                        rows={4}
-                        className="mt-2"
-                      />
-                    </div>
-
-                    <div className="flex gap-3 justify-end">
-                      <Button variant="outline">Cancelar</Button>
-                      <Button onClick={handleAddEvent} disabled={savingEvent}>{savingEvent ? "Salvando..." : "Criar"}</Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogContent>
+                </Dialog>
+              )}
 
               {/* Próximos Eventos */}
               <ModernCard className="p-6">
@@ -399,13 +403,16 @@ export function SmartCalendarPage() {
                         <div key={event.id} className="p-3 bg-muted/50 rounded-lg">
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <h4 className="font-medium text-sm text-foreground">{event.title}</h4>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleDeleteEvent(event.id)}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
+                            {canManageEvents && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleDeleteEvent(event.id)}
+                                aria-label={`Remover evento ${event.title}`}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            )}
                           </div>
 
                           <div className="space-y-1 text-xs text-muted-foreground">
