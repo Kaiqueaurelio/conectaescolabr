@@ -53,8 +53,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const allowedRoles: Role[] = ["ADMIN", "TEACHER", "STUDENT", "PARENT"];
-    const role = profile.role === "VOLUNTEER" ? "STUDENT" : profile.role;
-    if (!allowedRoles.includes(role as Role)) {
+    // Não converta VOLUNTEER em STUDENT: isso concederia permissões de aluno
+    // a um perfil de outro tipo. Cadastros com papel não suportado ficam sem acesso
+    // até existir uma rota e uma política próprias para esse papel.
+    if (profile.status !== "APPROVED" || !allowedRoles.includes(profile.role as Role)) {
       setUser(null);
       setLoading(false);
       return;
@@ -62,11 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const authUser: User = {
       id: profile.id,
-      role: role as Role,
+      role: profile.role as Role,
       name: profile.full_name || profile.email || "",
       email: profile.email || "",
       avatar_url: profile.avatar_url || undefined,
-      status: profile.status || "APPROVED",
+      status: profile.status,
     };
 
     setUser(authUser);
@@ -107,9 +109,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = async (patch: Partial<Pick<User, "name" | "email" | "avatar_url">>) => {
     if (!user) return;
+    if (patch.email !== undefined && patch.email !== user.email) {
+      throw new Error("Para alterar o e-mail, use o fluxo de atualização e confirmação da conta.");
+    }
     const result = await supabaseAuth.updateProfile({
       ...(patch.name !== undefined ? { full_name: patch.name } : {}),
-      ...(patch.email !== undefined ? { email: patch.email } : {}),
       ...(patch.avatar_url !== undefined ? { avatar_url: patch.avatar_url } : {}),
     });
     if (!result.success) {
