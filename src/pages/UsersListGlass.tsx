@@ -39,7 +39,7 @@ export function UsersListGlassPage() {
   const { users, loading, error, refetch } = useUsers();
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
 
-  const changeUserStatus = async (target: UserProfile, status: UserProfile["status"]) => {
+  const changeUserStatus = async (target: UserProfile, status: "APPROVED" | "REJECTED") => {
     if (target.id === currentUser?.id) {
       toast({ title: "Não altere o status da própria conta por esta tela." });
       return;
