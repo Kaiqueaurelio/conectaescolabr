@@ -1,210 +1,237 @@
-import React from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SkillPathBanner } from "@/components/SkillPathBanner";
 import { SkillPathMetricCard } from "@/components/SkillPathMetricCard";
-import { SkillPathProgressCard } from "@/components/SkillPathProgressCard";
 import { GlassLayout, GlassContainer, GlassGrid, GlassSection } from "@/components/GlassLayout";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { BookOpen, Award, Calendar, Clock, CheckCircle, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Calendar, Bell, CheckCircle, AlertCircle, Clock } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
-// Mock data - será substituído por dados reais do Supabase
-const frequencyData = [
-  { week: "Sem 1", frequência: 100 },
-  { week: "Sem 2", frequência: 85 },
-  { week: "Sem 3", frequência: 90 },
-  { week: "Sem 4", frequência: 95 },
-];
-
-const coursesData = [
-  { id: 1, name: "Português Básico", progress: 75, instructor: "Profa. Maria" },
-  { id: 2, name: "Matemática Essencial", progress: 60, instructor: "Prof. João" },
-  { id: 3, name: "Inglês Iniciante", progress: 45, instructor: "Profa. Ana" },
-  { id: 4, name: "Habilidades Digitais", progress: 80, instructor: "Prof. Carlos" },
-];
+interface AttendanceRow {
+  date: string;
+  status: string;
+}
+interface UpcomingEvent {
+  id: string;
+  title: string;
+  start_datetime: string;
+  location?: string | null;
+}
+interface StudentAnnouncement {
+  id: string;
+  title: string;
+  content: string;
+  created_at: string;
+}
 
 const sidebarItems = [
   { label: "Meu Dashboard", href: "/aluno/dashboard", icon: "📊" },
-  { label: "Meus Cursos", href: "/aluno/courses", icon: "📚" },
-  { label: "Frequência", href: "/aluno/attendance", icon: "📋" },
-  { label: "Certificados", href: "/aluno/certificates", icon: "🏆" },
-  { label: "Mensagens", href: "/aluno/messages", icon: "💬" },
-  { divider: true },
-  { label: "Meu Perfil", href: "/aluno/profile", icon: "👤" },
+  { label: "Frequência", href: "/aluno/dashboard", icon: "📋" },
+  { label: "Comunicados", href: "/aluno/dashboard", icon: "📢" },
 ];
 
 export function StudentDashboardSkillPathPage() {
+  const { user: currentUser } = useSupabaseAuth();
+  const [attendance, setAttendance] = useState<AttendanceRow[]>([]);
+  const [events, setEvents] = useState<UpcomingEvent[]>([]);
+  const [announcements, setAnnouncements] = useState<StudentAnnouncement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [queryFailed, setQueryFailed] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      setAttendance([]);
+      setEvents([]);
+      setAnnouncements([]);
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
+    const loadDashboard = async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      const monthStartDate = monthStart.toISOString().slice(0, 10);
+      const [attendanceResult, eventsResult, announcementsResult] = await Promise.all([
+        supabase.from("attendance_records")
+          .select("date,status")
+          .eq("user_id", currentUser.id)
+          .gte("date", monthStartDate)
+          .lte("date", today)
+          .order("date", { ascending: true }),
+        supabase.from("events")
+          .select("id,title,start_datetime,location")
+          .gte("start_datetime", new Date().toISOString())
+          .order("start_datetime", { ascending: true })
+          .limit(5),
+        supabase.from("announcements")
+          .select("id,title,content,target_roles,created_at")
+          .order("created_at", { ascending: false })
+          .limit(30),
+      ]);
+
+      if (!active) return;
+      const failed = Boolean(attendanceResult.error || eventsResult.error || announcementsResult.error);
+      setQueryFailed(failed);
+      if (failed) console.error("Falha ao carregar dados do painel do aluno", {
+        attendance: attendanceResult.error,
+        events: eventsResult.error,
+        announcements: announcementsResult.error,
+      });
+      setAttendance(attendanceResult.error ? [] : (attendanceResult.data ?? []) as AttendanceRow[]);
+      setEvents(eventsResult.error ? [] : (eventsResult.data ?? []) as UpcomingEvent[]);
+      setAnnouncements(announcementsResult.error ? [] : (announcementsResult.data ?? [])
+        .filter((item) => Array.isArray(item.target_roles) &&
+          (item.target_roles.includes("ALL") || item.target_roles.includes("STUDENTS")))
+        .map((item) => ({
+          id: item.id,
+          title: item.title,
+          content: item.content,
+          created_at: item.created_at,
+        })));
+      setLoading(false);
+    };
+
+    void loadDashboard().catch((error) => {
+      console.error("Erro inesperado no painel do aluno:", error);
+      if (active) {
+        setQueryFailed(true);
+        setLoading(false);
+      }
+    });
+    return () => { active = false; };
+  }, [currentUser?.id]);
+
+  const attendanceRate = attendance.length > 0
+    ? Math.round((attendance.filter((row) => row.status === "PRESENT" || row.status === "EXCUSED").length / attendance.length) * 100)
+    : null;
+
+  const weeklyFrequency = useMemo(() => {
+    const start = new Date();
+    start.setDate(1);
+    return Array.from({ length: 4 }, (_, index) => {
+      const weekStart = new Date(start);
+      weekStart.setDate(1 + index * 7);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      const records = attendance.filter((row) => {
+        const date = new Date(`${row.date}T00:00:00`);
+        return date >= weekStart && date <= weekEnd;
+      });
+      const present = records.filter((row) => row.status === "PRESENT" || row.status === "EXCUSED").length;
+      return {
+        week: `Sem. ${index + 1}`,
+        frequency: records.length ? Math.round((present / records.length) * 100) : null,
+      };
+    });
+  }, [attendance]);
+
   return (
     <GlassLayout
       sidebarItems={sidebarItems}
       topBarTitle="Meu Dashboard"
-      topBarUser={{
-        name: "João Silva",
-        email: "joao@example.com",
-      }}
+      topBarUser={currentUser ? { name: currentUser.full_name || "Aluno", email: currentUser.email || "" } : undefined}
     >
       <GlassContainer className="space-y-8">
-        {/* Welcome Banner */}
         <SkillPathBanner
-          title="Bem-vindo, João! 👋"
-          subtitle="Continue sua jornada de aprendizado"
-          userName="João"
+          title={`Bem-vindo${currentUser?.full_name ? `, ${currentUser.full_name}` : ""}!`}
+          subtitle="Aqui estão as informações que conseguimos consultar para sua conta."
+          userName={currentUser?.full_name || "Aluno"}
           gradientFrom="from-primary"
           gradientTo="to-accent"
         />
 
-        {/* Key Metrics */}
-        <GlassSection title="Seu Progresso" description="Resumo do seu desempenho">
-          <GlassGrid cols={4} gap="medium">
+        {queryFailed && (
+          <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-muted-foreground">
+            <AlertCircle className="h-5 w-5 shrink-0 text-amber-600" />
+            Algumas consultas falharam. Os dados indisponíveis não serão substituídos por números de demonstração.
+          </div>
+        )}
+
+        <GlassSection title="Seu progresso" description="Resumo calculado a partir dos registros disponíveis">
+          <GlassGrid cols={3} gap="medium">
             <SkillPathMetricCard
-              title="Frequência"
-              value="92%"
+              title="Frequência no mês"
+              value={loading ? "…" : attendanceRate === null ? "—" : `${attendanceRate}%`}
               icon={<CheckCircle className="w-6 h-6" />}
-              trend="up"
-              trendValue="+5% vs mês anterior"
               color="primary"
             />
             <SkillPathMetricCard
-              title="Cursos em Andamento"
-              value="4"
-              icon={<BookOpen className="w-6 h-6" />}
-              trend="neutral"
-              trendValue="Ativo"
+              title="Próximos eventos"
+              value={loading ? "…" : String(events.length)}
+              icon={<Calendar className="w-6 h-6" />}
               color="secondary"
             />
             <SkillPathMetricCard
-              title="Certificados Obtidos"
-              value="3"
-              icon={<Award className="w-6 h-6" />}
-              trend="up"
-              trendValue="+1 este mês"
+              title="Comunicados para alunos"
+              value={loading ? "…" : String(announcements.length)}
+              icon={<Bell className="w-6 h-6" />}
               color="accent"
             />
-            <SkillPathMetricCard
-              title="Horas de Estudo"
-              value="48"
-              icon={<Clock className="w-6 h-6" />}
-              trend="up"
-              trendValue="+8 horas"
-              color="destructive"
-            />
           </GlassGrid>
         </GlassSection>
 
-        {/* Progress Cards */}
-        <GlassSection title="Metas Pessoais" description="Acompanhe seus objetivos">
-          <GlassGrid cols={2} gap="medium">
-            <SkillPathProgressCard
-              title="Conclusão de Cursos"
-              current={2}
-              total={4}
-              icon="🎓"
-              color="primary"
-            />
-            <SkillPathProgressCard
-              title="Frequência Alvo"
-              current={92}
-              total={100}
-              icon="✅"
-              color="secondary"
-            />
-          </GlassGrid>
-        </GlassSection>
-
-        {/* Courses Section */}
-        <GlassSection title="Meus Cursos" description="Cursos em que você está inscrito">
-          <div className="space-y-4">
-            {coursesData.map((course) => (
-              <div
-                key={course.id}
-                className="bg-white/50 backdrop-blur-sm rounded-xl p-6 border border-white/30 hover:shadow-md transition-all"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground">{course.name}</h3>
-                    <p className="text-sm text-muted-foreground">Instrutor: {course.instructor}</p>
-                  </div>
-                  <span className="text-2xl font-bold text-primary">{course.progress}%</span>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                  <div
-                    className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all"
-                    style={{ width: `${course.progress}%` }}
-                  />
-                </div>
-
-                <Button variant="outline" size="sm">
-                  Continuar Aprendendo
-                </Button>
-              </div>
-            ))}
-          </div>
-        </GlassSection>
-
-        {/* Charts */}
-        <GlassSection title="Análises" description="Seu desempenho ao longo do tempo">
-          <GlassGrid cols={2} gap="medium">
-            {/* Frequency Chart */}
-            <div className="bg-white/50 backdrop-blur-sm rounded-2xl p-6 border border-white/30">
-              <h3 className="text-lg font-semibold text-foreground mb-4">Frequência Semanal</h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={frequencyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
+        <GlassSection title="Frequência semanal" description="Percentual calculado com base nas chamadas registradas neste mês">
+          {attendance.length === 0 ? (
+            <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+              {loading ? "Carregando registros de frequência..." : "Não há registros de frequência disponíveis para este mês."}
+            </p>
+          ) : (
+            <div className="h-64 rounded-2xl border border-border bg-card p-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={weeklyFrequency}>
+                  <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="week" />
-                  <YAxis />
+                  <YAxis domain={[0, 100]} />
                   <Tooltip />
-                  <Bar
-                    dataKey="frequência"
-                    fill="hsl(var(--primary))"
-                    radius={[8, 8, 0, 0]}
-                  />
+                  <Bar dataKey="frequency" name="Frequência (%)" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
+          )}
+        </GlassSection>
 
-            {/* Course Progress Chart */}
-            <div className="bg-white/50 backdrop-blur-sm rounded-2xl p-6 border border-white/30">
-              <h3 className="text-lg font-semibold text-foreground mb-4">Progresso dos Cursos</h3>
-              <div className="space-y-4">
-                {coursesData.map((course) => (
-                  <div key={course.id}>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm font-medium text-foreground">{course.name}</span>
-                      <span className="text-sm text-muted-foreground">{course.progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full"
-                        style={{ width: `${course.progress}%` }}
-                      />
-                    </div>
+        <GlassGrid cols={2} gap="medium">
+          <GlassSection title="Próximos eventos" description="Eventos cadastrados">
+            {loading ? <p className="text-sm text-muted-foreground">Carregando eventos...</p> : events.length === 0 ? (
+              <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">Nenhum evento futuro disponível.</p>
+            ) : (
+              <div className="space-y-3">
+                {events.map((event) => (
+                  <div key={event.id} className="rounded-xl border border-border bg-card p-4">
+                    <p className="font-semibold text-foreground">{event.title}</p>
+                    <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {new Date(event.start_datetime).toLocaleString("pt-BR")}
+                    </p>
+                    {event.location && <p className="mt-1 text-xs text-muted-foreground">{event.location}</p>}
                   </div>
                 ))}
               </div>
-            </div>
-          </GlassGrid>
-        </GlassSection>
+            )}
+          </GlassSection>
 
-        {/* Alerts */}
-        <GlassSection title="Notificações" description="Informações importantes">
-          <div className="space-y-3">
-            <div className="flex items-start gap-4 p-4 bg-primary/10 border border-primary/20 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-foreground">Parabéns!</p>
-                <p className="text-sm text-muted-foreground">Você atingiu 90% de frequência este mês</p>
+          <GlassSection title="Comunicados" description="Avisos direcionados aos alunos">
+            {loading ? <p className="text-sm text-muted-foreground">Carregando comunicados...</p> : announcements.length === 0 ? (
+              <p className="rounded-lg border border-border p-4 text-sm text-muted-foreground">Nenhum comunicado disponível.</p>
+            ) : (
+              <div className="space-y-3">
+                {announcements.map((announcement) => (
+                  <div key={announcement.id} className="rounded-xl border border-border bg-card p-4">
+                    <p className="font-semibold text-foreground">{announcement.title}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{announcement.content}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">{new Date(announcement.created_at).toLocaleString("pt-BR")}</p>
+                  </div>
+                ))}
               </div>
-            </div>
-            <div className="flex items-start gap-4 p-4 bg-accent/10 border border-accent/20 rounded-lg">
-              <AlertCircle className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-foreground">Novo Conteúdo</p>
-                <p className="text-sm text-muted-foreground">Português Básico tem novo módulo disponível</p>
-              </div>
-            </div>
-          </div>
-        </GlassSection>
+            )}
+          </GlassSection>
+        </GlassGrid>
+
+        <p className="text-xs text-muted-foreground">
+          Cursos, certificados e horas de estudo não aparecem aqui porque ainda não há tabelas confirmadas para esses dados.
+        </p>
       </GlassContainer>
     </GlassLayout>
   );
