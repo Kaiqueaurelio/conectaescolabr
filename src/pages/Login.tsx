@@ -34,7 +34,11 @@ export default function Login() {
     const { error } = await login(email.trim(), password);
     setSubmitting(false);
     if (error) {
-      toast.error(error);
+      if (error.startsWith("Seu cadastro foi finalizado e enviado para aprovação.")) {
+        toast.success(error);
+      } else {
+        toast.error(error);
+      }
     } else {
       toast.success("Bem-vindo(a) de volta!");
     }
@@ -54,7 +58,7 @@ export default function Login() {
       toast.error(error);
     } else if (success) {
       toast.success("Solicitação enviada!", {
-        description: "Sua conta foi criada com sucesso e agora aguarda a aprovação de um administrador.",
+        description: "Cadastro iniciado. Se o projeto exigir confirmação de e-mail, confirme o endereço; seu perfil ficará pendente até a aprovação administrativa.",
       });
       setIsRegister(false);
       setName("");
