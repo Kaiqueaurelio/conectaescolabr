@@ -62,7 +62,7 @@ const App = () => (
                 <Route path="/admin/dashboard-skillpath" element={<ProtectedRoute roles={["ADMIN"]}><AdminDashboardSkillPathPage /></ProtectedRoute>} />
                 <Route path="/admin/impact" element={<ProtectedRoute roles={["ADMIN"]}><ImpactDashboardPage /></ProtectedRoute>} />
                 <Route path="/admin/users" element={<ProtectedRoute roles={["ADMIN"]}><UsersListPage /></ProtectedRoute>} />
-                <Route path="/admin/users/new" element={<ProtectedRoute roles={["ADMIN"]}><UserProfilePage /></ProtectedRoute>} />
+                <Route path="/admin/users/new" element={<ProtectedRoute roles={["ADMIN"]}><Navigate to="/admin/users" replace /></ProtectedRoute>} />
                 <Route path="/admin/users/:userId" element={<ProtectedRoute roles={["ADMIN"]}><UserProfilePage /></ProtectedRoute>} />
                 <Route path="/admin/users/:userId/record" element={<ProtectedRoute roles={["ADMIN", "TEACHER"]}><SocialRecordPage /></ProtectedRoute>} />
                 <Route path="/admin/users/:userId/ficha" element={<ProtectedRoute roles={["ADMIN"]}><ParticipantFile /></ProtectedRoute>} />
