@@ -40,6 +40,8 @@ Deno.serve(async (req) => {
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+  if (req.method !== "POST") return json({ error: "Método não permitido" }, 405);
+
   try {
     const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "").trim();
     if (!token) return json({ error: "Não autenticado" }, 401);
