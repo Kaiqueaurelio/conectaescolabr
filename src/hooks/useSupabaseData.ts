@@ -69,6 +69,7 @@ export function useUser(userId: string | null, options: UseSupabaseDataOptions =
       setUser(data);
       setError(null);
     } catch (err) {
+      setUser(null);
       setError(err instanceof Error ? err.message : "Erro ao buscar usuário");
     } finally {
       setLoading(false);
