@@ -235,12 +235,26 @@ export function SecurityAndLGPDPage() {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
-  const sidebarItems = [
-    { label: "Dashboard", href: "/admin", icon: "📊" },
-    { label: "Usuários", href: "/admin/users", icon: "👥" },
-    { label: "Presença", href: "/admin/attendance", icon: "✓" },
-    { label: "Benefícios", href: "/admin/benefits", icon: "🎁" },
-  ];
+  const homeByRole: Record<string, string> = {
+    ADMIN: "/admin/dashboard",
+    TEACHER: "/professor",
+    STUDENT: "/aluno/dashboard",
+    PARENT: "/parent/portal",
+    VOLUNTEER: "/voluntario",
+  };
+  const sidebarItems = currentUser?.role === "ADMIN"
+    ? [
+        { label: "Dashboard", href: "/admin/dashboard", icon: "📊" },
+        { label: "Usuários", href: "/admin/users", icon: "👥" },
+        { label: "Presença", href: "/admin/attendance", icon: "✓" },
+        { label: "Benefícios", href: "/admin/benefits", icon: "🎁" },
+        { label: "Segurança e LGPD", href: "/admin/security", icon: "🔒" },
+      ]
+    : [
+        { label: "Meu painel", href: homeByRole[currentUser?.role ?? ""] || "/", icon: "🏠" },
+        { label: "Segurança e LGPD", href: "/admin/security", icon: "🔒" },
+        { label: "Ajuda", href: "/ajuda", icon: "❔" },
+      ];
 
   const tabs = [
     { label: "Segurança", value: "security", icon: <Lock className="w-4 h-4" /> },
