@@ -25,8 +25,6 @@ import {
   Minus,
   AlertTriangle,
   TrendingDown,
-  History,
-  Edit,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -36,14 +34,6 @@ interface BenefitItem {
   name: string;
   unit: string;
   low: boolean;
-}
-
-interface DistributionItem {
-  id: string;
-  user: string;
-  item: string;
-  quantity: number;
-  date: string;
 }
 
 async function callBenefits(body: Record<string, unknown>) {
@@ -57,16 +47,23 @@ export function BenefitsGlassPage() {
   const { user: currentUser } = useSupabaseAuth();
   const [activeTab, setActiveTab] = useState("stock");
   const [benefitItems, setBenefitItems] = useState<BenefitItem[]>([]);
-  const [distributions, setDistributions] = useState<DistributionItem[]>([]);
+  const [loadingItems, setLoadingItems] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [newItemOpen, setNewItemOpen] = useState(false);
   const [newItem, setNewItem] = useState({ name: "", quantity: 0, minStock: 0, unit: "un" });
 
   const load = async () => {
+    setLoadingItems(true);
     try {
       const data = await callBenefits({ action: "list" });
       setBenefitItems(data?.items ?? []);
+      setLoadError(false);
     } catch (e) {
-      toast.error((e as Error).message);
+      console.error("Erro ao carregar estoque:", e);
+      setLoadError(true);
+      toast.error((e as Error).message || "Não foi possível carregar o estoque.");
+    } finally {
+      setLoadingItems(false);
     }
   };
   useEffect(() => {
@@ -87,17 +84,18 @@ export function BenefitsGlassPage() {
   ];
 
   const lowStockItems = benefitItems.filter((item) => item.low);
-  const totalValue = "••••";
-  const today = new Date().toISOString().split("T")[0];
-  const distributionsToday = distributions.filter((dist) => dist.date === today).length;
+  const totalValue = "Protegido";
 
-  const run = async (body: Record<string, unknown>, msg: string) => {
+  const run = async (body: Record<string, unknown>, msg: string): Promise<boolean> => {
     try {
       await callBenefits(body);
       toast.success(msg);
       await load();
+      return true;
     } catch (e) {
-      toast.error((e as Error).message);
+      console.error("Operação de estoque falhou:", e);
+      toast.error((e as Error).message || "A operação não foi concluída.");
+      return false;
     }
   };
 
@@ -106,24 +104,12 @@ export function BenefitsGlassPage() {
     run({ action: "delete", id }, "Item removido");
   };
 
-  const handleDeleteDistribution = (id: string) => {
-    if (!window.confirm("Remover esta distribuição?")) return;
-    setDistributions((items) => items.filter((item) => item.id !== id));
-    toast.success("Distribuição removida");
-  };
-
-  const handleClearAll = () => {
-    if (!window.confirm("Remover todos os itens e distribuições desta tela?")) return;
-    setDistributions([]);
-    run({ action: "clear" }, "Benefícios limpos");
-  };
-
   const handleAddItem = async () => {
     if (!newItem.name.trim()) {
       toast.error("Informe o nome do item");
       return;
     }
-    await run(
+    const saved = await run(
       {
         action: "create",
         name: newItem.name.trim(),
@@ -133,8 +119,10 @@ export function BenefitsGlassPage() {
       },
       "Item adicionado (números criptografados)"
     );
-    setNewItem({ name: "", quantity: 0, minStock: 0, unit: "un" });
-    setNewItemOpen(false);
+    if (saved) {
+      setNewItem({ name: "", quantity: 0, minStock: 0, unit: "un" });
+      setNewItemOpen(false);
+    }
   };
 
   const adjustQuantity = (id: string, delta: number) => {
@@ -168,12 +156,7 @@ export function BenefitsGlassPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-          {(benefitItems.length > 0 || distributions.length > 0) && (
-            <Button variant="destructive" className="gap-2 rounded-lg" onClick={handleClearAll}>
-              <Trash2 className="w-4 h-4" />
-              Limpar tudo
-            </Button>
-          )}
+
           <Dialog open={newItemOpen} onOpenChange={setNewItemOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2 rounded-lg">
@@ -249,7 +232,7 @@ export function BenefitsGlassPage() {
         {/* Stats */}
         <GlassGrid cols={4} gap="medium" className="mb-8">
           <GlassStatCard
-            label="Total em Estoque"
+            label="Quantidades protegidas"
             value={totalValue}
             icon={<Package className="w-6 h-6" />}
             color="primary"
@@ -269,8 +252,8 @@ export function BenefitsGlassPage() {
             trendValue={`${lowStockItems.length} itens`}
           />
           <GlassStatCard
-            label="Distribuições Hoje"
-            value={distributionsToday}
+            label="Distribuições"
+            value="—"
             icon={<TrendingDown className="w-6 h-6" />}
             color="success"
           />
@@ -298,10 +281,12 @@ export function BenefitsGlassPage() {
         {activeTab === "stock" && (
           <GlassSection title="Itens em Estoque">
             <div className="space-y-3">
-              {benefitItems.length === 0 ? (
-                <GlassCard className="p-8 text-center text-muted-foreground">
-                  Nenhum item cadastrado.
-                </GlassCard>
+              {loadingItems ? (
+                <GlassCard className="p-8 text-center text-muted-foreground">Carregando estoque...</GlassCard>
+              ) : loadError ? (
+                <GlassCard className="p-8 text-center text-muted-foreground">Estoque indisponível. Verifique a conexão e as permissões do backend.</GlassCard>
+              ) : benefitItems.length === 0 ? (
+                <GlassCard className="p-8 text-center text-muted-foreground">Nenhum item cadastrado.</GlassCard>
               ) : benefitItems.map((item) => {
                 const isLowStock = item.low;
 
@@ -347,13 +332,6 @@ export function BenefitsGlassPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="rounded-lg"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
                           className="rounded-lg text-destructive"
                           onClick={() => handleDeleteItem(item.id)}
                         >
@@ -368,66 +346,30 @@ export function BenefitsGlassPage() {
           </GlassSection>
         )}
 
-        {/* Distributions Tab */}
+        {/* Distribuições e histórico dependem de operações que ainda não existem no backend seguro. */}
         {activeTab === "distributions" && (
-          <GlassSection title="Distribuições Recentes">
-            <div className="space-y-3">
-              {distributions.length === 0 ? (
-                <GlassCard className="p-8 text-center text-muted-foreground">
-                  Nenhuma distribuição cadastrada.
-                </GlassCard>
-              ) : distributions.map((dist) => (
-                <GlassCard key={dist.id} className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-foreground">
-                        {dist.user}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {dist.item} - {dist.quantity} un
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 text-right">
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(dist.date).toLocaleDateString("pt-BR")}
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-lg text-destructive"
-                        onClick={() => handleDeleteDistribution(dist.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </GlassCard>
-              ))}
-            </div>
-
-            <Button className="w-full mt-6 rounded-lg gap-2">
-              <Plus className="w-4 h-4" />
-              Nova Distribuição
-            </Button>
+          <GlassSection title="Distribuições">
+            <GlassCard className="p-6">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+                <div>
+                  <p className="font-semibold text-foreground">Distribuição ainda não conectada</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    O backend seguro atual permite consultar e ajustar estoque, mas não registra distribuições. Os controles de criação e exclusão foram desativados para evitar movimentações apenas na tela.
+                  </p>
+                </div>
+              </div>
+            </GlassCard>
           </GlassSection>
         )}
 
-        {/* History Tab */}
         {activeTab === "history" && (
-          <GlassSection title="Histórico de Movimentações">
-            <div className="space-y-3">
-              {distributions.length === 0 ? (
-                <GlassCard className="p-8 text-center text-muted-foreground">
-                  Nenhuma movimentação cadastrada.
-                </GlassCard>
-              ) : distributions.map((record) => (
-                <GlassCard key={record.id} className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-foreground">
-                        {record.item}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
+          <GlassSection title="Histórico de movimentações">
+            <GlassCard className="p-6 text-sm text-muted-foreground">
+              O histórico ainda não está conectado a uma tabela de movimentações. Nenhum registro fictício será exibido.
+            </GlassCard>
+          </GlassSection>
+        )}
                         Saída - {record.quantity} un
                       </p>
                     </div>
