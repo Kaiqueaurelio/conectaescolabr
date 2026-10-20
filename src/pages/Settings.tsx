@@ -29,7 +29,7 @@ export default function Settings() {
   const { user, updateProfile } = useAuth();
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
   const [name, setName] = useState(user?.name || "");
-  const [email, setEmail] = useState(user?.email || "");
+  const [email] = useState(user?.email || "");
 
   useEffect(() => {
     try {
