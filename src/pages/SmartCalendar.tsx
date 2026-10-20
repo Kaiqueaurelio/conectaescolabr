@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { ModernLayout, ModernCard, ModernSection, ModernEmptyState } from "@/components/ModernLayout";
+import { ModernLayout, ModernCard, ModernEmptyState } from "@/components/ModernLayout";
 import { ModernTopBar, ModernPageHeader } from "@/components/ModernTopBar";
 import { ModernSidebar } from "@/components/ModernSidebar";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { supabase } from "@/lib/supabase";
-import { Calendar, Plus, Clock, MapPin, Users, Trash2 } from "lucide-react";
+import { Calendar, Plus, Clock, MapPin, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -175,19 +175,6 @@ export function SmartCalendarPage() {
         return "bg-warning/10 text-warning";
       default:
         return "bg-muted/10 text-muted-foreground";
-    }
-  };
-
-  const getEventTypeLabel = (type: string) => {
-    switch (type) {
-      case "event":
-        return "Evento";
-      case "activity":
-        return "Atividade";
-      case "holiday":
-        return "Feriado";
-      default:
-        return "Outro";
     }
   };
 
