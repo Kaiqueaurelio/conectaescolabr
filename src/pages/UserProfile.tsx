@@ -50,6 +50,10 @@ export function UserProfilePage() {
         }
         if (data) setFormData((prev) => ({ ...prev, ...data }));
       })
+      .catch((error) => {
+        console.error("Falha inesperada ao abrir dados protegidos:", error);
+        toast.error("Não foi possível carregar os dados protegidos. Eles permanecerão ocultos.");
+      })
       .finally(() => setSecureLoading(false));
   }, [user, isOwner]);
 
@@ -87,7 +91,7 @@ export function UserProfilePage() {
     if (isOwner) {
       const secureResult = await saveSecureProfile(user.id, secureData);
       if (!secureResult.success) {
-        toast.error(secureResult.error || "Erro ao salvar dados protegidos");
+        toast.error("Os campos básicos foram salvos, mas os dados protegidos não foram atualizados. " + (secureResult.error || ""));
         return;
       }
     }
