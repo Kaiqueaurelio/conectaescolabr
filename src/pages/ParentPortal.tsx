@@ -108,15 +108,13 @@ export function ParentPortalPage() {
               {/* Estatísticas */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <StatCard
-                  label="Filhos Cadastrados"
-                  value={myChildren.length}
+                  label="Filhos vinculados"
+                  value="—"
                   color="primary"
                 />
                 <StatCard
-                  label="Frequência Média"
-                  value={myChildren.length > 0 ? Math.round(myChildren.reduce((sum, child) => sum + child.frequency, 0) / myChildren.length) : "—"}
-                  trend="up"
-                  trendValue="+5%"
+                  label="Frequência média"
+                  value="—"
                   color="success"
                 />
                 <StatCard
