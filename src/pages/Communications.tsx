@@ -280,7 +280,6 @@ export function CommunicationsPage() {
                             <SelectItem value="TEACHERS">Professores</SelectItem>
                             <SelectItem value="STUDENTS">Alunos</SelectItem>
                             <SelectItem value="PARENTS">Responsáveis</SelectItem>
-                            <SelectItem value="VOLUNTEERS">Voluntários</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
