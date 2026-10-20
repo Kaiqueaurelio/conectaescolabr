@@ -25,6 +25,7 @@ export function useUsers(options: UseSupabaseDataOptions = {}) {
       setUsers(data || []);
       setError(null);
     } catch (err) {
+      setUsers([]);
       setError(err instanceof Error ? err.message : "Erro ao buscar usuários");
     } finally {
       setLoading(false);
@@ -51,6 +52,7 @@ export function useUser(userId: string | null, options: UseSupabaseDataOptions =
   const fetchUser = useCallback(async () => {
     if (!userId) {
       setUser(null);
+      setError(null);
       setLoading(false);
       return;
     }
@@ -162,7 +164,7 @@ export function useAttendance(userId: string | null, options: UseSupabaseDataOpt
     try {
       setLoading(true);
       const { data, error: err } = await supabase
-        .from("attendance")
+        .from("attendance_records")
         .select("*")
         .eq("user_id", userId)
         .order("date", { ascending: false });
@@ -196,12 +198,15 @@ export function useUpdateUser() {
   const updateUser = useCallback(async (userId: string, updates: Partial<UserProfile>) => {
     try {
       setLoading(true);
-      const { error: err } = await supabase
+      const { data, error: err } = await supabase
         .from("users")
         .update(updates)
-        .eq("id", userId);
+        .eq("id", userId)
+        .select("id")
+        .maybeSingle();
 
       if (err) throw err;
+      if (!data) throw new Error("Nenhum perfil foi atualizado. Verifique as permissões e o identificador.");
       setError(null);
       return { success: true };
     } catch (err) {
@@ -223,25 +228,13 @@ export function useCreateUser() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const createUser = useCallback(async (user: Omit<UserProfile, "id" | "created_at" | "updated_at">) => {
-    try {
-      setLoading(true);
-      const { data, error: err } = await supabase
-        .from("users")
-        .insert([user])
-        .select()
-        .single();
-
-      if (err) throw err;
-      setError(null);
-      return { success: true, data };
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : "Erro ao criar usuário";
-      setError(errorMsg);
-      return { success: false, error: errorMsg };
-    } finally {
-      setLoading(false);
-    }
+  // A profile row without a corresponding Supabase Auth identity is not a
+  // usable account. Public signup or a server-side admin endpoint must create
+  // the auth identity and profile together; never create orphan profiles here.
+  const createUser = useCallback(async (_user: Omit<UserProfile, "id" | "created_at" | "updated_at">) => {
+    const message = "Criação administrativa desativada: use o cadastro autenticado ou um endpoint seguro que crie a conta e o perfil em conjunto.";
+    setError(message);
+    return { success: false as const, error: message };
   }, []);
 
   return { createUser, loading, error };
