@@ -62,7 +62,7 @@ export function AdminDashboardGlassPage() {
   const [counts, setCounts] = useState<{ students: number | null; activities: number | null; events: number | null; announcements: number | null; benefits: number | null }>({
     students: null, activities: null, events: null, announcements: null, benefits: null,
   });
-  const [monthly, setMonthly] = useState<Array<{ mes: string; presencas: number; benef: number }>>([]);
+  const [monthly, setMonthly] = useState<Array<{ mes: string; presencas: number | null; benef: number | null }>>([]);
   const [announcements, setAnnouncements] = useState<DashboardAnnouncement[]>([]);
   const [loading, setLoading] = useState(true);
   const [queryFailed, setQueryFailed] = useState(false);
