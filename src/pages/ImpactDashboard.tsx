@@ -15,8 +15,8 @@ interface ImpactMetric {
 
 interface TrendData {
   month: string;
-  families: number;
-  baskets: number;
+  families: number | null;
+  baskets: number | null;
   attendance: number | null;
 }
 
@@ -123,9 +123,11 @@ export function ImpactDashboardPage() {
         const present = monthAttendance.filter((row) => row.status === "PRESENT").length;
         return {
           month: date.toLocaleDateString("pt-BR", { month: "short" }),
-          families,
-          baskets,
-          attendance: monthAttendance.length > 0 ? Math.round((present / monthAttendance.length) * 100) : null,
+          families: familiesByMonth.error ? null : families,
+          baskets: benefitsByMonth.error ? null : baskets,
+          attendance: attendanceByMonth.error || monthAttendance.length === 0
+            ? null
+            : Math.round((present / monthAttendance.length) * 100),
         };
       });
 
