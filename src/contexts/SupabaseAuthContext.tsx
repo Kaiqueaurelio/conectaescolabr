@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useRef } from "react";
 import { supabase, UserProfile } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 
@@ -15,6 +15,7 @@ interface AuthContextValue {
   ) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ success: boolean; error?: string }>;
+  setUserStatus: (userId: string, status: "APPROVED" | "REJECTED") => Promise<{ success: boolean; error?: string }>;
   switchChild: (childId: string) => void;
   selectedChildId: string | null;
 }
@@ -26,66 +27,88 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+  const profileRequestId = useRef(0);
 
-  // Initialize auth state
+  // A profile must be loaded from the server for every authenticated session.
+  // Never restore application permissions from localStorage.
   useEffect(() => {
     let active = true;
+    let authEventReceived = false;
 
-    const loadProfile = (authId: string) => {
-      // Run in background — do NOT block the loading flag on this query.
-      supabase
-        .from("users")
-        .select("*")
-        .eq("auth_id", authId)
-        .maybeSingle()
-        .then(({ data: profileData, error }) => {
-          if (!active) return;
-          if (error) {
-            console.error("Error fetching user profile:", error);
-          } else if (profileData) {
-            setUser(profileData as UserProfile);
-          }
-        });
+    const loadProfile = async (authId: string) => {
+      const requestId = ++profileRequestId.current;
+      setUser(null);
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("*")
+          .eq("auth_id", authId)
+          .maybeSingle();
+
+        if (!active || requestId !== profileRequestId.current) return;
+        if (error) {
+          console.error("Erro ao carregar perfil:", error);
+          setUser(null);
+        } else if (!data || !["APPROVED"].includes(data.status)) {
+          setUser(null);
+        } else {
+          setUser(data as UserProfile);
+        }
+      } catch (error) {
+        if (active && requestId === profileRequestId.current) {
+          console.error("Falha inesperada ao carregar perfil:", error);
+          setUser(null);
+        }
+      } finally {
+        if (active && requestId === profileRequestId.current) setLoading(false);
+      }
     };
 
-    // Register listener BEFORE getSession so we never miss events.
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, newSession) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (!active) return;
+      authEventReceived = true;
       setSession(newSession);
       if (newSession?.user) {
-        loadProfile(newSession.user.id);
+        void loadProfile(newSession.user.id);
       } else {
+        profileRequestId.current += 1;
         setUser(null);
+        setSelectedChildId(null);
+        setLoading(false);
       }
     });
 
-    // Resolve loading as soon as we know the local session — don't wait for the
-    // profile round-trip, which can hang on slow networks or RLS issues.
-    supabase.auth
-      .getSession()
-      .then(({ data }) => {
-        if (!active) return;
+    const initialize = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (!active || authEventReceived) return;
+        if (error) throw error;
         setSession(data.session);
         if (data.session?.user) {
-          loadProfile(data.session.user.id);
+          await loadProfile(data.session.user.id);
+        } else {
+          setUser(null);
+          setLoading(false);
         }
-      })
-      .catch((err) => {
-        console.error("Error initializing auth:", err);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+      } catch (error) {
+        console.error("Erro ao inicializar autenticação:", error);
+        if (active) {
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+        }
+      }
+    };
 
-    // Safety net: never let the app stay stuck on a spinner forever.
+    void initialize();
     const timeout = setTimeout(() => {
       if (active) setLoading(false);
-    }, 3000);
+    }, 10000);
 
     return () => {
       active = false;
       clearTimeout(timeout);
-      authListener?.subscription.unsubscribe();
+      authListener.subscription.unsubscribe();
     };
   }, []);
 
@@ -94,41 +117,45 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     password: string
   ): Promise<{ success: boolean; error?: string }> => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return { success: false, error: error.message };
+      if (!data.session?.user) return { success: false, error: "Não foi possível iniciar a sessão." };
 
-      if (error) {
-        return { success: false, error: error.message };
+      const { data: profileData, error: profileError } = await supabase
+        .from("users")
+        .select("*")
+        .eq("auth_id", data.session.user.id)
+        .maybeSingle();
+
+      if (profileError || !profileData) {
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        return {
+          success: false,
+          error: profileError ? "Não foi possível validar seu perfil." : "Seu perfil não está cadastrado. Entre em contato com a administração.",
+        };
       }
 
-      if (data.session?.user) {
-        const { data: profileData, error: profileError } = await supabase
-          .from("users")
-          .select("*")
-          .eq("auth_id", data.session.user.id)
-          .single();
-
-        if (profileError) {
-          return { success: false, error: "Erro ao carregar perfil do usuário" };
-        }
-
-        if (profileData) {
-          const profile = profileData as UserProfile;
-          if (profile.status === "PENDING") {
-            return { success: false, error: "Sua conta está aguardando aprovação" };
-          }
-          if (profile.status === "REJECTED") {
-            return { success: false, error: "Sua conta foi rejeitada" };
-          }
-          setUser(profile);
-        }
+      const profile = profileData as UserProfile;
+      if (profile.status !== "APPROVED") {
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        return {
+          success: false,
+          error: profile.status === "PENDING"
+            ? "Sua conta está aguardando aprovação."
+            : "Sua conta não possui autorização para acessar o sistema.",
+        };
       }
 
+      setSession(data.session);
+      setUser(profile);
+      setLoading(false);
       return { success: true };
     } catch (error) {
-      return { success: false, error: String(error) };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   };
 
@@ -139,36 +166,42 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     role: UserProfile["role"]
   ): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Create auth user
+      if (!fullName.trim() || !email.trim() || !password) {
+        return { success: false, error: "Preencha nome, e-mail e senha." };
+      }
+      // Public registration must never grant administrative or unsupported roles.
+      if (!["TEACHER", "STUDENT", "PARENT"].includes(role)) {
+        return { success: false, error: "Esse tipo de conta não pode ser criado pelo cadastro público." };
+      }
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
+        email: email.trim().toLowerCase(),
         password,
       });
+      if (authError) return { success: false, error: authError.message };
+      if (!authData.user) return { success: false, error: "Erro ao criar usuário." };
 
-      if (authError) {
-        return { success: false, error: authError.message };
-      }
-
-      if (!authData.user) {
-        return { success: false, error: "Erro ao criar usuário" };
-      }
-
-      // Create user profile
       const { error: profileError } = await supabase.from("users").insert({
         auth_id: authData.user.id,
-        email,
-        full_name: fullName,
+        email: email.trim().toLowerCase(),
+        full_name: fullName.trim(),
         role,
         status: "PENDING",
       });
-
       if (profileError) {
-        return { success: false, error: profileError.message };
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        return { success: false, error: "A conta foi criada, mas o perfil não pôde ser registrado. Entre em contato com a administração." };
       }
 
+      // Do not leave an unapproved user with an active app session.
+      await supabase.auth.signOut();
+      setSession(null);
+      setUser(null);
       return { success: true };
     } catch (error) {
-      return { success: false, error: String(error) };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   };
 
@@ -181,24 +214,45 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = async (
     updates: Partial<UserProfile>
   ): Promise<{ success: boolean; error?: string }> => {
+    if (!user) return { success: false, error: "Usuário não autenticado." };
+
+    // Profile edits cannot change authorization or identity linkage fields.
+    const { role: _role, status: _status, auth_id: _authId, id: _id, ...safeUpdates } = updates;
     try {
-      if (!user) {
-        return { success: false, error: "Usuário não autenticado" };
-      }
-
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("users")
-        .update(updates)
-        .eq("id", user.id);
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      setUser({ ...user, ...updates });
+        .update(safeUpdates)
+        .eq("id", user.id)
+        .select("id")
+        .maybeSingle();
+      if (error) return { success: false, error: error.message };
+      if (!data) return { success: false, error: "O perfil não foi atualizado. Verifique as permissões." };
+      setUser({ ...user, ...safeUpdates });
       return { success: true };
     } catch (error) {
-      return { success: false, error: String(error) };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  };
+
+  const setUserStatus = async (
+    userId: string,
+    status: "APPROVED" | "REJECTED"
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (user?.role !== "ADMIN") {
+      return { success: false, error: "Somente administradores podem alterar o status de contas." };
+    }
+    try {
+      const { data, error } = await supabase
+        .from("users")
+        .update({ status })
+        .eq("id", userId)
+        .select("id")
+        .maybeSingle();
+      if (error) return { success: false, error: error.message };
+      if (!data) return { success: false, error: "O status não foi alterado. Verifique as permissões e o usuário selecionado." };
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   };
 
@@ -216,6 +270,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         updateProfile,
+        setUserStatus,
         switchChild,
         selectedChildId,
       }}
