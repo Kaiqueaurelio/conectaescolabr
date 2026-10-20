@@ -13,6 +13,7 @@ export function isAuthorizedProfile(
     profile.role === "ADMIN" ||
     profile.role === "TEACHER" ||
     profile.role === "STUDENT" ||
-    profile.role === "PARENT"
+    profile.role === "PARENT" ||
+    profile.role === "VOLUNTEER"
   );
 }
