@@ -217,7 +217,7 @@ export function ImpactDashboardPage() {
                   stroke="#01965c"
                   strokeWidth={2}
                   dot={{ fill: "#01965c" }}
-                  name="Famílias"
+                  name="Responsáveis"
                 />
                 <Line
                   type="monotone"
