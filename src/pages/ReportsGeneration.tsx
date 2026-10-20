@@ -30,7 +30,15 @@ export function ReportsGenerationPage() {
   const [history, setHistory] = useState<Array<{ name: string; date: string; format: string }>>(() => {
     try {
       const saved = localStorage.getItem("conectaescola_report_history_v1");
-      return saved ? JSON.parse(saved) : [];
+      const parsed: unknown = saved ? JSON.parse(saved) : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((item): item is { name: string; date: string; format: string } =>
+        item !== null &&
+        typeof item === "object" &&
+        typeof item.name === "string" &&
+        typeof item.date === "string" &&
+        typeof item.format === "string"
+      ).slice(0, 20);
     } catch {
       return [];
     }
