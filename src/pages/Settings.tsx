@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useData } from "@/contexts/DataContext";
 import { Bell, Moon, User as UserIcon, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -27,6 +28,7 @@ const defaultPrefs: Prefs = { notifications: true, emailDigest: false, darkMode:
 
 export default function Settings() {
   const { user, updateProfile } = useAuth();
+  const { resetAll } = useData();
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
   const [name, setName] = useState(user?.name || "");
 
@@ -54,9 +56,10 @@ export default function Settings() {
   };
 
   const clearLocal = () => {
+    resetAll();
     localStorage.removeItem("camila_data_v2");
     localStorage.removeItem("camila_data_v3_clean");
-    toast.success("Dados legados do protótipo removidos. Os dados do servidor foram preservados.");
+    toast.success("Dados locais do protótipo restaurados ao estado inicial. Os dados do Supabase não foram alterados.");
   };
 
   return (
@@ -87,7 +90,7 @@ export default function Settings() {
 
       <Card className="p-5 border-destructive/30">
         <h2 className="text-sm font-semibold flex items-center gap-2 mb-2 text-destructive"><Trash2 className="h-4 w-4" /> Zona perigosa</h2>
-        <p className="text-xs text-muted-foreground mb-3">Remove apenas dados legados do protótipo deste navegador. Os dados salvos no servidor e as preferências atuais não serão apagados.</p>
+        <p className="text-xs text-muted-foreground mb-3">Restaura os dados de demonstração deste navegador ao estado inicial. Os dados salvos no Supabase e as preferências não serão apagados.</p>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="outline" size="sm" className="text-destructive border-destructive/40">Limpar dados locais</Button>
@@ -95,7 +98,7 @@ export default function Settings() {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Limpar dados locais?</AlertDialogTitle>
-              <AlertDialogDescription>Isso não remove dados do Supabase. Somente a chave legada do protótipo será removida.</AlertDialogDescription>
+              <AlertDialogDescription>Os dados de demonstração locais serão restaurados ao estado inicial. Os dados do Supabase não serão alterados.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
