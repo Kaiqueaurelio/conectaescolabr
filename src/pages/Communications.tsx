@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ModernLayout, ModernCard, ModernSection, ModernEmptyState } from "@/components/ModernLayout";
 import { ModernTopBar, ModernPageHeader, ModernTabs } from "@/components/ModernTopBar";
 import { ModernSidebar } from "@/components/ModernSidebar";
@@ -33,7 +33,7 @@ export function CommunicationsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
   const [savingAnnouncement, setSavingAnnouncement] = useState(false);
-  const loadAnnouncements = async () => {
+  const loadAnnouncements = useCallback(async () => {
     setLoadingAnnouncements(true);
     const { data, error } = await supabase
       .from("announcements")
@@ -70,11 +70,11 @@ export function CommunicationsPage() {
       // esse valor como se estivesse persistido.
     })));
     setLoadingAnnouncements(false);
-  };
+  }, []);
 
   useEffect(() => {
     void loadAnnouncements();
-  }, []);
+  }, [loadAnnouncements]);
 
   const [newAnnouncement, setNewAnnouncement] = useState({
     title: "",
