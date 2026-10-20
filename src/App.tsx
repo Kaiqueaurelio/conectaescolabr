@@ -27,7 +27,7 @@ import { AdminDashboardGlassPage as AdminDashboardNewPage } from "./pages/AdminD
 import { UsersListGlassPage as UsersListPage } from "./pages/UsersListGlass";
 import { UserProfilePage } from "./pages/UserProfile";
 import { SocialRecordPage } from "./pages/SocialRecord";
-import { AttendanceGlassPage as AttendanceAdvancedPage } from "./pages/AttendanceGlass";
+import { AttendanceGlassPage } from "./pages/AttendanceGlass";
 import { BenefitsGlassPage as BenefitsManagementPage } from "./pages/BenefitsGlass";
 import { CommunicationsPage } from "./pages/Communications";
 import { SmartCalendarPage } from "./pages/SmartCalendar";
