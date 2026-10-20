@@ -78,7 +78,6 @@ export function SmartCalendarPage({ readOnly = false }: { readOnly?: boolean } =
     date: new Date().toISOString().split("T")[0],
     time: "09:00",
     location: "",
-    type: "activity" as "event" | "activity" | "holiday",
   });
 
   const monthDays = useMemo(() => {
