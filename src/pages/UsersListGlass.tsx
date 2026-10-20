@@ -26,10 +26,9 @@ import {
   Search,
   Plus,
   Edit,
-  Trash2,
   Eye,
   Mail,
-  Phone,
+  AlertTriangle,
 } from "lucide-react";
 
 export function UsersListGlassPage() {
@@ -39,8 +38,6 @@ export function UsersListGlassPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [profileFilter, setProfileFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
-  const [clearingUsers, setClearingUsers] = useState(false);
 
   const sidebarItems = [
     { label: "Dashboard", href: "/admin/dashboard", icon: "📊" },
@@ -87,9 +84,8 @@ export function UsersListGlassPage() {
     return users.filter((user) => {
       const query = searchQuery.toLowerCase();
       const matchesSearch =
-        user.full_name.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query) ||
-        (user.cpf || "").includes(searchQuery);
+        (user.full_name || "").toLowerCase().includes(query) ||
+        (user.email || "").toLowerCase().includes(query);
 
       const matchesProfile =
         profileFilter === "all" || user.role === profileFilter;
@@ -98,64 +94,6 @@ export function UsersListGlassPage() {
       return matchesSearch && matchesProfile && matchesStatus;
     });
   }, [users, searchQuery, profileFilter, statusFilter]);
-
-  const handleDeleteUser = async (user: UserProfile) => {
-    if (user.id === currentUser?.id) {
-      toast({ title: "Não é possível excluir sua própria conta logada." });
-      return;
-    }
-
-    const confirmed = window.confirm(`Remover definitivamente ${user.full_name || user.email}?`);
-    if (!confirmed) return;
-
-    setDeletingUserId(user.id);
-    const { data, error: deleteError } = await supabase
-      .from("users")
-      .delete()
-      .eq("id", user.id)
-      .select("id")
-      .maybeSingle();
-    setDeletingUserId(null);
-
-    if (deleteError || !data) {
-      toast({
-        title: "Não foi possível remover",
-        description: deleteError?.message || "Verifique se você está logado como administrador aprovado.",
-      });
-      return;
-    }
-
-    toast({ title: "Usuário removido com sucesso." });
-    await refetch();
-  };
-
-  const handleClearUsers = async () => {
-    const removableIds = users.filter((user) => user.id !== currentUser?.id).map((user) => user.id);
-    if (removableIds.length === 0) {
-      toast({ title: "Não há outros usuários para remover." });
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Remover definitivamente ${removableIds.length} usuário(s)? Sua conta logada será mantida para você não perder o acesso.`
-    );
-    if (!confirmed) return;
-
-    setClearingUsers(true);
-    const { error: clearError } = await supabase
-      .from("users")
-      .delete()
-      .in("id", removableIds);
-    setClearingUsers(false);
-
-    if (clearError) {
-      toast({ title: "Não foi possível limpar usuários", description: clearError.message });
-      return;
-    }
-
-    toast({ title: "Usuários removidos com sucesso." });
-    await refetch();
-  };
 
   return (
     <GlassLayout
@@ -173,6 +111,10 @@ export function UsersListGlassPage() {
       onSearch={setSearchQuery}
     >
       <GlassContainer>
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-muted-foreground">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
+          A exclusão direta está desativada para evitar contas órfãs: a aplicação ainda precisa de uma operação segura que remova o usuário do Supabase Auth e o perfil de forma coordenada.
+        </div>
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -185,20 +127,9 @@ export function UsersListGlassPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-          {users.length > 1 && (
-            <Button
-              variant="destructive"
-              className="gap-2 rounded-lg"
-              onClick={handleClearUsers}
-              disabled={clearingUsers}
-            >
-              <Trash2 className="w-4 h-4" />
-              {clearingUsers ? "Limpando..." : "Limpar tudo"}
-            </Button>
-          )}
-          <Button className="gap-2 rounded-lg" onClick={() => navigate("/admin/users/new")}>
+          <Button className="gap-2 rounded-lg" onClick={() => toast({ title: "Cadastro direto indisponível", description: "A pessoa deve usar o cadastro público; depois, aprove o perfil nesta lista." })}>
             <Plus className="w-4 h-4" />
-            Novo Usuário
+            Orientar cadastro
           </Button>
           </div>
         </div>
@@ -271,9 +202,9 @@ export function UsersListGlassPage() {
               title="Nenhum usuário encontrado"
               description="Tente ajustar seus filtros ou criar um novo usuário"
               action={
-                <Button className="gap-2" onClick={() => navigate("/admin/users/new")}>
+                <Button className="gap-2" onClick={() => toast({ title: "Cadastro direto indisponível", description: "Use o cadastro público e depois aprove o perfil nesta lista." })}>
                   <Plus className="w-4 h-4" />
-                  Novo Usuário
+                  Orientar cadastro
                 </Button>
               }
             />
@@ -298,12 +229,6 @@ export function UsersListGlassPage() {
                             <Mail className="w-4 h-4" />
                             {user.email}
                           </div>
-                          {user.phone && (
-                            <div className="flex items-center gap-1">
-                              <Phone className="w-4 h-4" />
-                              {user.phone}
-                            </div>
-                          )}
                         </div>
 
                         <div className="flex items-center gap-2 mt-3">
@@ -347,16 +272,6 @@ export function UsersListGlassPage() {
                         onClick={() => navigate(`/admin/users/${user.id}`)}
                       >
                         <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-lg text-destructive hover:text-destructive"
-                        title="Deletar"
-                        onClick={() => handleDeleteUser(user)}
-                        disabled={deletingUserId === user.id}
-                      >
-                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
