@@ -238,9 +238,12 @@ export function UsersListGlassPage() {
               title="Nenhum usuário encontrado"
               description="Tente ajustar seus filtros ou criar um novo usuário"
               action={
-                <Button className="gap-2" onClick={() => navigate("/admin/users/new")}>
+                <Button className="gap-2" onClick={() => toast({
+                  title: "Cadastro de novas contas",
+                  description: "A criação administrativa ainda não está conectada a um endpoint seguro. Oriente a pessoa a solicitar cadastro na tela de login.",
+                })}>
                   <Plus className="w-4 h-4" />
-                  Novo Usuário
+                  Orientações de cadastro
                 </Button>
               }
             />
@@ -319,7 +322,7 @@ export function UsersListGlassPage() {
                         variant="outline"
                         size="sm"
                         className="rounded-lg text-destructive hover:text-destructive"
-                        title="Deletar"
+                        title="Bloquear acesso"
                         onClick={() => handleBlockUser(user)}
                         disabled={deletingUserId === user.id}
                       >
