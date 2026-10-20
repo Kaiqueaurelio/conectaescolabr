@@ -129,52 +129,63 @@ export function CommunicationsPage() {
     }
 
     setSavingAnnouncement(true);
-    const { data, error } = await supabase
-      .from("announcements")
-      .insert({
-        title: newAnnouncement.title.trim(),
-        content: newAnnouncement.content.trim(),
-        author_id: currentUser.id,
-        target_roles: newAnnouncement.target,
-      })
-      .select("id,title,content,author_id,target_roles,created_at")
-      .single();
-    setSavingAnnouncement(false);
+    try {
+      const { data, error } = await supabase
+        .from("announcements")
+        .insert({
+          title: newAnnouncement.title.trim(),
+          content: newAnnouncement.content.trim(),
+          author_id: currentUser.id,
+          target_roles: newAnnouncement.target,
+        })
+        .select("id,title,content,author_id,target_roles,created_at")
+        .single();
 
-    if (error || !data) {
-      console.error("Erro ao publicar comunicado:", error);
-      toast.error("O comunicado não foi salvo. Verifique as permissões e a estrutura da tabela announcements.");
-      return;
+      if (error || !data) {
+        console.error("Erro ao publicar comunicado:", error);
+        toast.error("O comunicado não foi salvo. Verifique as permissões e a estrutura da tabela announcements.");
+        return;
+      }
+
+      const announcement: Announcement = {
+        id: data.id,
+        title: data.title,
+        content: data.content,
+        author: currentUser.full_name || "Equipe",
+        target: data.target_roles ?? [],
+        created_at: data.created_at,
+      };
+      setAnnouncements((previous) => [announcement, ...previous]);
+      setNewAnnouncement({ title: "", content: "", target: [] });
+      toast.success("Comunicado salvo no banco de dados.");
+    } catch (error) {
+      console.error("Falha inesperada ao publicar comunicado:", error);
+      toast.error("O comunicado não foi salvo. Tente novamente.");
+    } finally {
+      setSavingAnnouncement(false);
     }
-
-    const announcement: Announcement = {
-      id: data.id,
-      title: data.title,
-      content: data.content,
-      author: currentUser.full_name || "Equipe",
-      target: data.target_roles ?? [],
-      created_at: data.created_at,
-    };
-    setAnnouncements((previous) => [announcement, ...previous]);
-    setNewAnnouncement({ title: "", content: "", target: [] });
-    toast.success("Comunicado salvo no banco de dados.");
   };
 
   const handleDeleteAnnouncement = async (id: string) => {
     if (!window.confirm("Remover este comunicado?")) return;
-    const { data, error } = await supabase
-      .from("announcements")
-      .delete()
-      .eq("id", id)
-      .select("id")
-      .maybeSingle();
-    if (error || !data) {
-      console.error("Erro ao remover comunicado:", error);
-      toast.error("Não foi possível remover o comunicado. Verifique suas permissões.");
-      return;
+    try {
+      const { data, error } = await supabase
+        .from("announcements")
+        .delete()
+        .eq("id", id)
+        .select("id")
+        .maybeSingle();
+      if (error || !data) {
+        console.error("Erro ao remover comunicado:", error);
+        toast.error("Não foi possível remover o comunicado. Verifique suas permissões.");
+        return;
+      }
+      setAnnouncements((previous) => previous.filter((announcement) => announcement.id !== id));
+      toast.success("Comunicado removido do banco de dados.");
+    } catch (error) {
+      console.error("Falha inesperada ao remover comunicado:", error);
+      toast.error("Não foi possível remover o comunicado.");
     }
-    setAnnouncements((previous) => previous.filter((announcement) => announcement.id !== id));
-    toast.success("Comunicado removido do banco de dados.");
   };
 
 
