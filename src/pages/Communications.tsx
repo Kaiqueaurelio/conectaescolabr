@@ -73,7 +73,12 @@ export function CommunicationsPage() {
   }, []);
 
   useEffect(() => {
-    void loadAnnouncements();
+    void loadAnnouncements().catch((error) => {
+      console.error("Falha inesperada ao carregar comunicados:", error);
+      setAnnouncements([]);
+      setLoadingAnnouncements(false);
+      toast.error("Não foi possível carregar comunicados do banco.");
+    });
   }, [loadAnnouncements]);
 
   useEffect(() => {
