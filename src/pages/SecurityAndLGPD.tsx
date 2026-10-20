@@ -315,28 +315,26 @@ export function SecurityAndLGPDPage() {
                     </p>
                   </div>
 
-                  <Button onClick={handleChangePassword} className="w-full">
+                  <Button onClick={handleChangePassword} disabled={changingPassword} className="w-full">
                     <Lock className="w-4 h-4 mr-2" />
-                    Alterar Senha
+                    {changingPassword ? "Alterando..." : "Alterar Senha"}
                   </Button>
                 </div>
               </ModernCard>
 
-              {/* Sessões Ativas */}
+              {/* Sessão atual */}
               <ModernCard className="p-6">
-                <h3 className="font-semibold text-foreground mb-4">Sessões Ativas</h3>
-                <div className="space-y-3">
-                  <div className="p-4 border border-border rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-medium text-foreground">Navegador Atual</p>
-                        <p className="text-sm text-muted-foreground">Chrome - Windows 10</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Última atividade: agora
-                        </p>
-                      </div>
-                      <CheckCircle className="w-5 h-5 text-success" />
-                    </div>
+                <h3 className="font-semibold text-foreground mb-4">Sessão atual</h3>
+                <div className="flex items-start gap-3 rounded-lg border border-border p-4">
+                  <CheckCircle className="w-5 h-5 text-success" />
+                  <div>
+                    <p className="font-medium text-foreground">Autenticação ativa</p>
+                    <p className="text-sm text-muted-foreground">
+                      {currentUser?.email || "Conta autenticada"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      A aplicação não possui permissão para listar todos os dispositivos ou sessões da conta.
+                    </p>
                   </div>
                 </div>
               </ModernCard>
@@ -361,19 +359,20 @@ export function SecurityAndLGPDPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <Button
-                    onClick={handleExportData}
+                    onClick={() => void handleExportData()}
+                    disabled={exporting}
                     variant="outline"
                     className="h-auto py-4 flex flex-col items-center justify-center"
                   >
                     <Download className="w-6 h-6 mb-2" />
-                    <span>Exportar Meus Dados</span>
+                    <span>{exporting ? "Preparando exportação..." : "Exportar Meus Dados"}</span>
                     <span className="text-xs text-muted-foreground mt-1">
-                      Receba uma cópia de todos os seus dados
+                      Baixe os dados pessoais disponíveis nas tabelas consultadas
                     </span>
                   </Button>
 
                   <Button
-                    onClick={handleRequestDeletion}
+                    onClick={() => void handleRequestDeletion()}
                     variant="outline"
                     className="h-auto py-4 flex flex-col items-center justify-center"
                   >
@@ -428,13 +427,7 @@ export function SecurityAndLGPDPage() {
                             </span>
 
                             {req.status === "completed" && req.type === "export" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleDownloadData(req.id)}
-                              >
-                                <Download className="w-4 h-4" />
-                              </Button>
+                              <span className="text-xs text-muted-foreground">Arquivo já baixado</span>
                             )}
                           </div>
                         </div>
@@ -444,18 +437,15 @@ export function SecurityAndLGPDPage() {
                 </div>
               </ModernCard>
 
-              {/* Política de Privacidade */}
+              {/* Rascunho da política */}
               <ModernCard className="p-6">
-                <h3 className="font-semibold text-foreground mb-4">Política de Privacidade</h3>
-                <Textarea
-                  value="Política de Privacidade da ONG Camila\n\nNós respeitamos sua privacidade e nos comprometemos a proteger seus dados pessoais. Esta política descreve como coletamos, usamos e protegemos suas informações...\n\nPara mais informações, entre em contato com nossa coordenação."
-                  readOnly
-                  rows={6}
-                  className="mb-4"
-                />
-                <Button variant="outline" className="w-full">
+                <h3 className="font-semibold text-foreground mb-2">Política de Privacidade</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Ainda não há uma política oficial aprovada pela organização. Não apresentaremos um texto genérico como política completa.
+                </p>
+                <Button variant="outline" className="w-full" onClick={handleDownloadPrivacyDraft}>
                   <Download className="w-4 h-4 mr-2" />
-                  Baixar Política Completa
+                  Baixar rascunho para revisão
                 </Button>
               </ModernCard>
             </div>
@@ -465,39 +455,38 @@ export function SecurityAndLGPDPage() {
           {activeTab === "audit" && (
             <div className="space-y-6 mt-6">
               <ModernSection title="Log de Atividades">
-                <div className="space-y-2">
-                  {[
-                    {
-                      action: "Login realizado",
-                      timestamp: new Date().toISOString(),
-                      ip: "192.168.1.100",
-                    },
-                    {
-                      action: "Perfil atualizado",
-                      timestamp: new Date(Date.now() - 3600000).toISOString(),
-                      ip: "192.168.1.100",
-                    },
-                    {
-                      action: "Senha alterada",
-                      timestamp: new Date(Date.now() - 86400000).toISOString(),
-                      ip: "192.168.1.100",
-                    },
-                  ].map((log, index) => (
-                    <ModernCard key={index} className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-medium text-foreground">{log.action}</p>
+                {loadingAuditLogs ? (
+                  <p className="text-sm text-muted-foreground">Carregando registros de auditoria...</p>
+                ) : auditLogs.length === 0 ? (
+                  <ModernEmptyState
+                    icon={<AlertCircle />}
+                    title="Nenhum registro de auditoria disponível"
+                    description="Os registros reais aparecerão aqui quando estiverem acessíveis no banco. Endereços IP e atividades não são inventados."
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {auditLogs.map((log) => (
+                      <ModernCard key={log.id} className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-medium text-foreground">
+                              {log.action === "PASSWORD_CHANGED" ? "Senha alterada" :
+                               log.action === "LGPD_DATA_EXPORT" ? "Exportação de dados" :
+                               log.action === "LGPD_DATA_DELETION_REQUEST" ? "Solicitação de exclusão" :
+                               log.action.replace(/_/g, " ").toLowerCase()}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {log.details?.status === "pending" ? "Status: pendente de análise" : "Evento registrado no servidor"}
+                            </p>
+                          </div>
                           <p className="text-xs text-muted-foreground">
-                            IP: {log.ip}
+                            {new Date(log.created_at).toLocaleString("pt-BR")}
                           </p>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(log.timestamp).toLocaleString("pt-BR")}
-                        </p>
-                      </div>
-                    </ModernCard>
-                  ))}
-                </div>
+                      </ModernCard>
+                    ))}
+                  </div>
+                )}
               </ModernSection>
             </div>
           )}
