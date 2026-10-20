@@ -11,11 +11,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 const faqs = [
-  { q: "Como registrar a chamada?", a: "Acesse 'Fazer Chamada' no menu, selecione a turma e a data, marque a situação de cada aluna (Presente, Falta ou Justificada) e toque em 'Salvar Chamada'. Os registros são salvos e computados para a frequência da aluna." },
+  { q: "Como registrar a chamada?", a: "Acesse 'Presença', selecione uma atividade e a data, marque a situação de cada aluno e toque em 'Salvar chamada'. Os registros são gravados no banco quando a conexão e as permissões estão disponíveis." },
   { q: "Como enviar um comunicado?", a: "Na seção 'Comunicados', toque no botão '+' (canto superior direito) — disponível para professores e administradores. Selecione o público-alvo (todos, responsáveis, alunos ou professores) e publique." },
-  { q: "Onde visualizar a frequência do meu filho(a)?", a: "No painel do responsável, a frequência é atualizada automaticamente após o registro da chamada pela professora. Você também pode acompanhar comunicados e próximos eventos." },
+  { q: "Onde visualizar a frequência do meu filho(a)?", a: "A área de frequência dos filhos ainda não está disponível porque o vínculo seguro entre responsáveis e alunos precisa ser configurado no banco. Os comunicados e eventos publicados podem ser consultados." },
   { q: "Esqueci minha senha, o que fazer?", a: "Entre em contato com a coordenação através do telefone ou e-mail fornecidos abaixo. Em breve, teremos uma opção de redefinição automática de senha." },
-  { q: "O aplicativo funciona offline?", a: "Sim. Após o primeiro acesso, o aplicativo pode ser instalado no celular (opção 'Adicionar à tela inicial') e continuará funcionando offline para visualização de conteúdo já carregado." },
+  { q: "O aplicativo funciona offline?", a: "O aplicativo pode ser instalado no celular, mas as funções que consultam ou gravam dados no servidor precisam de internet. O suporte offline completo ainda não está implementado." },
   { q: "Como instalar o aplicativo no celular?", a: "Abra o link no navegador (Chrome para Android ou Safari para iPhone), toque em 'Compartilhar' e selecione 'Adicionar à Tela Inicial'. O aplicativo será adicionado como um ícone na sua tela inicial." },
 ];
 
