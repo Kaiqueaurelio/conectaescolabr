@@ -239,8 +239,14 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
   ): Promise<{ success: boolean; error?: string }> => {
     if (!user) return { success: false, error: "Usuário não autenticado." };
 
-    // Profile edits cannot change authorization or identity linkage fields.
-    const { role: _role, status: _status, auth_id: _authId, id: _id, ...safeUpdates } = updates;
+    // Only non-sensitive profile fields are editable through this method.
+    // Sensitive fields must go through the encrypted secure-profile endpoint.
+    const safeUpdates: Partial<UserProfile> = {};
+    if (typeof updates.full_name === "string") safeUpdates.full_name = updates.full_name.trim();
+    if (typeof updates.avatar_url === "string" || updates.avatar_url === null) safeUpdates.avatar_url = updates.avatar_url;
+    if (Object.keys(safeUpdates).length === 0) {
+      return { success: false, error: "Nenhum campo de perfil permitido para atualização foi informado." };
+    }
     try {
       const { data, error } = await supabase
         .from("users")
@@ -265,6 +271,17 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: "Somente administradores podem alterar o status de contas." };
     }
     try {
+      const { data: target, error: targetError } = await supabase
+        .from("users")
+        .select("id,role")
+        .eq("id", userId)
+        .maybeSingle();
+      if (targetError) return { success: false, error: targetError.message };
+      if (!target) return { success: false, error: "Usuário não encontrado." };
+      if (!["ADMIN", "TEACHER", "STUDENT", "PARENT"].includes(target.role)) {
+        return { success: false, error: "Esse perfil ainda não possui uma área de acesso configurada e não pode ser aprovado." };
+      }
+
       const { data, error } = await supabase
         .from("users")
         .update({ status })
