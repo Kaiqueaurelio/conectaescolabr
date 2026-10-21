@@ -38,8 +38,9 @@ async function decNum(key: CryptoKey, p: string | null): Promise<number> {
   }
 }
 const toInt = (v: unknown) => {
-  const n = Math.floor(Number(v));
-  return Number.isFinite(n) && n >= 0 && n <= 1_000_000 ? n : null;
+  if (v === null || v === undefined || (typeof v === "string" && !v.trim())) return null;
+  const n = Number(v);
+  return Number.isSafeInteger(n) && n >= 0 && n <= 1_000_000 ? n : null;
 };
 
 Deno.serve(async (req) => {
@@ -89,8 +90,9 @@ Deno.serve(async (req) => {
 
     if (action === "adjust") {
       const id = String(body?.id ?? "");
-      const delta = Math.trunc(Number(body?.delta));
-      if (!id || !Number.isFinite(delta) || Math.abs(delta) > 100000) return json({ error: "Dados inválidos" }, 400);
+      const rawDelta = body?.delta;
+      const delta = typeof rawDelta === "string" && rawDelta.trim() ? Number(rawDelta) : Number(rawDelta);
+      if (!id || !Number.isSafeInteger(delta) || Math.abs(delta) > 100000) return json({ error: "Dados inválidos" }, 400);
       const { data: r } = await admin.from("benefit_items").select("quantity_enc").eq("id", id).maybeSingle();
       if (!r) return json({ error: "Item não encontrado" }, 404);
       const currentQuantity = await decNum(key, r.quantity_enc);
