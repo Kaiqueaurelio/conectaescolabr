@@ -23,6 +23,7 @@ Atualizado em 20/10/2026. Este documento separa correções aplicadas no código
 - A tela de documentos não simula OCR; valida arquivos e permite baixar o original temporário.
 - Aprovação/rejeição de cadastros agora tem ações explícitas; criação administrativa de contas não finge funcionar sem endpoint seguro.
 - Protegidos os campos de e-mail e papel contra alterações não confirmadas ou autoalterações de papel.
+- Estoque criptografado rejeita quantidades inválidas, valores fracionários, ajustes vazios e operações que excedam o limite permitido; valores descriptografados malformados não são convertidos silenciosamente em zero.
 - Corrigidos estados de erro e dados antigos que podiam continuar aparecendo após falhas de consulta.
 
 ## Médios — corrigidos no código
