@@ -91,7 +91,10 @@ Deno.serve(async (req) => {
     if (action === "adjust") {
       const id = String(body?.id ?? "");
       const rawDelta = body?.delta;
-      const delta = typeof rawDelta === "string" && rawDelta.trim() ? Number(rawDelta) : Number(rawDelta);
+      if (rawDelta === null || rawDelta === undefined || (typeof rawDelta === "string" && !rawDelta.trim())) {
+        return json({ error: "Dados inválidos" }, 400);
+      }
+      const delta = Number(rawDelta);
       if (!id || !Number.isSafeInteger(delta) || Math.abs(delta) > 100000) return json({ error: "Dados inválidos" }, 400);
       const { data: r } = await admin.from("benefit_items").select("quantity_enc").eq("id", id).maybeSingle();
       if (!r) return json({ error: "Item não encontrado" }, 404);
