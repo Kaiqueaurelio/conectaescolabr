@@ -23,11 +23,18 @@ async function decNum(key: CryptoKey, p: string | null): Promise<number> {
   try {
     const [, iv, d] = p.split(".");
     const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: fromB64(iv) }, key, fromB64(d));
-    return Number(dec.decode(plain)) || 0;
+    const decoded = dec.decode(plain);
+    const quantity = Number(decoded);
+    // A valid AES-GCM payload can still contain malformed plaintext if it was
+    // written by an older or incorrect client. Never coerce that to zero.
+    if (!decoded.trim() || !Number.isSafeInteger(quantity) || quantity < 0 || quantity > 1_000_000) {
+      throw new Error("Quantidade criptografada inválida.");
+    }
+    return quantity;
   } catch {
     // Never reinterpret corrupted ciphertext or a wrong key as zero stock.
     // Returning zero here could silently overwrite real inventory quantities.
-    throw new Error("Não foi possível descriptografar a quantidade. A operação foi cancelada para preservar o estoque.");
+    throw new Error("Não foi possível descriptografar uma quantidade válida. A operação foi cancelada para preservar o estoque.");
   }
 }
 const toInt = (v: unknown) => {
