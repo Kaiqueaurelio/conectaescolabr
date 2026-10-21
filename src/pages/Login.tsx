@@ -10,6 +10,7 @@ import heroImg from "@/assets/hero-education.jpg";
 import Logo from "@/components/Logo";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Role } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Login() {
   const { user, login, register } = useAuth();
@@ -44,6 +45,28 @@ export default function Login() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      toast.error("Digite seu e-mail no campo acima para receber o link de redefinição.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        redirectTo: window.location.origin + "/login",
+      });
+      if (error) {
+        toast.error("Não foi possível solicitar a redefinição. Confira o e-mail e tente novamente.");
+      } else {
+        toast.success("Se esse e-mail estiver cadastrado, você receberá um link para redefinir a senha.", { description: "Confira também a caixa de spam." });
+      }
+    } catch {
+      toast.error("Falha de conexão ao solicitar a redefinição. Tente novamente.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return toast.error("Informe seu nome completo.");
@@ -150,7 +173,8 @@ export default function Login() {
                 {!isRegister && (
                   <button
                     type="button"
-                    onClick={() => toast.info("Por favor, entre em contato com a coordenação para redefinir sua senha.")}
+                    onClick={() => void handleForgotPassword()}
+                    disabled={submitting}
                     className="text-xs font-medium text-primary hover:underline"
                   >
                     Esqueci minha senha
