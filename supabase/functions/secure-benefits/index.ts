@@ -101,6 +101,7 @@ Deno.serve(async (req) => {
       const currentQuantity = await decNum(key, r.quantity_enc);
       const q = currentQuantity + delta;
       if (q < 0) return json({ error: "Quantidade insuficiente para registrar essa saída." }, 409);
+      if (q > 1_000_000) return json({ error: "A quantidade não pode ultrapassar 1.000.000 unidades." }, 400);
       // Compare-and-swap prevents two simultaneous adjustments from silently
       // overwriting each other with a stale decrypted quantity.
       const { data: updated, error } = await admin
