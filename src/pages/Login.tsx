@@ -37,6 +37,8 @@ export default function Login() {
     if (error) {
       if (error.startsWith("Seu cadastro foi finalizado e enviado para aprovação.")) {
         toast.success(error);
+      } else if (error.toLowerCase().includes("invalid login credentials")) {
+        toast.error("E-mail ou senha incorretos. Confira os dados ou use Esqueci minha senha para redefinir o acesso.");
       } else {
         toast.error(error);
       }
